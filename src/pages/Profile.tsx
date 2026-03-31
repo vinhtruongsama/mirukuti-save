@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Camera, Edit2, Info, Loader2, User as UserIcon, ChevronDown, ChevronUp, Sparkles, Compass } from 'lucide-react';
+import { Camera, Edit2, Loader2, User as UserIcon, Compass, ChevronDown, ChevronUp, Sparkles, X, ChevronRight } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -29,13 +29,14 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [showFullProfile, setShowFullProfile] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   // 1. Fetch Profile Data (Join with current year's membership)
   const { data: profileData, isLoading: isProfileLoading } = useQuery({
     queryKey: ['profile', currentUser?.id, selectedYear?.id],
     queryFn: async () => {
       if (!currentUser || !selectedYear) return null;
-      
+
       const { data: user, error } = await supabase
         .from('users')
         .select(`*, club_memberships(*)`)
@@ -154,7 +155,7 @@ export default function Profile() {
         .eq('activities.academic_year_id', selectedYear.id);
 
       if (error) throw error;
-      
+
       // Sort in frontend by date descending
       return data.sort((a: any, b: any) => new Date(b.activities.date).getTime() - new Date(a.activities.date).getTime());
     },
@@ -163,8 +164,8 @@ export default function Profile() {
 
   if (isProfileLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-4rem)] bg-brand-stone-900">
-         <Loader2 className="w-8 h-8 text-brand-emerald-500 animate-spin" />
+      <div className="flex justify-center items-center h-[calc(100vh-4.5rem)] bg-white">
+        <Loader2 className="w-8 h-8 text-[#4F5BD5] animate-spin" />
       </div>
     );
   }
@@ -172,282 +173,321 @@ export default function Profile() {
   if (!profileData) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <h1 className="text-4xl font-serif text-brand-stone-50 mb-10 tracking-tight">プロフィール設定</h1>
+    <div className="h-[calc(100vh-4.5rem)] bg-[#F8F9FC] overflow-hidden relative font-sans">
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* Left Column: Profile Card */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-brand-stone-800/20 border border-brand-stone-800 rounded-sm p-6 overflow-hidden relative">
-            
+      {/* Re-opening Trigger: Red Triangle / Chevron */}
+      <AnimatePresence>
+        {!isSidebarVisible && (
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            onClick={() => setIsSidebarVisible(true)}
+            className="absolute left-0 top-[15%] z-50 w-10 h-24 bg-rose-500 text-white rounded-r-3xl flex items-center justify-center shadow-lg shadow-rose-200 hover:w-12 transition-all group"
+          >
+            <ChevronRight className="w-6 h-6 group-hover:scale-125 transition-transform" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sidebar Backdrop Overlay */}
+      <AnimatePresence>
+        {isSidebarVisible && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarVisible(false)}
+            className="lg:hidden absolute inset-0 bg-black/20 backdrop-blur-sm z-[15]"
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="h-full flex overflow-hidden">
+
+        {/* Left Sidebar: Profile Identity */}
+        <motion.aside 
+          animate={{ 
+            width: isSidebarVisible ? (window.innerWidth < 1024 ? '100%' : 380) : 0,
+            opacity: isSidebarVisible ? 1 : 0,
+            x: isSidebarVisible ? 0 : -380
+          }}
+          transition={{ type: "spring", damping: 30, stiffness: 250 }}
+          className={`bg-white border-r border-brand-stone-100 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.02)] z-20 shrink-0 overflow-hidden ${
+            window.innerWidth < 1024 ? 'absolute inset-y-0 left-0 max-w-[320px]' : 'relative'
+          }`}
+        >
+          {/* Close Button (X) */}
+          <button 
+            onClick={() => setIsSidebarVisible(false)}
+            className="absolute top-6 right-4 p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all z-30"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="p-8 w-[320px] lg:w-[380px] flex-1 flex flex-col items-center">
             {/* Avatar Section */}
-            <div className="flex flex-col items-center mb-8 relative">
-              <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-brand-stone-800 bg-brand-stone-900 shadow-xl">
+            <div className="relative group mb-6">
+              <div className="w-24 h-24 rounded-[2rem] overflow-hidden bg-brand-stone-50 border-[6px] border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-all duration-500 transform-gpu">
                 {profileData.avatar_url ? (
                   <img src={profileData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-brand-stone-700">
+                  <div className="w-full h-full flex items-center justify-center text-brand-stone-200 bg-gradient-to-br from-brand-stone-50 to-brand-stone-100">
                     <UserIcon className="w-12 h-12" />
                   </div>
                 )}
-                
-                {/* Upload Overlay */}
-                <div 
-                  className={`absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${avatarMutation.isPending ? 'opacity-100' : ''}`}
-                  onClick={() => !avatarMutation.isPending && fileInputRef.current?.click()}
+                <div
+                  className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer ${avatarMutation.status === 'pending' ? 'opacity-100' : ''}`}
+                  onClick={() => avatarMutation.status !== 'pending' && fileInputRef.current?.click()}
                 >
-                  {avatarMutation.isPending ? (
-                    <Loader2 className="w-6 h-6 text-brand-emerald-400 animate-spin" />
+                  {avatarMutation.status === 'pending' ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
                   ) : (
-                    <Camera className="w-6 h-6 text-brand-stone-200" />
+                    <Camera className="w-6 h-6 text-white" />
                   )}
                 </div>
-                <input 
-                  type="file" 
-                  accept="image/jpeg, image/png" 
-                  ref={fileInputRef} 
-                  onChange={handleAvatarChange} 
-                  className="hidden" 
-                />
               </div>
-              <h2 className="text-2xl font-serif text-brand-stone-50 mt-4 leading-none">{profileData.full_name}</h2>
-              <p className="text-brand-stone-400 mt-2 text-sm tracking-wide uppercase font-medium">{profileData.mssv}</p>
-              
+              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" />
+
+              {/* Role Badge Floating */}
               {activeMembership && (
-                <div className="mt-4 px-4 py-1.5 flex items-center gap-2 bg-brand-emerald-950/30 border border-brand-emerald-500/20 text-brand-emerald-400 text-[10px] font-bold uppercase tracking-widest rounded-full">
-                   {activeMembership.role === 'admin' ? '管理者' : 
-                    activeMembership.role === 'executive' ? '幹部' : 
-                    activeMembership.role === 'alumni' ? 'OB/OG' : 'メンバー'}
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-[#4F5BD5] text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-[#4F5BD5]/30 whitespace-nowrap">
+                  {activeMembership.role === 'admin' ? '管理者' :
+                    activeMembership.role === 'executive' ? '幹部' :
+                      activeMembership.role === 'alumni' ? 'OB/OG' : 'メンバー'}
                 </div>
               )}
             </div>
 
-            {/* Info Section - Collapsible */}
-            <div className="pt-6 border-t border-brand-stone-800/50">
-              <div className="space-y-4 text-sm font-medium">
-                <div className="flex items-center justify-between">
-                  <span className="text-brand-stone-500">メールアドレス</span>
-                  <span className="text-brand-stone-200 select-all">{profileData.email}</span>
-                </div>
-                
-                <AnimatePresence>
-                  {showFullProfile && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden space-y-4 pt-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-brand-stone-500">フリガナ</span>
-                        <span className="text-brand-stone-200">{profileData.full_name_furigana || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-brand-stone-500">国籍</span>
-                        <span className="text-brand-stone-200">{profileData.nationality || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-brand-stone-500">学部・部署</span>
-                        <span className="text-brand-stone-200">{activeMembership?.department || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-brand-stone-500">学年・クラス</span>
-                        <span className="text-brand-stone-200">{activeMembership?.university_year || '-'}年 {activeMembership?.class_name || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-brand-stone-500">電話番号</span>
-                        <span className="text-brand-stone-200">{profileData.phone || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-brand-stone-500">LINE ID</span>
-                        <span className="text-brand-stone-200">{profileData.line_id || '—'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-brand-stone-500">出身地</span>
-                        <span className="text-brand-stone-200">{profileData.hometown || '—'}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <button 
-                onClick={() => setShowFullProfile(!showFullProfile)}
-                className="w-full mt-6 flex items-center justify-center gap-2 py-2 text-xs font-bold uppercase tracking-widest text-brand-stone-500 hover:text-brand-emerald-400 transition-colors group"
-              >
-                {showFullProfile ? (
-                  <>表示を減らす <ChevronUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" /></>
-                ) : (
-                  <>詳細を表示 <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" /></>
-                )}
-              </button>
+            <div className="text-center w-full space-y-1 mb-6">
+              <h2 className="text-2xl font-black tracking-tighter text-brand-stone-900">{profileData.full_name}</h2>
             </div>
 
-            {/* Edit Button */}
-            <div className="mt-8">
-              <Dialog.Root open={modalOpen} onOpenChange={setModalOpen}>
-                <Dialog.Trigger asChild>
-                  <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-stone-800 hover:bg-brand-stone-700 text-brand-stone-200 text-sm font-bold rounded-2xl border border-brand-stone-700/50 transition-all active:scale-[0.98]">
-                    <Edit2 className="w-4 h-4" /> プロフィールを更新
+            {/* Info Section - Collapsible / Reveal on Click */}
+            <div className="w-full pt-8 border-t border-brand-stone-50">
+              <div className="relative">
+                {!showFullProfile ? (
+                  <button
+                    onClick={() => setShowFullProfile(true)}
+                    className="w-full py-4 flex items-center justify-between px-6 bg-[#F8F9FC] rounded-2xl group/reveal hover:bg-[#4F5BD5]/5 transition-all"
+                  >
+                    <span className="text-[16px] font-black uppercase tracking-widest text-brand-stone-400 group-hover/reveal:text-[#D62976] transition-colors">詳細情報を表示</span>
+                    <ChevronDown className="w-4 h-4 text-brand-stone-300 group-hover/reveal:text-[#4F5BD5] group-hover/reveal:translate-y-0.5 transition-all" />
                   </button>
-                </Dialog.Trigger>
-                <Dialog.Portal>
-                  <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-                  <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border border-brand-stone-800 bg-brand-stone-900 p-8 shadow-2xl sm:rounded-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
-                    <Dialog.Title className="text-2xl font-serif text-brand-stone-50 mb-2">プロフィール編集</Dialog.Title>
-                    
-                    <form onSubmit={handleSubmit((d) => updateProfileMutation.mutate(d))} className="space-y-4">
-                      
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-brand-stone-500 pl-1">氏名(漢字または ROMAJI)</label>
-                          <input {...register('full_name')} className="w-full bg-brand-stone-800/50 border border-brand-stone-700 text-brand-stone-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-emerald-500 transition-all shadow-inner" />
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6"
+                  >
+                    <div className="flex items-center justify-between px-2">
+                      <span className="text-[16px] font-black uppercase tracking-widest text-[#4F5BD5]">詳細情報を表示</span>
+                      <button onClick={() => setShowFullProfile(false)} className="group/hide">
+                        <ChevronUp className="w-5 h-5 text-brand-stone-300 group-hover/hide:text-brand-stone-900 transition-colors" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs font-black uppercase tracking-widest text-brand-stone-400">Email Address</span>
+                        <span className="text-base font-bold text-brand-stone-600 truncate">{profileData.email}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs font-black uppercase tracking-widest text-brand-stone-400">Nationality</span>
+                          <span className="text-base font-bold text-brand-stone-600">{profileData.nationality || '—'}</span>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-brand-stone-500 pl-1">フリガナ</label>
-                          <input {...register('full_name_furigana')} className="w-full bg-brand-stone-800/50 border border-brand-stone-700 text-brand-stone-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-emerald-500 transition-all shadow-inner" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-brand-stone-500 pl-1">国籍</label>
-                          <input {...register('nationality')} className="w-full bg-brand-stone-800/50 border border-brand-stone-700 text-brand-stone-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-emerald-500 transition-all shadow-inner" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-brand-stone-500 pl-1">電話番号</label>
-                          <input {...register('phone')} className="w-full bg-brand-stone-800/50 border border-brand-stone-700 text-brand-stone-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-emerald-500 transition-all shadow-inner" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-brand-stone-500 pl-1">LINEのニックネーム</label>
-                          <input {...register('line_id')} className="w-full bg-brand-stone-800/50 border border-brand-stone-700 text-brand-stone-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-emerald-500 transition-all shadow-inner" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-brand-stone-500 pl-1">出身地</label>
-                          <input {...register('hometown')} className="w-full bg-brand-stone-800/50 border border-brand-stone-700 text-brand-stone-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-emerald-500 transition-all shadow-inner" />
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs font-black uppercase tracking-widest text-brand-stone-400">Department</span>
+                          <span className="text-base font-bold text-brand-stone-600">{activeMembership?.department || '—'}</span>
                         </div>
                       </div>
 
-                      <div className="pt-6 flex justify-end gap-3">
-                        <Dialog.Close asChild>
-                          <button type="button" className="px-5 py-2.5 hover:bg-brand-stone-800 text-brand-stone-400 text-sm font-bold rounded-xl transition-colors">キャンセル</button>
-                        </Dialog.Close>
-                        <button 
-                          type="submit" 
-                          disabled={updateProfileMutation.isPending}
-                          className="px-8 py-2.5 bg-brand-stone-50 hover:bg-white text-brand-stone-900 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/20 active:scale-95"
-                        >
-                          {updateProfileMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                          保存する
-                        </button>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs font-black uppercase tracking-widest text-brand-stone-400">Phone / Hometown</span>
+                        <span className="text-base font-bold text-brand-stone-600">
+                          {profileData.phone || 'N/A'} • {profileData.hometown || '—'}
+                        </span>
                       </div>
-                    </form>
-                  </Dialog.Content>
-                </Dialog.Portal>
-              </Dialog.Root>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Right Column: Registrations History */}
-        <div className="lg:col-span-2">
-          <div className="bg-brand-stone-900 border border-brand-stone-800 rounded-sm h-full">
-            <div className="p-6 border-b border-brand-stone-800 flex items-center justify-between">
-              <h3 className="text-xl font-serif text-brand-stone-50">活動履歴</h3>
-              <div className="text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 bg-brand-stone-800/50 text-brand-stone-400 rounded-full border border-brand-stone-700/50">
-                {selectedYear?.name}学年度
+          {/* Action Footer */}
+          <div className="p-8 bg-brand-stone-50/50">
+            <Dialog.Root open={modalOpen} onOpenChange={setModalOpen}>
+              <Dialog.Trigger asChild>
+                <button className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-brand-stone-900 hover:bg-black text-white text-sm font-black rounded-2xl transition-all shadow-xl shadow-brand-stone-900/10 active:scale-95 group">
+                  <Edit2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                  プロフィールを編集
+                </button>
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 bg-black/20 backdrop-blur-md z-[100]" />
+                <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white border border-brand-stone-100 p-10 shadow-2xl rounded-[2.5rem] z-[101]">
+                  <Dialog.Title className="text-3xl font-black tracking-tighter text-brand-stone-900 mb-6">Edit Identity</Dialog.Title>
+                  <form onSubmit={handleSubmit((d) => updateProfileMutation.mutate(d))} className="space-y-5">
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-stone-400 pl-1">Full Name</label>
+                        <input {...register('full_name')} className="w-full bg-[#F8F9FC] border-none rounded-xl px-5 py-3 text-sm font-bold text-brand-stone-900 focus:ring-2 focus:ring-[#4F5BD5] transition-all" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-stone-400 pl-1">Name Furigana</label>
+                        <input {...register('full_name_furigana')} className="w-full bg-[#F8F9FC] border-none rounded-xl px-5 py-3 text-sm font-bold text-brand-stone-900 focus:ring-2 focus:ring-[#4F5BD5] transition-all" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-stone-400 pl-1">Nationality</label>
+                        <input {...register('nationality')} className="w-full bg-[#F8F9FC] border-none rounded-xl px-5 py-3 text-sm font-bold text-brand-stone-900 focus:ring-2 focus:ring-[#4F5BD5] transition-all" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-stone-400 pl-1">Phone Number</label>
+                        <input {...register('phone')} className="w-full bg-[#F8F9FC] border-none rounded-xl px-5 py-3 text-sm font-bold text-brand-stone-900 focus:ring-2 focus:ring-[#4F5BD5] transition-all" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-brand-stone-400 pl-1">Hometown</label>
+                      <input {...register('hometown')} className="w-full bg-[#F8F9FC] border-none rounded-xl px-5 py-3 text-sm font-bold text-brand-stone-900 focus:ring-2 focus:ring-[#4F5BD5] transition-all" />
+                    </div>
+                    <div className="pt-8 flex justify-end gap-3">
+                      <Dialog.Close asChild>
+                        <button type="button" className="px-6 py-3 text-brand-stone-400 text-sm font-black hover:text-brand-stone-900 transition-colors">Cancel</button>
+                      </Dialog.Close>
+                      <button
+                        type="submit"
+                        disabled={updateProfileMutation.status === 'pending'}
+                        className="px-10 py-3 bg-[#4F5BD5] hover:bg-[#3D4AB5] text-white text-sm font-black rounded-2xl transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                      >
+                        {updateProfileMutation.status === 'pending' && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Save Profile
+                      </button>
+                    </div>
+                  </form>
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
+          </div>
+        </motion.aside>
+
+        {/* Right Content: Activity Log (Synchronized Layout Animation) */}
+        <motion.main 
+          layout
+          transition={{ type: "spring", damping: 28, stiffness: 220 }}
+          className="flex-1 flex flex-col overflow-hidden"
+        >
+          
+          {/* Dashboard Header */}
+          <motion.header 
+            layout
+            className="px-6 lg:px-10 py-6 lg:py-8 flex items-center justify-between border-b border-brand-stone-100 bg-white/50 backdrop-blur-md shrink-0"
+          >
+            <div className="flex items-center gap-3 lg:gap-4">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-[#4F5BD5]/10 flex items-center justify-center text-[#4F5BD5]">
+                <Compass className="w-5 h-5 lg:w-6 lg:h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg lg:text-xl font-black tracking-tight text-brand-stone-900">活動ログ</h3>
+                <p className="text-[10px] lg:text-xs font-bold text-brand-stone-400 uppercase tracking-widest">Activity History</p>
               </div>
             </div>
 
-            <div className="p-6">
-              {isHistoryLoading ? (
-                <div className="py-20 flex justify-center">
-                  <Loader2 className="w-6 h-6 text-brand-stone-500 animate-spin" />
-                </div>
-              ) : historyData && historyData.length > 0 ? (
-                <div className="relative border-l border-brand-stone-800 pl-6 ml-3 space-y-10">
-                  {historyData.map((reg: any) => {
-                    const activity = reg.activities;
-                    const isMissing = reg.attendance_status === 'unexcused_absence';
-                    const isExcused = reg.attendance_status === 'excused_absence';
-                    const isPresent = reg.attendance_status === 'present';
-                    const isPending = !reg.attendance_status || reg.attendance_status === 'pending';
-
-                    let badgeProps = { label: '出席確認中', color: 'text-brand-stone-400 bg-brand-stone-800 border-brand-stone-700' };
-                    if (isPresent) badgeProps = { label: '出席', color: 'text-brand-emerald-400 bg-brand-emerald-950/40 border-brand-emerald-500/30' };
-                    if (isExcused) badgeProps = { label: '公欠', color: 'text-amber-400 bg-amber-950/40 border-amber-500/30' };
-                    if (isMissing) badgeProps = { label: '欠席', color: 'text-rose-400 bg-rose-950/40 border-rose-500/30' };
-
-                    return (
-                      <div key={reg.id} className="relative">
-                        {/* Timeline Dot */}
-                        <div className={`absolute -left-[31px] top-1.5 w-3 h-3 rounded-full border-2 border-brand-stone-900 ${
-                            isPending ? 'bg-brand-stone-600' : 
-                            isPresent ? 'bg-brand-emerald-500' : 
-                            isExcused ? 'bg-amber-500' : 'bg-rose-500'
-                          }`}
-                        />
-                        
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                          <div>
-                            <h4 className="text-lg font-serif text-brand-stone-100 group-hover:text-brand-emerald-400 transition-colors">
-                              {activity.title}
-                            </h4>
-                            <p className="text-sm text-brand-stone-400 mt-1 flex items-center gap-2">
-                              {format(new Date(activity.date), 'dd/MM/yyyy HH:mm')} 
-                              <span className="w-1 h-1 rounded-full bg-brand-stone-700 block"></span>
-                              <span className="truncate max-w-[200px]">{activity.location}</span>
-                            </p>
-                          </div>
-
-                          <div className="flex flex-col sm:items-end gap-2 shrink-0">
-                            <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest rounded-sm border ${badgeProps.color} inline-block whitespace-nowrap`}>
-                              {badgeProps.label}
-                            </span>
-                          </div>
-                        </div>
-
-                        {reg.admin_note && (
-                          <div className="mt-3 bg-brand-stone-800/30 border border-brand-stone-800 p-3 rounded-sm">
-                            <p className="text-xs text-brand-stone-400 italic flex gap-2">
-                              <Info className="w-3.5 h-3.5 text-brand-stone-500 shrink-0 mt-0.5" />
-                              "{reg.admin_note}"
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-24 text-center flex flex-col items-center relative overflow-hidden group">
-                  {/* Background Decoration */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-brand-emerald-500/5 to-transparent pointer-events-none" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-brand-emerald-500/10 blur-[100px] rounded-full group-hover:bg-brand-emerald-500/20 transition-colors duration-1000" />
-
-                  <div className="relative z-10">
-                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-stone-800 to-brand-stone-900 flex items-center justify-center mb-6 mx-auto shadow-2xl border border-brand-stone-700/50 group-hover:rotate-6 transition-transform duration-500">
-                      <Sparkles className="w-10 h-10 text-brand-emerald-400 animate-pulse" />
-                    </div>
-                    
-                    <h3 className="text-2xl font-serif text-brand-stone-50 mb-3 tracking-tight">新しい冒険が待っています</h3>
-                    <p className="text-brand-stone-400 text-base max-w-[320px] mx-auto leading-relaxed mb-10">
-                      ボランティア活動に参加して、一緒に素晴らしい価値を広めましょう。
-                    </p>
-                    
-                    <button 
-                      onClick={() => window.location.href = '/activities'}
-                      className="group/btn flex items-center gap-2 px-8 py-4 bg-brand-stone-50 hover:bg-white text-brand-stone-900 rounded-2xl font-bold text-sm transition-all shadow-xl shadow-black/20 hover:scale-105 active:scale-95"
-                    >
-                      <Compass className="w-4 h-4 group-hover/btn:rotate-90 transition-transform duration-500" />
-                      今すぐ探す
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand-stone-400">Current Academic Year</span>
+                <span className="text-sm font-black text-[#D62976]">{selectedYear?.name}</span>
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.header>
 
+          {/* List Section: Scrollable purely here */}
+          <div className="flex-1 overflow-y-auto p-10 scrollbar-thin scrollbar-thumb-brand-stone-200">
+            {isHistoryLoading ? (
+              <div className="h-full flex justify-center items-center">
+                <Loader2 className="w-8 h-8 text-[#4F5BD5]/20 animate-spin" />
+              </div>
+            ) : historyData && historyData.length > 0 ? (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                {historyData.map((reg: any) => {
+                  const activity = reg.activities;
+                  const isPresent = reg.attendance_status === 'present';
+                  const isMissing = reg.attendance_status === 'unexcused_absence';
+                  const isExcused = reg.attendance_status === 'excused_absence';
+
+                  return (
+                    <motion.div
+                      key={reg.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group bg-white border border-brand-stone-100/50 p-6 rounded-3xl hover:shadow-[0_20px_40px_rgba(0,0,0,0.03)] hover:border-[#4F5BD5]/20 transition-all duration-500 relative overflow-hidden"
+                    >
+                      {/* Status Accent Strip */}
+                      <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${isPresent ? 'bg-emerald-400' :
+                        isMissing ? 'bg-rose-400' :
+                          isExcused ? 'bg-amber-400' : 'bg-[#4F5BD5]/20'
+                        }`} />
+
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-brand-stone-400 tracking-[0.2em] uppercase">
+                            {format(new Date(activity.date), 'yyyy.MM.dd')}
+                          </span>
+                          <h4 className="text-lg font-black text-brand-stone-900 leading-tight group-hover:text-[#4F5BD5] transition-colors">
+                            {activity.title}
+                          </h4>
+                        </div>
+                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${isPresent ? 'text-emerald-500 bg-emerald-50 border-emerald-100' :
+                          isMissing ? 'text-rose-500 bg-rose-50 border-rose-100' :
+                            isExcused ? 'text-amber-500 bg-amber-50 border-amber-100' :
+                              'text-brand-stone-400 bg-brand-stone-50 border-brand-stone-100'
+                          }`}>
+                          {isPresent ? 'Present' : isMissing ? 'Absent' : isExcused ? 'Excused' : 'Confirmed'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs font-bold text-brand-stone-500">
+                        <span className="flex items-center gap-1.5 truncate">
+                          <Compass className="w-3.5 h-3.5 text-brand-stone-300" />
+                          {activity.location}
+                        </span>
+                      </div>
+
+                      {reg.admin_note && (
+                        <div className="mt-4 pt-4 border-t border-brand-stone-50">
+                          <p className="text-[11px] text-brand-stone-500 italic leading-relaxed">
+                            "{reg.admin_note}"
+                          </p>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
+                <div className="w-24 h-24 rounded-[2rem] bg-white shadow-2xl flex items-center justify-center mb-8 relative">
+                  <div className="absolute inset-0 bg-[#4F5BD5]/5 blur-3xl rounded-full" />
+                  <Sparkles className="w-10 h-10 text-[#4F5BD5]" />
+                </div>
+                <h3 className="text-2xl font-black tracking-tighter text-brand-stone-900 mb-3">新しい冒険が待っています</h3>
+                <p className="text-sm font-bold text-brand-stone-400 leading-relaxed mb-8">
+                  ボランティア活動に参加して、ミルクティと一緒に素晴らしい価値を広めましょう。
+                </p>
+                <button
+                  onClick={() => window.location.href = '/activities'}
+                  className="px-10 py-4 bg-[#4F5BD5] hover:bg-[#3D4AB5] text-white rounded-2xl font-black text-sm shadow-xl shadow-[#4F5BD5]/20 active:scale-95 transition-all"
+                >
+                  Activityを見つける
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.main>
       </div>
     </div>
   );
