@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Antique&family=Zen+Old+Mincho:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-stone-900 text-brand-stone-50 antialiased;
+    font-family: Meiryo, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', system-ui, sans-serif;
+    line-height: 1.8;
+  }
+  
+  h1, h2, h3, h4, h5, h6, button, input {
+    font-family: Meiryo, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', system-ui, sans-serif;
+    line-height: 1.4;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-brand-stone-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-brand-stone-700 rounded;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-brand-stone-600;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
