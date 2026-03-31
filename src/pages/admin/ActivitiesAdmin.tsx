@@ -250,7 +250,6 @@ export default function ActivitiesAdmin() {
       
       toast.success('画像を生成し、最適化しました');
     } catch (err: any) {
-      console.error(err);
       toast.error('エラー: ' + err.message);
     } finally {
       setIsProcessingImage(false);

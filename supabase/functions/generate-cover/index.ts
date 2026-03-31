@@ -10,10 +10,6 @@ const CORS_HEADERS = {
 // Use environment variable for the HF token
 const HF_ACCESS_TOKEN = Deno.env.get("HUGGINGFACE_ACCESS_TOKEN") || "";
 
-if (!HF_ACCESS_TOKEN) {
-  console.warn("WARNING: HUGGINGFACE_ACCESS_TOKEN is not set. Hugging Face API calls will fail.");
-}
-
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -48,7 +44,6 @@ Deno.serve(async (req: Request) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Error calling Hugging Face' }));
-      console.error("HF Error:", errorData);
       return new Response(
         JSON.stringify({ error: `Hugging Face API error: ${response.status}`, details: errorData }),
         { status: response.status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
@@ -73,7 +68,6 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
-    console.error("Internal Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }

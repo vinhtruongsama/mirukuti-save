@@ -44,7 +44,6 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen
       reset();
       onClose();
     } catch (error: any) {
-      console.error('Forgot password error:', error);
       setIsShake(true);
       setTimeout(() => setIsShake(false), 500);
       toast.error(error.message || '情報が正しくないか、エラーが発生しました。');

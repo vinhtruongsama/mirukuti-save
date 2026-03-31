@@ -329,7 +329,7 @@ export default function Activities() {
                     <h3 className="text-xl font-black text-brand-stone-900">活動内容</h3>
                     <div className="w-full sm:w-auto">
                       <button
-                        onClick={() => !currentUser ? navigate('/login') : console.log('Apply')}
+                        onClick={() => !currentUser ? navigate('/login') : void(0)}
                         className={`w-full sm:w-auto group rounded-xl transition-all duration-300 flex items-center justify-center gap-3 font-black ${selectedActivity.computedStatus === 'OPEN' ? 'bg-gradient-to-r from-[#4F5BD5] to-[#D62976] text-white hover:brightness-110 hover:translate-y-[-2px] px-8 py-4 text-sm shadow-lg' : 'bg-rose-50 text-rose-500 border border-rose-100 px-6 py-3 text-[11px] uppercase cursor-not-allowed'}`}
                         disabled={selectedActivity.computedStatus !== 'OPEN'}
                       >

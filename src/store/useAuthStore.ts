@@ -42,7 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
 
       if (userError) {
-        console.error('Error fetching user:', userError);
+        // Handle error silently in production
       }
 
       // Fetch all memberships for this user
@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .is('deleted_at', null);
 
       if (membershipsError) {
-        console.error('Error fetching memberships:', membershipsError);
+        // Handle error silently in production
       }
 
       set({
@@ -68,7 +68,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       get().updateCurrentRole();
       
     } catch (err) {
-      console.error('Auth setup failed:', err);
       // Even if data fetch fails, session is valid
       set({ session, currentUser: null, memberships: [], currentRole: null });
     } finally {

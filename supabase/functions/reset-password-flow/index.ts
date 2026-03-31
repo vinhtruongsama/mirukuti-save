@@ -61,7 +61,6 @@ Deno.serve(async (req) => {
     )
 
     if (updateError) {
-      console.error('Update Auth Error:', updateError)
       throw new Error('Không thể cập nhật mật khẩu tạm thời')
     }
 
@@ -96,7 +95,6 @@ Deno.serve(async (req) => {
     const resendData = await resendResponse.json()
 
     if (!resendResponse.ok) {
-      console.error('Resend Error:', resendData)
       throw new Error('Không thể gửi email mật khẩu tạm thời')
     }
 
@@ -109,7 +107,6 @@ Deno.serve(async (req) => {
     )
 
   } catch (error: any) {
-    console.error('Function Error:', error)
     return new Response(
       JSON.stringify({ error: error.message || 'Lỗi hệ thống' }),
       { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
