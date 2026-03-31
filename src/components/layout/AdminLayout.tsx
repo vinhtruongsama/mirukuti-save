@@ -1,8 +1,18 @@
+// 1. React & Routing
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarDays, LogOut, Home, Menu as MenuIcon, Calendar as CalendarIcon } from 'lucide-react';
+
+// 2. Third-party Libraries (Icons)
+import { 
+  LayoutDashboard, 
+  Users, 
+  CalendarDays, 
+  LogOut, 
+  Menu as MenuIcon 
+} from 'lucide-react';
+
+// 3. Internal Components & Stores
 import { useAuthStore } from '../../store/useAuthStore';
 import { YearSelector } from '../ui/YearSelector';
-import { motion } from 'framer-motion';
 
 const ADMIN_NAVIGATION = [
   { name: 'ダッシュボード', to: '/admin', icon: LayoutDashboard },

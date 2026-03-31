@@ -1,13 +1,36 @@
+// 1. React & Framework Core
 import { useState, useMemo, useCallback, useRef } from 'react';
+
+// 2. Third-party Libraries
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Search, Plus, Edit2, Trash2, Shield, Loader2, FilterX, X, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, UserPlus, FileUp } from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
-import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as Dialog from '@radix-ui/react-dialog';
+import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
+
+// 3. Icons (Lucide)
+import { 
+  Search, 
+  Edit2, 
+  Trash2, 
+  Loader2, 
+  FilterX, 
+  X, 
+  UserPlus, 
+  FileUp,
+  Plus,
+  Shield,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  Download
+} from 'lucide-react';
+
+// 4. Internal Utilities & Stores
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useDebounce } from '../../hooks/useDebounce';
