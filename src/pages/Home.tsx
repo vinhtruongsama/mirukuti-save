@@ -72,7 +72,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex flex-col gap-3.5 w-full mt-4 lg:mt-0"
+                className="flex flex-col gap-2 w-full mt-4 lg:-mt-10"
               >
                 {/* Conditional Admin Button */}
                 {session && currentRole === 'admin' && (
