@@ -21,73 +21,83 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[1500px] mx-auto px-6 py-20 flex flex-col lg:grid lg:grid-cols-[1.8fr_1fr] gap-12 lg:gap-20 items-center justify-center">
-          
-          {/* Left Side: Cinematic Typography */}
-          <div className="flex flex-col gap-10 text-center lg:text-left items-center lg:items-start w-full order-2 lg:order-1">
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-4xl sm:text-6xl md:text-7xl lg:text-[6.5rem] font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)] leading-[1.15] md:leading-[1.1]"
-            >
-              <div className="inline-block lg:block">ボランティアを通じて</div>
-              <div className="bg-gradient-to-r from-[#FEDA75] via-[#D62976] to-[#4F5BD5] bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(0,0,0,0.2)] inline-block lg:block">新しい出会い</div>
-            </motion.h1>
-          </div>
+        <div className="relative z-10 w-full h-full flex items-center justify-center p-[8%] lg:p-[10%]">
+          <div className="w-full max-w-[1400px] flex flex-col lg:grid lg:grid-cols-[1.5fr_1fr] gap-12 lg:gap-16 items-center">
+            
+            {/* Left Side: Cinematic Typography */}
+            <div className="flex flex-col gap-8 text-center lg:text-left items-center lg:items-start w-full order-2 lg:order-1">
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-[5.2rem] font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)] leading-[1.1] md:leading-[1.05]"
+              >
+                <div className="inline-block lg:block">ボランティアを通じて</div>
+                <div className="bg-gradient-to-r from-[#FEDA75] via-[#D62976] to-[#4F5BD5] bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(0,0,0,0.2)] inline-block lg:block">新しい出会い</div>
+              </motion.h1>
+              
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.8 }}
+                transition={{ delay: 0.5 }}
+                className="text-white/70 text-sm md:text-lg font-medium tracking-[0.2em] uppercase"
+              >
+                Volunteer Club Management System
+              </motion.p>
+            </div>
 
-          {/* Right Side: Action Group (Mascot + Buttons) */}
-          <div className="flex flex-col items-center lg:items-end justify-center w-full max-w-md lg:max-w-none order-1 lg:order-2">
-            <motion.div
-              animate={{
-                scale: [1, 1.05, 1],
-                y: [0, -10, 0],
-                rotate: [0, 2, -2, 0]
-              }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="relative w-48 h-48 sm:w-64 sm:h-64 lg:w-[420px] lg:h-[420px] mb-6 lg:mb-0"
-            >
-              <img
-                src="/logo-sitdown.png"
-                alt="Mascot Logo"
-                className="w-full h-full object-contain drop-shadow-[0_30px_60px_rgba(79,91,213,0.3)]"
-              />
-              <div className="absolute inset-0 bg-[#4F5BD5]/10 blur-[120px] -z-10 rounded-full" />
-            </motion.div>
+            {/* Right Side: Action Group (Mascot + Buttons) */}
+            <div className="flex flex-col items-center lg:items-end justify-center w-full max-w-sm lg:max-w-none order-1 lg:order-2">
+              <motion.div
+                animate={{
+                  scale: [1, 1.03, 1],
+                  y: [0, -8, 0],
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="relative w-40 h-40 sm:w-56 sm:h-56 lg:w-[320px] lg:h-[320px] mb-8 lg:mb-4"
+              >
+                <img
+                  src="/logo-sitdown.png"
+                  alt="Mascot Logo"
+                  className="w-full h-full object-contain drop-shadow-[0_25px_50px_rgba(79,91,213,0.3)]"
+                />
+                <div className="absolute inset-0 bg-[#4F5BD5]/10 blur-[100px] -z-10 rounded-full" />
+              </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-col gap-4 w-full mt-4 lg:-mt-12"
-            >
-              {/* Conditional Admin Button */}
-              {session && currentRole === 'admin' && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex flex-col gap-3.5 w-full mt-4 lg:mt-0"
+              >
+                {/* Conditional Admin Button */}
+                {session && currentRole === 'admin' && (
+                  <Link 
+                    to="/admin" 
+                    className="w-full px-8 py-4 bg-gradient-to-r from-[#FEDA75] to-[#FFD700] text-[#0A0F1D] font-black text-lg lg:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-brand-stone-900/20 flex items-center justify-center no-underline border border-white/40 group/admin"
+                  >
+                    <span className="group-hover/admin:tracking-widest transition-all duration-500">管理ページ</span>
+                  </Link>
+                )}
+
                 <Link 
-                  to="/admin" 
-                  className="w-full px-8 py-5 sm:px-12 sm:py-6 bg-gradient-to-r from-[#FEDA75] to-[#FFD700] text-[#0A0F1D] font-black text-xl sm:text-2xl rounded-full transition-all hover:scale-[1.03] active:scale-95 shadow-[0_20px_45px_-10px_rgba(254,218,117,0.4)] flex items-center justify-center no-underline border border-white/40 group/admin"
+                  to={session ? "/profile" : "/login"} 
+                  className="w-full px-8 py-4 bg-[#4F5BD5] hover:bg-[#3D4AB5] text-white font-black text-lg lg:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#4F5BD5]/20 flex items-center justify-center no-underline border border-white/20"
                 >
-                  <span className="group-hover/admin:tracking-widest transition-all duration-500">管理ページ</span>
+                  {session ? "マイページ" : "今すぐ登録"}
                 </Link>
-              )}
-
-              <Link 
-                to={session ? "/profile" : "/login"} 
-                className="w-full px-8 py-5 sm:px-12 sm:py-6 bg-[#4F5BD5] hover:bg-[#3D4AB5] text-white font-black text-xl sm:text-2xl rounded-full transition-all hover:scale-[1.03] active:scale-95 shadow-[0_20px_45px_-10px_rgba(79,91,213,0.5)] flex items-center justify-center no-underline border border-white/20"
-              >
-                {session ? "マイページ" : "今すぐ登録"}
-              </Link>
-              <Link 
-                to="/activities" 
-                className="w-full px-8 py-5 sm:px-12 sm:py-6 bg-white hover:bg-stone-50 text-[#D62976] font-black text-xl sm:text-2xl rounded-full transition-all hover:scale-[1.03] active:scale-95 shadow-[0_20px_45px_-10px_rgba(0,0,0,0.1)] flex items-center justify-center no-underline border border-[#D62976]/20"
-              >
-                活動を見る
-              </Link>
-            </motion.div>
+                <Link 
+                  to="/activities" 
+                  className="w-full px-8 py-4 bg-white hover:bg-stone-50 text-[#D62976] font-black text-lg lg:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/5 flex items-center justify-center no-underline border border-[#D62976]/10"
+                >
+                  活動を見る
+                </Link>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
