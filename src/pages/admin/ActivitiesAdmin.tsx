@@ -5,10 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Search, Plus, Edit2, Trash2, CalendarDays, Loader2, Camera, MapPin, Users, Activity, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, MapPin, Users } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -258,246 +259,338 @@ export default function ActivitiesAdmin() {
   }, [watchTitle, optimizeImage]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div>
-          <h1 className="text-4xl font-serif text-brand-stone-50 mb-2 tracking-tight">イベント管理</h1>
-          <p className="text-sm text-brand-stone-400 font-medium">{selectedYear?.name} 年度</p>
-        </div>
-        
-        <button 
-          onClick={() => openForm()}
-          className="flex items-center gap-2 px-6 py-3 bg-brand-emerald-600 hover:bg-brand-emerald-500 text-white rounded-xl text-sm font-bold transition-all active:scale-[0.98] shadow-lg shadow-brand-emerald-950/20"
-        >
-          <Plus className="w-5 h-5" /> イベントを追加
-        </button>
+    <div className="min-h-screen relative overflow-hidden p-4 lg:pt-4 lg:px-10">
+      {/* Dynamic Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <motion.div 
+          animate={{ 
+            x: [0, 40, 0],
+            y: [0, -60, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4F5BD5]/10 blur-[120px] rounded-full" 
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, -50, 0],
+            y: [0, 40, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-[5%] left-[-10%] w-[600px] h-[600px] bg-[#FEDA75]/5 blur-[150px] rounded-full" 
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.15, 1],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[20%] left-[20%] w-[400px] h-[400px] bg-[#D62976]/10 blur-[100px] rounded-full" 
+        />
       </div>
 
-      <div className="bg-brand-stone-800/20 p-6 border border-brand-stone-800 rounded-2xl backdrop-blur-sm">
-        <div className="relative max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-stone-500" />
-          <input 
-            type="text"
-            placeholder="イベント名、場所で検索..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-3 bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all placeholder:text-brand-stone-600"
-          />
+      <div className="relative z-10 max-w-[1600px] mx-auto space-y-6">
+        {/* Header Section: Compacted */}
+        <div className="flex flex-row justify-between items-center pb-4 border-b border-white/5">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex-1"
+          >
+             <div className="flex items-center gap-2 mb-1">
+                <div className="w-1 h-5 bg-gradient-to-b from-[#D62976] to-[#4F5BD5] rounded-full" />
+                <h1 className="text-xl sm:text-2xl font-black tracking-tighter text-gray-900 uppercase">
+                   活動管理
+                </h1>
+             </div>
+             <p className="text-[13px] font-black text-gray-400 uppercase tracking-[0.2em] ml-3 hidden sm:block">
+                Management <span className="text-[#D62976]">Console</span>
+             </p>
+             {/* Mobile specific console label */}
+             <span className="text-[13px] font-black text-[#D62976] uppercase tracking-widest ml-3 sm:hidden">管理コンソール</span>
+          </motion.div>
+          
+          <motion.button 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => openForm()}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white rounded-2xl text-[13px] font-black shadow-[0_10px_20px_rgba(214,41,118,0.15)] transition-all uppercase tracking-widest shrink-0 ml-4"
+          >
+            <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">イベントを追加</span><span className="sm:hidden">追加</span>
+          </motion.button>
         </div>
-      </div>
+
+        {/* Search Bar Row: Occupying Full Width since Stats are removed */}
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D62976]/5 to-[#4F5BD5]/5 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div className="relative flex items-center bg-white border border-gray-100 rounded-2xl p-1 shadow-sm">
+            <Search className="ml-4 w-4 h-4 text-gray-300" />
+            <input 
+              type="text"
+              placeholder="活動を検索..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 bg-transparent text-gray-900 rounded-xl text-[13px] font-black focus:outline-none placeholder:text-gray-200 uppercase tracking-widest"
+            />
+          </div>
+        </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-brand-emerald-500 animate-spin" /></div>
+        <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-[#D62976] animate-spin" /></div>
       ) : filteredData.length === 0 ? (
-        <div className="text-center py-32 bg-brand-stone-800/10 border border-brand-stone-800 rounded-3xl animate-in fade-in zoom-in duration-500">
-          <Activity className="w-12 h-12 text-brand-stone-700 mx-auto mb-4" />
-          <p className="text-brand-stone-500 font-medium">該当するイベントが見つかりませんでした。</p>
+        <div className="text-center py-32 bg-white border border-gray-100 rounded-[3rem] shadow-sm">
+          <Activity className="w-16 h-16 text-gray-200 mx-auto mb-6" />
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No matching activities found in this year.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 pb-20">
           {filteredData.map((act) => (
-            <div key={act.id} className="group bg-brand-stone-900 border border-brand-stone-800 rounded-3xl overflow-hidden hover:border-brand-emerald-500/30 transition-all duration-500 flex flex-col hover:shadow-2xl hover:shadow-brand-emerald-950/10 hover:-translate-y-1">
-              <div className="h-48 bg-brand-stone-800 relative overflow-hidden">
+            <motion.div 
+              layout
+              key={act.id} 
+              className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-[0_40px_80px_rgba(0,0,0,0.06)] border border-gray-100 transition-all duration-700 flex flex-col relative"
+            >
+              {/* Image Container */}
+              <div className="h-64 bg-gray-50 relative overflow-hidden">
                 {act.cover_image_url ? (
-                  <img src={act.cover_image_url} alt={act.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <motion.img 
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ duration: 0.8 }}
+                    src={act.cover_image_url} 
+                    alt={act.title} 
+                    className="w-full h-full object-cover" 
+                  />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center opacity-30 text-brand-stone-500 bg-brand-stone-950"><CalendarDays className="w-12 h-12 mb-2" /> No Cover</div>
+                  <div className="w-full h-full flex flex-col items-center justify-center opacity-30 text-gray-400">
+                    <CalendarDays className="w-12 h-12 mb-2" />
+                  </div>
                 )}
-                <div className="absolute top-4 right-4">
-                  <span className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] rounded-full backdrop-blur-xl border shadow-xl ${
-                    act.status === 'open' ? 'bg-brand-emerald-500/20 text-brand-emerald-400 border-brand-emerald-500/30' : 
-                    act.status === 'closed' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 
-                    'bg-brand-stone-500/20 text-brand-stone-400 border-brand-stone-500/30'
-                  }`}>
-                    {act.status === 'open' ? '募集中' : act.status === 'closed' ? '締切' : '下書き'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-6 flex-1 flex flex-col">
-                <h3 className="text-xl font-serif text-brand-stone-50 mb-4 line-clamp-2 leading-tight group-hover:text-brand-emerald-400 transition-colors">{act.title}</h3>
                 
-                <div className="space-y-3 text-sm text-brand-stone-400 mb-8 flex-1">
-                  <div className="flex items-start gap-3">
-                    <CalendarDays className="w-4 h-4 mt-0.5 shrink-0 text-brand-emerald-500" />
-                    <span className="font-medium text-brand-stone-300">{format(new Date(act.date), 'yyyy年MM月dd日 HH:mm', { locale: ja })}</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-brand-emerald-500" />
-                    <span className="line-clamp-1 text-brand-stone-300">{act.location}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Users className="w-4 h-4 shrink-0 text-brand-emerald-500" />
-                    <span className="text-brand-stone-300 font-bold">{act.registrations?.[0]?.count || 0} <span className="text-brand-stone-500 font-normal">/ {act.capacity || '∞'} 名申込</span></span>
-                  </div>
+                {/* Visual Glow behind badge */}
+                <div className={`absolute top-6 left-6 px-4 py-2 text-[13px] font-black uppercase tracking-widest rounded-full backdrop-blur-xl border z-10 ${
+                  act.status === 'open' ? 'bg-emerald-500 text-white border-emerald-400' : 
+                  act.status === 'closed' ? 'bg-[#D62976] text-white border-[#D62976]/50' : 
+                  'bg-gray-900 text-white border-gray-700'
+                }`}>
+                  {act.status === 'open' ? '募集中' : act.status === 'closed' ? '締切' : '下書き'}
                 </div>
 
-                <div className="flex justify-between items-center pt-6 border-t border-brand-stone-800/50 mt-auto">
-                  <div className="flex gap-2">
-                    <button onClick={() => openForm(act)} className="p-2.5 text-brand-stone-400 hover:text-brand-emerald-400 bg-brand-stone-800/50 hover:bg-brand-emerald-950/40 rounded-xl transition-all"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => { if(window.confirm('このイベントを削除してもよろしいですか？')) deleteMutation.mutate(act.id); }} className="p-2.5 text-brand-stone-400 hover:text-rose-400 bg-brand-stone-800/50 hover:bg-rose-950/40 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                  
-                  <Link 
-                    to={`/admin/activities/${act.id}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand-stone-800 text-brand-stone-300 hover:text-brand-stone-100 text-xs font-bold rounded-xl border border-brand-stone-700 transition-all hover:border-brand-stone-500"
-                  >
-                    <Activity className="w-4 h-4" /> 出欠管理
-                  </Link>
+                {/* Floating Action Overlay on Hover */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3">
+                   <button onClick={() => openForm(act)} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-gray-900 hover:scale-110 active:scale-90 transition-all shadow-xl">
+                      <Edit2 className="w-5 h-5" />
+                   </button>
+                   <button onClick={() => { if(window.confirm('このイベントを削除してもよろしいですか？')) deleteMutation.mutate(act.id); }} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#D62976] hover:scale-110 active:scale-90 transition-all shadow-xl">
+                      <Trash2 className="w-5 h-5" />
+                   </button>
                 </div>
               </div>
-            </div>
+
+              {/* Content Panel */}
+              <div className="p-8 flex-1 flex flex-col relative bg-white">
+                <span className="text-[13px] font-black text-gray-300 uppercase tracking-[0.3em] mb-2">
+                   {format(new Date(act.date), 'yyyy.MM.dd')}
+                </span>
+                <h3 className="text-xl font-black text-gray-900 mb-6 line-clamp-2 leading-tight group-hover:text-[#4F5BD5] transition-colors">{act.title}</h3>
+                
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                   <div className="bg-gray-50 rounded-2xl p-4 flex flex-col">
+                      <span className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-1">参加者</span>
+                      <span className="text-sm font-black text-gray-900">{act.registrations?.[0]?.count || 0} / {act.capacity || '∞'}</span>
+                   </div>
+                   <div className="bg-gray-50 rounded-2xl p-4 flex flex-col overflow-hidden">
+                      <span className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-1">場所</span>
+                      <span className="text-sm font-black text-gray-900 truncate">{act.location}</span>
+                   </div>
+                </div>
+
+                <Link 
+                  to={`/admin/activities/${act.id}`}
+                  className="mt-auto w-full group/btn relative flex items-center justify-center gap-3 px-6 py-4 bg-gray-900 text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                  <Activity className="w-4 h-4 relative z-10" />
+                  <span className="relative z-10">出欠管理</span>
+                </Link>
+              </div>
+            </motion.div>
           ))}
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      <Dialog.Root open={modalOpen} onOpenChange={(open) => { if(!open) resetForm(); setModalOpen(open); }}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto grid place-items-center py-10" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-brand-stone-900 border border-brand-stone-800 shadow-2xl sm:rounded-3xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
-            
-            <div className="p-8 border-b border-brand-stone-800 shrink-0 flex justify-between items-center">
-              <Dialog.Title className="text-2xl font-serif text-brand-stone-50 tracking-tight">
-                {editingActivity ? 'イベント情報を編集' : '新規イベント作成'}
-              </Dialog.Title>
-              <Dialog.Close asChild>
-                <button className="text-brand-stone-500 hover:text-brand-stone-300 transition-colors"><X className="w-5 h-5"/></button>
-              </Dialog.Close>
-            </div>
-
-            <div className="p-8 overflow-y-auto">
-              <form id="activity-form" onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-10">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-brand-stone-500">
-                      イベントカバー画像
-                    </label>
+        {/* Create/Edit Modal */}
+        <Dialog.Root open={modalOpen} onOpenChange={(open) => { if(!open) resetForm(); setModalOpen(open); }}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 bg-gray-900/40 backdrop-blur-md z-50 overflow-y-auto grid place-items-center py-10" />
+            <Dialog.Content className="fixed left-[50%] top-[50%] z-[60] w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] bg-white border border-gray-100 shadow-[0_40px_100px_rgba(0,0,0,0.1)] sm:rounded-[3rem] p-0 overflow-hidden flex flex-col max-h-[90vh]">
+              
+              <div className="p-10 border-b border-gray-50 bg-gray-50/50 backdrop-blur-xl shrink-0 flex justify-between items-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#D62976]/5 blur-3xl rounded-full translate-x-10 -translate-y-10" />
+                <div>
+                  <Dialog.Title className="text-3xl font-black text-gray-900 tracking-tighter uppercase mb-2">
+                    {editingActivity ? '活动内容を編集' : '新規イベント作成'}
+                  </Dialog.Title>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-[2px] bg-[#D62976]" />
+                    <p className="text-[13px] font-black text-[#4F5BD5] uppercase tracking-widest">高度な管理インターフェース</p>
                   </div>
+                </div>
+                <Dialog.Close asChild>
+                  <button className="w-12 h-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-[#D62976] hover:border-[#D62976]/20 transition-all flex items-center justify-center shadow-sm">
+                    <X className="w-6 h-6"/>
+                  </button>
+                </Dialog.Close>
+              </div>
 
-                  <div className="relative group">
-                    <div 
-                      onClick={() => !isProcessingImage && coverInputRef.current?.click()}
-                      className={`w-full h-56 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center overflow-hidden transition-all relative ${
-                        isProcessingImage
-                          ? 'border-brand-emerald-500/50 bg-brand-emerald-950/10 cursor-wait'
-                          : 'border-brand-stone-700 hover:border-brand-emerald-500/50 bg-brand-stone-950/50 cursor-pointer'
-                      }`}
-                    >
-                      {isProcessingImage && (
-                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-brand-stone-900/80 backdrop-blur-md">
-                          <Loader2 className="w-10 h-10 text-brand-emerald-400 animate-spin mb-4" />
-                          <p className="text-xs font-bold text-white uppercase tracking-[0.2em] animate-pulse">{processingStatus}</p>
-                        </div>
-                      )}
-
-                      {coverPreview ? (
-                        <>
-                          <img src={coverPreview} alt="Cover Preview" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                            <span className="text-white text-xs font-bold bg-white/10 hover:bg-white/20 px-6 py-3 rounded-full border border-white/20 transition-all">画像をアップロード</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-brand-stone-500 flex flex-col items-center text-center p-8">
-                          <div className="w-16 h-16 bg-brand-stone-900 rounded-full flex items-center justify-center mb-4 border border-brand-stone-800">
-                            <Camera className="w-8 h-8 opacity-50" />
-                          </div>
-                          <span className="text-sm font-bold text-brand-stone-300 mb-1">画像をアップロード</span>
-                          <span className="text-xs text-brand-stone-500">推奨アスペクト比 16:9 (WebP対応)</span>
-                        </div>
-                      )}
+              <div className="p-10 overflow-y-auto [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#D62976]/60 transition-all pr-4">
+                <form id="activity-form" onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-12">
+                  {/* Image Part */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 bg-[#D62976]/10 rounded-2xl flex items-center justify-center text-[#D62976]">
+                          <Camera className="w-5 h-5" />
+                       </div>
+                       <label className="text-[15px] font-black text-gray-800 uppercase tracking-widest">カバー画像</label>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleRandomImage}
-                      disabled={isProcessingImage}
-                      className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-8 py-3.5 bg-brand-emerald-600 hover:bg-brand-emerald-500 text-white rounded-full text-xs font-bold shadow-2xl shadow-brand-emerald-900/40 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 z-20 border border-white/10 whitespace-nowrap"
-                    >
-                      <Activity className="w-4 h-4" />
-                      最適な画像を自動生成 🎲
-                    </button>
+                    <div className="relative group">
+                      <div 
+                        onClick={() => !isProcessingImage && coverInputRef.current?.click()}
+                        className={`w-full h-72 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden transition-all relative ${
+                          isProcessingImage
+                            ? 'border-[#D62976]/50 bg-[#D62976]/5 cursor-wait'
+                            : 'border-gray-100 hover:border-[#D62976]/50 bg-gray-50/50 cursor-pointer'
+                        }`}
+                      >
+                        {isProcessingImage && (
+                          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
+                            <Loader2 className="w-12 h-12 text-[#D62976] animate-spin mb-4" />
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] animate-pulse">{processingStatus}</p>
+                          </div>
+                        )}
+
+                        {coverPreview ? (
+                          <>
+                            <img src={coverPreview} alt="Cover Preview" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-md">
+                              <span className="text-white text-[13px] font-black uppercase tracking-widest bg-white/20 px-8 py-4 rounded-full border border-white/20 backdrop-blur-md">画像を変更</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-gray-300 flex flex-col items-center text-center p-8">
+                            <div className="w-20 h-20 bg-white shadow-sm rounded-3xl flex items-center justify-center mb-4 border border-gray-50">
+                              <Camera className="w-8 h-8 text-gray-200" />
+                            </div>
+                            <span className="text-[13px] font-black text-gray-400 uppercase tracking-widest">クリックしてブランドビジュアルをアップロード</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleRandomImage}
+                        disabled={isProcessingImage}
+                        className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-3 px-10 py-5 bg-white text-gray-900 rounded-full text-[13px] font-black uppercase tracking-widest shadow-[0_20px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-20 hover:text-[#D62976] transition-colors"
+                      >
+                        <Activity className="w-4 h-4 text-[#D62976]" />
+                        画像を自動生成
+                      </motion.button>
+                    </div>
+
+                    <input type="file" accept="image/jpeg, image/png" ref={coverInputRef} onChange={onCoverChange} className="hidden" />
                   </div>
 
-                  {/* Removed AI Suggestion Area */}
+                  {/* Fields Part */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                    <div className="space-y-3 sm:col-span-2">
+                       <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-4 bg-[#4F5BD5] rounded-full" />
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">イベント名 *</label>
+                       </div>
+                       <input {...register('title')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_20px_40px_rgba(79,91,213,0.05)] outline-none transition-all placeholder:text-gray-300 uppercase tracking-widest" placeholder="イベント名を入力..." />
+                       {errors.title && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.title.message}</p>}
+                    </div>
+                    
+                    <div className="space-y-3 sm:col-span-2">
+                      <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-4 bg-gray-200 rounded-full" />
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">詳細説明</label>
+                       </div>
+                      <textarea {...register('description')} rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-6 text-sm font-bold focus:bg-white focus:border-gray-200 outline-none transition-all resize-none placeholder:text-gray-300" placeholder="イベントの詳細内容を入力..." />
+                    </div>
 
-                  <input type="file" accept="image/jpeg, image/png" ref={coverInputRef} onChange={onCoverChange} className="hidden" />
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-[#D62976]" />
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">開催日時 *</label>
+                       </div>
+                      <input type="datetime-local" {...register('date')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#D62976]/30 outline-none transition-all" />
+                      {errors.date && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.date.message}</p>}
+                    </div>
 
-                {/* Form Fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">イベント名 *</label>
-                    <input {...register('title')} className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all placeholder:text-brand-stone-700" placeholder="例：新入生歓迎会" />
-                    {errors.title && <p className="text-rose-500 text-xs font-medium mt-1">{errors.title.message}</p>}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-[#4F5BD5]" />
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">申込締切 *</label>
+                       </div>
+                      <input type="datetime-local" {...register('registration_deadline')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all" />
+                      {errors.registration_deadline && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.registration_deadline.message}</p>}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                          <Compass className="w-4 h-4 text-[#FEDA75]" />
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">開催場所 *</label>
+                       </div>
+                      <input {...register('location')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white outline-none transition-all placeholder:text-gray-300" placeholder="場所を入力..." />
+                      {errors.location && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.location.message}</p>}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                          <Users className="w-4 h-4 text-gray-400" />
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">定員</label>
+                       </div>
+                      <input type="number" {...register('capacity', { valueAsNumber: true })} placeholder="無制限の場合は空欄" className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white outline-none transition-all" />
+                    </div>
+
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-8">公開ステータス</label>
+                       <select {...register('status')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-black uppercase tracking-widest focus:bg-white outline-none transition-all cursor-pointer">
+                        <option value="draft">下書き (非公開)</option>
+                        <option value="open">公開 (募集中)</option>
+                        <option value="closed">締切 (募集終了)</option>
+                      </select>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">説明</label>
-                    <textarea {...register('description')} rows={4} className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all resize-none placeholder:text-brand-stone-700" placeholder="イベントの詳細内容を入力..." />
-                  </div>
+                </form>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">開催日時 *</label>
-                    <input type="datetime-local" {...register('date')} className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all [color-scheme:dark]" />
-                    {errors.date && <p className="text-rose-500 text-xs font-medium mt-1">{errors.date.message}</p>}
-                  </div>
+              <div className="p-10 border-t border-gray-50 bg-gray-50/50 backdrop-blur-xl shrink-0 flex justify-end gap-6">
+                <Dialog.Close asChild>
+                  <button type="button" className="px-10 py-5 hover:bg-white hover:shadow-sm text-gray-500 hover:text-gray-900 text-xs font-black uppercase tracking-widest rounded-3xl transition-all">キャンセル</button>
+                </Dialog.Close>
+                <motion.button 
+                   whileHover={{ scale: 1.02 }}
+                   whileTap={{ scale: 0.98 }}
+                   type="submit" 
+                   form="activity-form"
+                   disabled={saveMutation.isPending}
+                   className="px-12 py-5 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white text-[13px] font-black uppercase tracking-[0.2em] rounded-3xl transition-all shadow-[0_20px_40px_rgba(214,41,118,0.2)] flex items-center justify-center gap-3 min-w-[220px]"
+                >
+                  {saveMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : '承認して保存'}
+                </motion.button>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">申込締切 *</label>
-                    <input type="datetime-local" {...register('registration_deadline')} className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all [color-scheme:dark]" />
-                    {errors.registration_deadline && <p className="text-rose-500 text-xs font-medium mt-1">{errors.registration_deadline.message}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">開催場所 *</label>
-                    <input {...register('location')} className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all placeholder:text-brand-stone-700" placeholder="例：多目的ホール" />
-                    {errors.location && <p className="text-rose-500 text-xs font-medium mt-1">{errors.location.message}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">定員 (名)</label>
-                    <input type="number" {...register('capacity', { valueAsNumber: true })} placeholder="無制限の場合は空欄" className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all" />
-                  </div>
-
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">外部フォームURL (必要な場合)</label>
-                    <input type="url" {...register('form_link')} placeholder="https://forms.gle/..." className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all" />
-                    {errors.form_link && <p className="text-rose-500 text-xs font-medium mt-1">{errors.form_link.message}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs text-brand-stone-400 font-medium">公開ステータス</label>
-                    <select {...register('status')} className="w-full bg-brand-stone-950 border border-brand-stone-800 text-brand-stone-100 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-brand-emerald-500 outline-none transition-all">
-                      <option value="draft">下書き (非公開)</option>
-                      <option value="open">公開 (募集中)</option>
-                      <option value="closed">締切 (募集終了)</option>
-                    </select>
-                  </div>
-                </div>
-
-              </form>
-            </div>
-
-            <div className="p-8 border-t border-brand-stone-800 shrink-0 flex justify-end gap-4 bg-brand-stone-900">
-              <Dialog.Close asChild>
-                <button type="button" className="px-6 py-3 hover:bg-brand-stone-800 text-brand-stone-300 text-sm font-bold rounded-xl transition-all">キャンセル</button>
-              </Dialog.Close>
-              <button 
-                 type="submit" 
-                 form="activity-form"
-                 disabled={saveMutation.isPending}
-                 className="px-8 py-3 bg-brand-emerald-600 hover:bg-brand-emerald-500 text-white text-sm font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 min-w-[160px] shadow-lg shadow-brand-emerald-950/20"
-              >
-                {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'イベントを保存'}
-              </button>
-            </div>
-
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      </div>
     </div>
   );
 }

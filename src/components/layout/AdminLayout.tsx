@@ -63,14 +63,12 @@ export default function AdminLayout() {
         {/* 1. Refined Sidebar (Synchronized Animation) */}
         <motion.aside 
           animate={{ 
-            width: isSidebarVisible ? (window.innerWidth < 1024 ? '100%' : 256) : 0,
+            width: isSidebarVisible ? 280 : 0,
             opacity: isSidebarVisible ? 1 : 0,
-            x: isSidebarVisible ? 0 : -256
+            x: isSidebarVisible ? 0 : -280
           }}
           transition={{ type: "spring", damping: 30, stiffness: 250 }}
-          className={`bg-white border-r border-brand-stone-100 flex flex-col shadow-[20px_0_40px_-20px_rgba(0,0,0,0.02)] z-20 shrink-0 overflow-hidden ${
-            window.innerWidth < 1024 ? 'absolute inset-y-0 left-0 max-w-[280px]' : 'relative'
-          }`}
+          className="bg-white border-r border-brand-stone-100 flex flex-col shadow-[20px_0_40px_-20px_rgba(0,0,0,0.02)] z-20 shrink-0 overflow-hidden absolute lg:relative h-full"
         >
           {/* Close Button (X) */}
           <button 
