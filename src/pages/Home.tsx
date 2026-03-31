@@ -21,8 +21,8 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full h-full flex items-center justify-center p-[8%] lg:p-[10%]">
-          <div className="w-full max-w-[1400px] flex flex-col lg:grid lg:grid-cols-[1.5fr_1fr] gap-12 lg:gap-16 items-center">
+        <div className="relative z-10 w-full h-full flex items-start justify-center p-[8%] lg:p-[10%] pt-20 lg:pt-28">
+          <div className="w-full max-w-[1400px] flex flex-col lg:grid lg:grid-cols-[1.5fr_1fr] gap-12 lg:gap-16 items-start">
             
             {/* Left Side: Cinematic Typography */}
             <div className="flex flex-col gap-8 text-center lg:text-left items-center lg:items-start w-full order-2 lg:order-1">
