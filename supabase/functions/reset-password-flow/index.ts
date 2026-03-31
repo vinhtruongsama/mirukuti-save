@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       }),
     })
 
-    const resendData = await resendResponse.json()
+    await resendResponse.json();
 
     if (!resendResponse.ok) {
       throw new Error('Không thể gửi email mật khẩu tạm thời')

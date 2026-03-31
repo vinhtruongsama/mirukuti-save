@@ -1,0 +1,23 @@
+﻿
+D:\CODING\AI-Coding\WebQL-CLB\src\pages\admin\Members.tsx
+  174:17  error    Error: Calling setState from useMemo may trigger an infinite loop
+
+Each time the memo callback is evaluated it will change state. This can cause a memoization dependency to change, running the memo function again and causing an infinite loop. Instead of setting state in useMemo(), prefer deriving the value during render. (https://react.dev/reference/react/useState).
+
+D:\CODING\AI-Coding\WebQL-CLB\src\pages\admin\Members.tsx:174:17
+  172 |
+  173 |   // Reset page when filter changes
+> 174 |   useMemo(() => setCurrentPage(1), [roleFilter, debouncedSearch]);
+      |                 ^^^^^^^^^^^^^^ Found setState() within useMemo()
+  175 |
+  176 |   // 3. Save Mutation (Insert/Update)
+  177 |   const saveMutation = useMutation({  react-hooks/set-state-in-render
+  174:36  warning  React Hook useMemo has unnecessary dependencies: 'debouncedSearch' and 'roleFilter'. Either exclude them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  350:6   warning  React Hook useCallback has missing dependencies: 'COLUMN_MAP' and 'VALID_ROLES'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  408:18  error    'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+
+D:\CODING\AI-Coding\WebQL-CLB\src\store\useAuthStore.ts
+  70:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 5 problems (3 errors, 2 warnings)
+

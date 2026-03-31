@@ -67,7 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Attempt to calculate current role based on currently selected year
       get().updateCurrentRole();
       
-    } catch (err) {
+    } catch {
       // Even if data fetch fails, session is valid
       set({ session, currentUser: null, memberships: [], currentRole: null });
     } finally {

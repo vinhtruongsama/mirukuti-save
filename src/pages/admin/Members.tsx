@@ -1,5 +1,5 @@
 // 1. React & Framework Core
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 
 // 2. Third-party Libraries
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -171,7 +171,9 @@ export default function Members() {
   }, [filteredData, currentPage, itemsPerPage]);
 
   // Reset page when filter changes
-  useMemo(() => setCurrentPage(1), [roleFilter, debouncedSearch]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [roleFilter, debouncedSearch]);
 
   // 3. Save Mutation (Insert/Update)
   const saveMutation = useMutation({
@@ -405,7 +407,7 @@ export default function Members() {
             });
           }
           successCount++;
-        } catch (err) { continue; }
+        } catch { continue; }
       }
       return successCount;
     },
