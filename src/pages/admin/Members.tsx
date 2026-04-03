@@ -76,7 +76,6 @@ export default function Members() {
     data: members = [],
     isLoading,
     isError,
-    error: queryError,
     refetch
   } = useQuery({
     queryKey: ['admin-members', selectedYear?.id, showDeleted],

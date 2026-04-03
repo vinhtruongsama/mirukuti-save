@@ -1,4 +1,4 @@
-import { AlertTriangle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DeleteConfirmModalProps {
