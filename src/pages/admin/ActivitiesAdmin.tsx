@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, isPast } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Search, Plus, Edit2, Trash2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, MapPin, Users } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, Users } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -60,10 +60,10 @@ export default function ActivitiesAdmin() {
       if (!selectedYear) return [];
       const { data, error } = await supabase
         .from('activities')
-        .select('*, registrations(count)')
+        .select('*')
         .eq('academic_year_id', selectedYear.id)
         .is('deleted_at', null)
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
@@ -130,6 +130,7 @@ export default function ActivitiesAdmin() {
     onSuccess: () => {
       toast.success(editingActivity ? 'イベントを更新しました' : 'イベントを作成しました');
       queryClient.invalidateQueries({ queryKey: ['admin-activities'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       setModalOpen(false);
       resetForm();
     },
@@ -145,6 +146,7 @@ export default function ActivitiesAdmin() {
     onSuccess: () => {
       toast.success('イベントを削除しました');
       queryClient.invalidateQueries({ queryKey: ['admin-activities'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
     },
     onError: (err: any) => toast.error(err.message)
   });
@@ -370,13 +372,28 @@ export default function ActivitiesAdmin() {
                 )}
                 
                 {/* Visual Glow behind badge */}
-                <div className={`absolute top-6 left-6 px-4 py-2 text-[13px] font-black uppercase tracking-widest rounded-full backdrop-blur-xl border z-10 ${
-                  act.status === 'open' ? 'bg-emerald-500 text-white border-emerald-400' : 
-                  act.status === 'closed' ? 'bg-[#D62976] text-white border-[#D62976]/50' : 
-                  'bg-gray-900 text-white border-gray-700'
-                }`}>
-                  {act.status === 'open' ? '募集中' : act.status === 'closed' ? '締切' : '下書き'}
-                </div>
+                {(() => {
+                  const isPastDeadline = isPast(new Date(act.registration_deadline));
+                  const isFull = act.capacity && (act.registered_count || 0) >= act.capacity;
+                  const isClosed = act.status === 'closed' || isPastDeadline || isFull;
+                  const isDraft = act.status === 'draft';
+
+                  if (isDraft) return (
+                    <div className="absolute top-6 left-6 px-4 py-2 text-[13px] font-black uppercase tracking-widest rounded-full backdrop-blur-xl border z-10 bg-gray-900 text-white border-gray-700">
+                      下書き
+                    </div>
+                  );
+
+                  return (
+                    <div className={`absolute top-6 left-6 px-4 py-2 text-[12px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border z-10 shadow-sm transition-all duration-300 ${
+                      !isClosed 
+                        ? 'bg-emerald-500 text-white border-emerald-400/50 shadow-[0_4px_15px_rgba(16,185,129,0.2)]' 
+                        : 'bg-white/95 text-brand-stone-500 border-white/50'
+                    }`}>
+                      {!isClosed ? '募集中' : '募集終了'}
+                    </div>
+                  );
+                })()}
 
                 {/* Floating Action Overlay on Hover */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3">
@@ -399,7 +416,7 @@ export default function ActivitiesAdmin() {
                 <div className="grid grid-cols-2 gap-4 mb-8">
                    <div className="bg-gray-50 rounded-2xl p-4 flex flex-col">
                       <span className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-1">参加者</span>
-                      <span className="text-sm font-black text-gray-900">{act.registrations?.[0]?.count || 0} / {act.capacity || '∞'}</span>
+                      <span className="text-sm font-black text-gray-900">{act.registered_count || 0} / {act.capacity || '∞'}</span>
                    </div>
                    <div className="bg-gray-50 rounded-2xl p-4 flex flex-col overflow-hidden">
                       <span className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-1">場所</span>
@@ -439,7 +456,10 @@ export default function ActivitiesAdmin() {
                   </div>
                 </div>
                 <Dialog.Close asChild>
-                  <button className="w-12 h-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-[#D62976] hover:border-[#D62976]/20 transition-all flex items-center justify-center shadow-sm">
+                  <button 
+                    type="button"
+                    className="relative z-[100] w-12 h-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-[#D62976] hover:border-[#D62976]/20 transition-all flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 active:scale-95"
+                  >
                     <X className="w-6 h-6"/>
                   </button>
                 </Dialog.Close>

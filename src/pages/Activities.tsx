@@ -1,37 +1,37 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, MapPin, Users, Info, ArrowRight, X, Clock, AlertCircle } from 'lucide-react';
+import { Search, Calendar, MapPin, Users, Info, ArrowRight, X, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
 export default function Activities() {
   const navigate = useNavigate();
   const { currentUser } = useAuthStore();
   const { selectedYear } = useAppStore();
 
-  const [searchTerm, setSearchTerm] = useState('');
+   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
-  const { data: activities = [] } = useQuery({
+  const queryClient = useQueryClient();
+  const { data: activities = [], isLoading } = useQuery({
     queryKey: ['activities', selectedYear?.id],
     queryFn: async () => {
       if (!selectedYear) return [];
       const { data, error } = await supabase
         .from('activities')
-        .select(`
-          *,
-          registrations(count)
-        `)
+        .select('*')
         .eq('academic_year_id', selectedYear.id)
         .is('deleted_at', null)
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
@@ -39,13 +39,65 @@ export default function Activities() {
     enabled: !!selectedYear,
   });
 
+  // --- REGISTRATION STATUS (User Specific) ---
+  const { data: userRegistrations = [] } = useQuery({
+    queryKey: ['user-registrations', currentUser?.id, selectedYear?.id],
+    queryFn: async () => {
+      if (!currentUser || !selectedYear) return [];
+      const { data, error } = await supabase
+        .from('registrations')
+        .select('activity_id')
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+      return data.map(r => r.activity_id);
+    },
+    enabled: !!currentUser && !!selectedYear,
+  });
+
+  const toggleRegistrationMutation = useMutation({
+    mutationFn: async ({ activityId, isRegistered }: { activityId: string, isRegistered: boolean }) => {
+      if (!currentUser) throw new Error('Unauthorized');
+
+      if (isRegistered) {
+        // Cancel
+        const { error } = await supabase
+          .from('registrations')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('activity_id', activityId);
+        if (error) throw error;
+        return { type: 'cancel' };
+      } else {
+        // Register
+        const { error } = await supabase
+          .from('registrations')
+          .insert({
+            user_id: currentUser.id,
+            activity_id: activityId,
+            attendance_status: 'pending',
+            confirmed_at: new Date().toISOString()
+          });
+        if (error) throw error;
+        return { type: 'register' };
+      }
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+      queryClient.invalidateQueries({ queryKey: ['user-registrations'] });
+      toast.success(res.type === 'register' ? '参加申し込みを受け付けました' : 'キャンセルしました');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'エラーが発生しました');
+    }
+  });
+
   const customFontClass = 'font-sans tracking-tight';
-  const dateLocale = jaLocale;
 
   const currentActivities = useMemo(() => {
     return activities.map(act => {
       const isPastYear = selectedYear ? !selectedYear.is_current : false;
-      const registeredCount = (act.registrations?.[0] as any)?.count || 0;
+      const registeredCount = act.registered_count || 0;
 
       let computedStatus: 'OPEN' | 'CLOSED' = act.status === 'closed' ? 'CLOSED' : 'OPEN';
 
@@ -100,7 +152,7 @@ export default function Activities() {
                 <Calendar className="w-5 h-5 md:w-6 md:h-6 text-[#4F5BD5]" />
               </div>
               <div>
-                <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.25em] mb-0.5">{selectedYear?.name || '2025-2026'}</p>
+                <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.25em] mb-0.5">{selectedYear?.name || '---'}</p>
                 <p className="text-brand-stone-900 font-black text-lg md:text-xl">
                   {currentActivities.length} <span className="text-xs md:text-sm text-brand-stone-400 font-bold ml-1">件の活動</span>
                 </p>
@@ -137,11 +189,10 @@ export default function Activities() {
                 <button
                   key={filter.id}
                   onClick={() => setFilterMode(filter.id as any)}
-                  className={`px-7 py-2.5 rounded-[1rem] font-black text-[11px] tracking-[0.15em] transition-all duration-500 whitespace-nowrap uppercase ${
-                    filterMode === filter.id 
-                      ? 'bg-white text-[#4F5BD5] shadow-[0_8px_20px_-3px_rgba(79,91,213,0.15)] scale-[1.02] border border-[#4F5BD5]/5' 
-                      : 'text-brand-stone-400 hover:text-brand-stone-700'
-                  }`}
+                  className={`px-7 py-2.5 rounded-[1rem] font-black text-[11px] tracking-[0.15em] transition-all duration-500 whitespace-nowrap uppercase ${filterMode === filter.id
+                    ? 'bg-white text-[#4F5BD5] shadow-[0_8px_20px_-3px_rgba(79,91,213,0.15)] scale-[1.02] border border-[#4F5BD5]/5'
+                    : 'text-brand-stone-400 hover:text-brand-stone-700'
+                    }`}
                 >
                   {filter.label}
                 </button>
@@ -151,12 +202,19 @@ export default function Activities() {
         </div>
 
         <AnimatePresence mode="popLayout">
-          {currentActivities.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-48">
+              <div className="w-12 h-12 border-4 border-[#4F5BD5]/20 border-t-[#4F5BD5] rounded-full animate-spin mb-4" />
+              <p className="text-[11px] font-black uppercase text-stone-400 tracking-[0.2em] animate-pulse">Loading data...</p>
+            </div>
+          ) : currentActivities.length > 0 ? (
             <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {currentActivities.map((activity, index) => {
                 const progress = activity.capacity
                   ? Math.min((activity.registered / activity.capacity) * 100, 100)
                   : 100;
+
+                const isOpen = activity.computedStatus === 'OPEN';
 
                 return (
                   <motion.div
@@ -166,7 +224,11 @@ export default function Activities() {
                     exit={{ opacity: 0, scale: 0.95, y: -20 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     key={activity.id}
-                    className="bg-white rounded-2xl overflow-hidden border border-stone-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full group"
+                    className={`bg-white rounded-2xl overflow-hidden border transition-all duration-500 flex flex-col h-full group relative ${
+                      isOpen 
+                        ? 'border-[#4F5BD5]/20 shadow-[0_15px_35px_-5px_rgba(79,91,213,0.1)] hover:shadow-[0_25px_50px_-12px_rgba(79,91,213,0.2)]' 
+                        : 'border-stone-100 shadow-sm hover:shadow-xl'
+                    }`}
                   >
                     <div className="relative aspect-[16/9] overflow-hidden bg-stone-100 rounded-t-2xl">
                       <img
@@ -176,18 +238,18 @@ export default function Activities() {
                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                       />
                       <div className="absolute top-4 left-4 flex flex-col gap-2">
-                        {activity.computedStatus === 'OPEN' ? (
-                          <span className="px-4 py-2 bg-white/95 backdrop-blur-md text-[#D62976] text-[10px] font-black uppercase tracking-[0.25em] rounded-full shadow-sm">
+                        {isOpen ? (
+                          <span className="px-4 py-2 bg-emerald-500 text-white text-[12px] font-black uppercase tracking-[0.2em] rounded-full shadow-[0_4px_15px_rgba(16,185,129,0.3)]">
                             募集中
                           </span>
                         ) : (
-                          <span className="px-4 py-2 bg-white/95 backdrop-blur-md text-brand-stone-500 text-[10px] font-black uppercase tracking-[0.25em] rounded-full shadow-sm">
+                          <span className="px-4 py-2 bg-white/95 backdrop-blur-md text-brand-stone-500 text-[12px] font-black uppercase tracking-[0.25em] rounded-full shadow-sm">
                             募集終了
                           </span>
                         )}
                       </div>
                       <div className="absolute top-4 right-4">
-                        <span className="px-4 py-2 bg-stone-900/90 backdrop-blur-md text-[#FEDA75] text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_8px_25px_rgba(0,0,0,0.2)] border border-white/10">
+                        <span className="px-4 py-2 bg-stone-900/90 backdrop-blur-md text-[#FEDA75] text-[12px] font-black uppercase tracking-widest rounded-full shadow-[0_8px_25px_rgba(0,0,0,0.2)] border border-white/10">
                           {activity.yearName}
                         </span>
                       </div>
@@ -196,7 +258,7 @@ export default function Activities() {
                     <div className="p-6 flex flex-col flex-1">
                       <div className="flex items-center gap-2 text-[#4F5BD5] font-black text-[11px] mb-2 uppercase tracking-wider">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{activity.date ? format(new Date(activity.date), 'yyyy/MM/dd', { locale: dateLocale }) : '---'}</span>
+                        <span>{activity.date ? format(new Date(activity.date), 'yyyy/MM/dd', { locale: jaLocale }) : '---'}</span>
                       </div>
                       <h3 className="text-xl md:text-2xl font-black text-stone-900 leading-[1.25] line-clamp-2 mb-4 group-hover:text-[#D62976] transition-colors duration-500 h-[3.2rem]">
                         {activity.displayText}
@@ -229,9 +291,15 @@ export default function Activities() {
                           )}
                         </div>
                       </div>
-                      <button onClick={() => setSelectedActivity(activity as any)} className={`w-full flex items-center justify-center gap-3 h-[48px] rounded-xl font-black text-[0.85rem] tracking-wider transition-all duration-500 active:scale-[0.97] hover:-translate-y-1 ${activity.computedStatus === 'OPEN' ? 'bg-gradient-to-r from-[#4F5BD5] to-[#D62976] text-white shadow-[0_12px_40px_rgba(79,91,213,0.25)] hover:brightness-110' : 'bg-stone-50 text-stone-400 border border-stone-200'}`}>
-                        <span>詳細を見る</span>
-                        <ArrowRight className="w-4 h-4" />
+                      <button 
+                         onClick={() => setSelectedActivity(activity as any)} 
+                         className="w-full group/btn relative flex items-center justify-center gap-3 px-6 py-4 bg-brand-stone-900 text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] overflow-hidden transition-all duration-500 shadow-[0_10px_20px_rgba(0,0,0,0.1)] active:scale-[0.97] hover:-translate-y-1 mt-auto"
+                      >
+                        <div className={`absolute inset-0 bg-gradient-to-r from-[#4F5BD5] to-[#D62976] transition-opacity duration-500 ${
+                          isOpen ? 'opacity-100' : 'opacity-0 group-hover/btn:opacity-100'
+                        }`} />
+                        <span className="relative z-10">詳細を見る</span>
+                        <ArrowRight className="w-4 h-4 relative z-10 transition-transform group-hover/btn:translate-x-1" />
                       </button>
                     </div>
                   </motion.div>
@@ -251,7 +319,12 @@ export default function Activities() {
       </div>
 
       {/* Detail Dialog */}
-      <Dialog.Root open={!!selectedActivity} onOpenChange={(open) => !open && setSelectedActivity(null)}>
+      <Dialog.Root open={!!selectedActivity} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedActivity(null);
+          setIsConfirmed(false);
+        }
+      }}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-stone-900/60 backdrop-blur-lg z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <Dialog.Content className={`fixed left-[50%] top-[50%] z-50 w-[94%] md:w-full max-w-4xl max-h-[90vh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] bg-white p-5 md:p-10 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-[2rem] md:rounded-[2.5rem] ${customFontClass} scrollbar-hide`}>
@@ -266,7 +339,7 @@ export default function Activities() {
                     {selectedActivity.date ? format(new Date(selectedActivity.date), 'EEEE, MM/dd', { locale: jaLocale }) : '---'}
                   </span>
                   {selectedActivity.computedStatus === 'OPEN' ? (
-                    <span className="px-3 py-1 bg-[#D62976]/5 text-[#D62976] text-[10px] font-black uppercase tracking-[0.25em] rounded-full border border-[#D62976]/10">募集中</span>
+                    <span className="px-4 py-1.5 bg-emerald-500 text-white text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] rounded-full shadow-[0_4px_12px_rgba(16,185,129,0.2)]">募集中</span>
                   ) : (
                     <span className="px-3 py-1 bg-brand-stone-100 text-brand-stone-500 text-[10px] font-black uppercase tracking-[0.25em] rounded-full border border-brand-stone-200">募集終了</span>
                   )}
@@ -291,13 +364,15 @@ export default function Activities() {
                     </div>
                   </div>
                   {/* Location box */}
-                  <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-3 md:p-4 flex items-center gap-3 md:gap-4">
-                    <div className="bg-white rounded-xl p-2 md:p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
+                  <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-3 md:p-4 flex items-start gap-3 md:gap-4 min-h-[70px] md:min-h-[80px]">
+                    <div className="bg-white rounded-xl p-2 md:p-2.5 h-fit shadow-sm border border-stone-100 shrink-0 mt-0.5">
                       <MapPin className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
                     </div>
-                    <div className="flex flex-col justify-center min-w-0">
-                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5 truncate">開催場所</span>
-                      <span className="text-xs md:text-sm font-black text-brand-stone-900 truncate">{selectedActivity.displayLocation}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-1 truncate">開催場所</span>
+                      <span className="text-[11px] md:text-sm font-black text-brand-stone-900 leading-snug break-words">
+                        {selectedActivity.displayLocation}
+                      </span>
                     </div>
                   </div>
                   {/* Quantity box */}
@@ -318,55 +393,159 @@ export default function Activities() {
                       <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-rose-500" />
                     </div>
                     <div className="flex flex-col justify-center min-w-0">
-                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5 truncate">申込締切</span>
+                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5 truncate">募集終了</span>
                       <span className="text-xs md:text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'MM/dd HH:mm', { locale: jaLocale })}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2 md:pt-4 space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h3 className="text-xl font-black text-brand-stone-900">活動内容</h3>
-                    <div className="w-full sm:w-auto">
-                      <button
-                        onClick={() => !currentUser ? navigate('/login') : void(0)}
-                        className={`w-full sm:w-auto group rounded-xl transition-all duration-300 flex items-center justify-center gap-3 font-black ${selectedActivity.computedStatus === 'OPEN' ? 'bg-gradient-to-r from-[#4F5BD5] to-[#D62976] text-white hover:brightness-110 hover:translate-y-[-2px] px-8 py-4 text-sm shadow-lg' : 'bg-rose-50 text-rose-500 border border-rose-100 px-6 py-3 text-[11px] uppercase cursor-not-allowed'}`}
-                        disabled={selectedActivity.computedStatus !== 'OPEN'}
-                      >
-                        {selectedActivity.computedStatus === 'OPEN' ? (
-                          <>
-                            <span className="whitespace-nowrap">{currentUser ? '参加を申し込む' : 'ログインして申し込む'}</span>
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                          </>
-                        ) : (
-                          <span className="whitespace-nowrap flex items-center gap-2"><X className="w-3 h-3" /> 募集終了</span>
-                        )}
-                      </button>
+                <div className="pt-2 md:pt-4 space-y-10 md:space-y-12">
+                  {/* Body: Activity Content */}
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
+                      <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">内容</h3>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
-                    <div className="md:col-span-2">
-                      <div className="bg-stone-50 rounded-2xl md:rounded-3xl p-5 md:p-6 border border-stone-100 min-h-[120px] md:min-h-[140px]">
-                        <p className="text-stone-600 text-sm md:text-base leading-relaxed whitespace-pre-line">{selectedActivity.displayDesc}</p>
-                      </div>
-                    </div>
-                    {selectedActivity.displayNote && (
-                      <div className="md:col-span-1">
-                        <div className="bg-amber-50/50 rounded-2xl p-5 md:p-6 border border-amber-100 flex gap-4">
-                          <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                          <div>
-                            <span className="text-[10px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
-                            <p className="text-amber-800 italic text-xs leading-relaxed whitespace-pre-line">{selectedActivity.displayNote}</p>
-                          </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
+                      <div className="md:col-span-2">
+                        <div className="bg-stone-50/80 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-stone-100 min-h-[160px]">
+                          <p className="text-stone-600 text-sm md:text-base leading-relaxed whitespace-pre-line">{selectedActivity.displayDesc}</p>
                         </div>
                       </div>
-                    )}
+
+                      {selectedActivity.displayNote && (
+                        <div className="md:col-span-1">
+                          <div className="bg-amber-50/30 rounded-2xl p-6 border border-amber-100/50 flex gap-4 h-full">
+                            <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="text-[10px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
+                              <p className="text-amber-800 italic text-xs leading-relaxed whitespace-pre-line">{selectedActivity.displayNote}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Top: Status Badges / Info / Registration */}
+                  <div className="flex flex-col items-center justify-center gap-4 pt-4 border-t border-stone-100">
+                    {(() => {
+                      const isRegistered = userRegistrations.includes(selectedActivity.id);
+                      const isPending = toggleRegistrationMutation.isPending;
+
+                      return (
+                        <>
+                          <div className="w-full flex items-center justify-center">
+                            {isRegistered ? (
+                              <div className="flex flex-col items-center gap-3 bg-brand-emerald-50/50 border border-brand-emerald-100 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-sm">
+                                <div className="flex items-center gap-2 text-brand-emerald-600 font-black text-sm uppercase tracking-widest">
+                                  <div className="w-2 h-2 rounded-full bg-brand-emerald-500 animate-pulse" />
+                                  申し込み済み
+                                </div>
+                                <p className="text-[10px] md:text-[11px] font-bold text-brand-stone-400 text-center whitespace-nowrap italic">
+                                  ※ キャンセル・変更については、ミルクティ運営部まで直接ご連絡ください。
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="w-full flex flex-col items-center gap-8">
+                                {currentUser && selectedActivity.computedStatus === 'OPEN' && (
+                                  <div 
+                                    onClick={() => setIsConfirmed(!isConfirmed)}
+                                    className={`group/confirm flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer w-full max-w-lg ${
+                                      isConfirmed 
+                                        ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm shadow-brand-emerald-500/5' 
+                                        : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
+                                    }`}
+                                  >
+                                    <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 shrink-0 ${
+                                      isConfirmed 
+                                        ? 'bg-brand-emerald-500 border-brand-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+                                        : 'bg-white border-stone-200 group-hover/confirm:border-brand-stone-300'
+                                    }`}>
+                                      {isConfirmed && (
+                                        <motion.svg 
+                                          initial={{ scale: 0, opacity: 0 }}
+                                          animate={{ scale: 1, opacity: 1 }}
+                                          className="w-3.5 h-3.5 text-white" 
+                                          fill="none" 
+                                          viewBox="0 0 24 24" 
+                                          stroke="currentColor" 
+                                          strokeWidth={4}
+                                        >
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </motion.svg>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className={`text-[13px] md:text-sm font-black transition-colors duration-300 ${isConfirmed ? 'text-brand-emerald-700' : 'text-stone-600'}`}>
+                                        内容を確認しました
+                                      </span>
+                                      <p className="text-[10px] md:text-[11px] text-stone-400 font-medium leading-relaxed mt-0.5">
+                                        活動内容および注意事項をすべて読み、理解した上で参加を申し込みます。
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <button
+                                  onClick={() => {
+                                    if (!currentUser) {
+                                      navigate('/login');
+                                      return;
+                                    }
+                                    if (!isConfirmed && selectedActivity.computedStatus === 'OPEN') return;
+
+                                    toggleRegistrationMutation.mutate({
+                                      activityId: selectedActivity.id,
+                                      isRegistered: false
+                                    });
+                                  }}
+                                  disabled={selectedActivity.computedStatus !== 'OPEN' || !!isPending || (!!currentUser && !isConfirmed)}
+                                  className={`w-full sm:w-auto rounded-xl transition-all duration-500 flex items-center justify-center gap-3 font-black px-12 py-5 text-sm shadow-xl relative overflow-hidden group
+                                    ${isPending ? 'opacity-70 cursor-wait' : ''}
+                                    ${(selectedActivity.computedStatus === 'OPEN' && (!currentUser || isConfirmed))
+                                      ? 'bg-brand-stone-900 text-white hover:brightness-110 translate-y-[-2px] cursor-pointer'
+                                      : 'bg-stone-50 text-stone-400 border border-stone-200 cursor-not-allowed shadow-none'}
+                                  `}
+                                >
+                                  {/* Background Gradient on Hover */}
+                                  {selectedActivity.computedStatus === 'OPEN' && (!currentUser || isConfirmed) && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-[#4F5BD5] to-[#D62976] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                  )}
+
+                                  <div className="relative z-10 flex items-center gap-3">
+                                    {isPending ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : !currentUser ? (
+                                      <>
+                                        <span className="whitespace-nowrap">ログインして申し込む</span>
+                                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                      </>
+                                    ) : selectedActivity.computedStatus === 'OPEN' ? (
+                                      <>
+                                        <span className="whitespace-nowrap">参加を申し込む</span>
+                                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                      </>
+                                    ) : (
+                                      <span className="whitespace-nowrap flex items-center gap-2 font-bold opacity-60">
+                                        <X className="w-3.5 h-3.5" /> 募集終了
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
             )}
-            <Dialog.Close className="absolute right-4 top-4 md:right-8 md:top-8 rounded-full p-2 bg-stone-100/50 backdrop-blur-sm opacity-70 transition-opacity hover:opacity-100 hover:bg-stone-200 text-stone-500">
-              <X className="h-5 w-5" />
+            <Dialog.Close className="absolute right-4 top-4 md:right-6 md:top-6 z-[60] w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-100 text-stone-400 transition-all duration-300 hover:text-stone-900 hover:shadow-[0_15px_45px_rgb(0,0,0,0.18)] hover:scale-110 active:scale-95 group/close">
+              <X className="h-5 w-5 md:h-6 md:w-6 transition-transform group-hover/close:rotate-90" />
               <span className="sr-only">Close</span>
             </Dialog.Close>
           </Dialog.Content>
