@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Shield,
   LayoutGrid,
-  Trash2,
+  Archive,
   RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -271,9 +271,9 @@ export default function Members() {
           <button
             onClick={() => setShowDeleted(!showDeleted)}
             className={`w-14 h-14 lg:w-16 lg:h-16 flex items-center justify-center rounded-full transition-all border-2 ${showDeleted ? 'bg-red-500 border-red-500 text-white' : 'bg-white border-stone-100 text-stone-300 hover:text-stone-900'}`}
-            title={showDeleted ? "戻る" : "ゴミ箱を見る"}
+            title={showDeleted ? "戻る" : "アーカイブ (Archived records)"}
           >
-            {showDeleted ? <RotateCcw size={24} /> : <Trash2 size={24} />}
+            {showDeleted ? <RotateCcw size={24} /> : <Archive size={24} />}
           </button>
         </div>
       </header>

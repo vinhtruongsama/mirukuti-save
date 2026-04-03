@@ -13,7 +13,7 @@ import {
   Hash,
   MessagesSquare,
   Edit2,
-  Trash2,
+  Archive,
   CheckCircle2
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -294,7 +294,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                     onClick={() => setIsDeleteConfirmOpen(true)}
                     className="w-11 h-11 bg-white border border-rose-100 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm"
                   >
-                    <Trash2 size={18} />
+                    <Archive size={18} />
                   </button>
                 </div>
                 <button

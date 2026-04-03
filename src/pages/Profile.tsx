@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User as UserIcon, 
   MapPin, 
-  Mail, 
   Phone, 
   MessageSquare, 
   Edit2, 
@@ -12,7 +11,6 @@ import {
   ChevronRight, 
   ChevronDown, 
   ChevronUp,
-  X,
   Compass,
   Sparkles,
 } from 'lucide-react';

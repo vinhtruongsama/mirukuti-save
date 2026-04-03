@@ -1,5 +1,5 @@
 // 1. React Core
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 
 // 2. Third-party Libraries
 import * as XLSX from 'xlsx';
@@ -68,7 +68,6 @@ const MemberImport: React.FC<{
   onClose?: () => void;
 }> = ({ onSuccess, isOpen, onClose }) => {
   const [data, setData] = useState<MemberRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -126,7 +125,6 @@ const MemberImport: React.FC<{
    * --- ファイル解析と文字エンコーディングの処理 ---
    */
   const parseFile = async (file: File) => {
-    setIsLoading(true);
     const reader = new FileReader();
 
     reader.onload = (e) => {
@@ -155,9 +153,9 @@ const MemberImport: React.FC<{
         toast.success(`${jsonData.length}件を読み込みました`);
       } catch (err) {
         toast.error('ファイルエラー: ' + (err as Error).message);
-      } finally {
-        setIsLoading(false);
-      }
+    } finally {
+      // Done
+    }
     };
 
     reader.readAsArrayBuffer(file);
