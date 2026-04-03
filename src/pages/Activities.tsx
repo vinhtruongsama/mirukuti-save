@@ -16,7 +16,7 @@ export default function Activities() {
   const { currentUser } = useAuthStore();
   const { selectedYear } = useAppStore();
 
-   const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -224,11 +224,10 @@ export default function Activities() {
                     exit={{ opacity: 0, scale: 0.95, y: -20 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     key={activity.id}
-                    className={`bg-white rounded-2xl overflow-hidden border transition-all duration-500 flex flex-col h-full group relative ${
-                      isOpen 
-                        ? 'border-[#4F5BD5]/20 shadow-[0_15px_35px_-5px_rgba(79,91,213,0.1)] hover:shadow-[0_25px_50px_-12px_rgba(79,91,213,0.2)]' 
+                    className={`bg-white rounded-2xl overflow-hidden border transition-all duration-500 flex flex-col h-full group relative ${isOpen
+                        ? 'border-[#4F5BD5]/20 shadow-[0_15px_35px_-5px_rgba(79,91,213,0.1)] hover:shadow-[0_25px_50px_-12px_rgba(79,91,213,0.2)]'
                         : 'border-stone-100 shadow-sm hover:shadow-xl'
-                    }`}
+                      }`}
                   >
                     <div className="relative aspect-[16/9] overflow-hidden bg-stone-100 rounded-t-2xl">
                       <img
@@ -291,13 +290,12 @@ export default function Activities() {
                           )}
                         </div>
                       </div>
-                      <button 
-                         onClick={() => setSelectedActivity(activity as any)} 
-                         className="w-full group/btn relative flex items-center justify-center gap-3 px-6 py-4 bg-brand-stone-900 text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] overflow-hidden transition-all duration-500 shadow-[0_10px_20px_rgba(0,0,0,0.1)] active:scale-[0.97] hover:-translate-y-1 mt-auto"
+                      <button
+                        onClick={() => setSelectedActivity(activity as any)}
+                        className="w-full group/btn relative flex items-center justify-center gap-3 px-6 py-4 bg-brand-stone-900 text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] overflow-hidden transition-all duration-500 shadow-[0_10px_20px_rgba(0,0,0,0.1)] active:scale-[0.97] hover:-translate-y-1 mt-auto"
                       >
-                        <div className={`absolute inset-0 bg-gradient-to-r from-[#4F5BD5] to-[#D62976] transition-opacity duration-500 ${
-                          isOpen ? 'opacity-100' : 'opacity-0 group-hover/btn:opacity-100'
-                        }`} />
+                        <div className={`absolute inset-0 bg-gradient-to-r from-[#4F5BD5] to-[#D62976] transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 group-hover/btn:opacity-100'
+                          }`} />
                         <span className="relative z-10">詳細を見る</span>
                         <ArrowRight className="w-4 h-4 relative z-10 transition-transform group-hover/btn:translate-x-1" />
                       </button>
@@ -359,7 +357,7 @@ export default function Activities() {
                         <Clock className="w-5 h-5 text-[#4F5BD5]" />
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
-                        <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">開催日時</span>
+                        <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">開催日時</span>
                         <span className="text-sm font-black text-brand-stone-900 truncate">
                           {selectedActivity.date ? format(new Date(selectedActivity.date), 'HH:mm') : '---'}
                         </span>
@@ -371,7 +369,7 @@ export default function Activities() {
                         <Users className="w-5 h-5 text-purple-600" />
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
-                        <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">定員</span>
+                        <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">定員</span>
                         <span className="text-sm font-black text-brand-stone-900 truncate">
                           {selectedActivity.capacity ? `${selectedActivity.registered}/${selectedActivity.capacity}名` : `${selectedActivity.registered}名`}
                         </span>
@@ -383,7 +381,7 @@ export default function Activities() {
                         <AlertCircle className="w-5 h-5 text-rose-500" />
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
-                        <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">募集終了</span>
+                        <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">募集終了</span>
                         <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'MM/dd HH:mm', { locale: jaLocale })}</span>
                       </div>
                     </div>
@@ -395,7 +393,7 @@ export default function Activities() {
                       <MapPin className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-1.5 block">開催場所</span>
+                      <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-1.5 block">開催場所</span>
                       <span className="text-sm md:text-base font-black text-brand-stone-900 leading-relaxed break-words">
                         {selectedActivity.displayLocation}
                       </span>
@@ -412,9 +410,11 @@ export default function Activities() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
-                      <div className="md:col-span-2">
-                        <div className="bg-stone-50/80 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-stone-100 min-h-[160px]">
-                          <p className="text-stone-600 text-sm md:text-base leading-relaxed whitespace-pre-line">{selectedActivity.displayDesc}</p>
+                      <div className={selectedActivity.displayNote ? "md:col-span-2" : "md:col-span-3"}>
+                        <div className="bg-stone-50/50 rounded-[2.5rem] p-8 md:p-12 border border-stone-100/50 w-full">
+                          <p className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-600 bg-clip-text text-transparent text-sm md:text-base font-medium leading-relaxed whitespace-pre-line w-full">
+                            {selectedActivity.displayDesc}
+                          </p>
                         </div>
                       </div>
 
@@ -423,7 +423,7 @@ export default function Activities() {
                           <div className="bg-amber-50/30 rounded-2xl p-6 border border-amber-100/50 flex gap-4 h-full">
                             <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                             <div>
-                              <span className="text-[10px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
+                              <span className="text-[14px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
                               <p className="text-amber-800 italic text-xs leading-relaxed whitespace-pre-line">{selectedActivity.displayNote}</p>
                             </div>
                           </div>
@@ -454,27 +454,25 @@ export default function Activities() {
                             ) : (
                               <div className="w-full flex flex-col items-center gap-8">
                                 {currentUser && selectedActivity.computedStatus === 'OPEN' && (
-                                  <div 
+                                  <div
                                     onClick={() => setIsConfirmed(!isConfirmed)}
-                                    className={`group/confirm flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer w-full max-w-lg ${
-                                      isConfirmed 
-                                        ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm shadow-brand-emerald-500/5' 
+                                    className={`group/confirm flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer w-full max-w-lg ${isConfirmed
+                                        ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm shadow-brand-emerald-500/5'
                                         : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
-                                    }`}
+                                      }`}
                                   >
-                                    <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 shrink-0 ${
-                                      isConfirmed 
-                                        ? 'bg-brand-emerald-500 border-brand-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+                                    <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 shrink-0 ${isConfirmed
+                                        ? 'bg-brand-emerald-500 border-brand-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                                         : 'bg-white border-stone-200 group-hover/confirm:border-brand-stone-300'
-                                    }`}>
+                                      }`}>
                                       {isConfirmed && (
-                                        <motion.svg 
+                                        <motion.svg
                                           initial={{ scale: 0, opacity: 0 }}
                                           animate={{ scale: 1, opacity: 1 }}
-                                          className="w-3.5 h-3.5 text-white" 
-                                          fill="none" 
-                                          viewBox="0 0 24 24" 
-                                          stroke="currentColor" 
+                                          className="w-3.5 h-3.5 text-white"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
                                           strokeWidth={4}
                                         >
                                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

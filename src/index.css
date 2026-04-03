@@ -1,33 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Shippori+Antique&family=Zen+Old+Mincho:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@400;500;700;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --font-serif: 'Noto Serif JP', serif;
+    --font-sans: 'Noto Sans JP', sans-serif;
+  }
+
   body {
     @apply bg-brand-stone-900 text-brand-stone-50 antialiased;
-    font-family: Meiryo, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', system-ui, sans-serif;
+    font-family: var(--font-sans);
     line-height: 1.8;
   }
-  
-  h1, h2, h3, h4, h5, h6, button, input {
-    font-family: Meiryo, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', system-ui, sans-serif;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-serif);
     line-height: 1.4;
   }
 
-  /* Custom scrollbar for dark theme */
+  button,
+  input,
+  select,
+  textarea {
+    font-family: var(--font-sans);
+    line-height: 1.4;
+  }
+
+  /* Premium Lightweight Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(73, 1, 30, 0.646) transparent;
+  }
+
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
   }
+
   ::-webkit-scrollbar-track {
-    @apply bg-brand-stone-900;
+    background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
-    @apply bg-brand-stone-700 rounded;
+    background-color: rgba(139, 139, 150, 0.3);
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: content-box;
   }
+
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-brand-stone-600;
+    background-color: rgb(255, 0, 115);
+    /* Subtle brand touch on hover */
+  }
+
+  /* Hide scrollbar buttons (arrows) to prevent "overflowing" looks */
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Extra spacing for top/bottom */
+  ::-webkit-scrollbar-track-piece {
+    background: transparent;
+    margin: 4px 0;
   }
 }
 

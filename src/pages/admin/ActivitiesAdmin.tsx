@@ -261,34 +261,10 @@ export default function ActivitiesAdmin() {
 
   return (
     <div className="min-h-screen relative overflow-hidden p-4 lg:pt-4 lg:px-10">
-      {/* Dynamic Background Orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <motion.div
-          animate={{
-            x: [0, 40, 0],
-            y: [0, -60, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4F5BD5]/10 blur-[120px] rounded-full"
-        />
-        <motion.div
-          animate={{
-            x: [0, -50, 0],
-            y: [0, 40, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-[5%] left-[-10%] w-[600px] h-[600px] bg-[#FEDA75]/5 blur-[150px] rounded-full"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.3, 0.5, 0.3]
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[20%] left-[20%] w-[400px] h-[400px] bg-[#D62976]/10 blur-[100px] rounded-full"
-        />
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4F5BD5]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[5%] left-[-10%] w-[600px] h-[600px] bg-[#FEDA75]/3 blur-[150px] rounded-full" />
+        <div className="absolute top-[20%] left-[20%] w-[400px] h-[400px] bg-[#D62976]/5 blur-[100px] rounded-full" />
       </div>
 
       <div className="relative z-10 max-w-[1600px] mx-auto space-y-6">
@@ -349,20 +325,17 @@ export default function ActivitiesAdmin() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 pb-20">
             {filteredData.map((act) => (
-              <motion.div
-                layout
+              <div
                 key={act.id}
-                className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-[0_40px_80px_rgba(0,0,0,0.06)] border border-gray-100 transition-all duration-700 flex flex-col relative"
+                className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-[0_30px_60px_rgba(0,0,0,0.08)] border border-gray-100 transition-all duration-500 flex flex-col relative"
               >
                 {/* Image Container */}
                 <div className="h-64 bg-gray-50 relative overflow-hidden">
                   {act.cover_image_url ? (
-                    <motion.img
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.8 }}
+                    <img
                       src={act.cover_image_url}
                       alt={act.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center opacity-30 text-gray-400">
@@ -385,8 +358,8 @@ export default function ActivitiesAdmin() {
 
                     return (
                       <div className={`absolute top-6 left-6 px-4 py-2 text-[12px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border z-10 shadow-sm transition-all duration-300 ${!isClosed
-                          ? 'bg-emerald-500 text-white border-emerald-400/50 shadow-[0_4px_15px_rgba(16,185,129,0.2)]'
-                          : 'bg-white/95 text-brand-stone-500 border-white/50'
+                        ? 'bg-emerald-500 text-white border-emerald-400/50 shadow-[0_4px_15px_rgba(16,185,129,0.2)]'
+                        : 'bg-white/95 text-brand-stone-500 border-white/50'
                         }`}>
                         {!isClosed ? '募集中' : '募集終了'}
                       </div>
@@ -431,7 +404,7 @@ export default function ActivitiesAdmin() {
                     <span className="relative z-10">出欠管理</span>
                   </Link>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
@@ -478,8 +451,8 @@ export default function ActivitiesAdmin() {
                       <div
                         onClick={() => !isProcessingImage && coverInputRef.current?.click()}
                         className={`w-full h-72 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden transition-all relative ${isProcessingImage
-                            ? 'border-[#D62976]/50 bg-[#D62976]/5 cursor-wait'
-                            : 'border-gray-100 hover:border-[#D62976]/50 bg-gray-50/50 cursor-pointer'
+                          ? 'border-[#D62976]/50 bg-[#D62976]/5 cursor-wait'
+                          : 'border-gray-100 hover:border-[#D62976]/50 bg-gray-50/50 cursor-pointer'
                           }`}
                       >
                         {isProcessingImage && (
