@@ -23,9 +23,14 @@ CREATE TABLE IF NOT EXISTS public.users (
     email TEXT UNIQUE NOT NULL,
     mssv TEXT UNIQUE,
     full_name TEXT NOT NULL,
+    full_name_kana TEXT,
+    gender TEXT CHECK (gender IN ('Male', 'Female', 'Other')),
     phone TEXT,
+    university_email TEXT,
+    line_nickname TEXT,
     line_id TEXT,
     hometown TEXT,
+    nationality TEXT,
     avatar_url TEXT,
     deleted_at TIMESTAMP WITH TIME ZONE, -- Soft delete
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL

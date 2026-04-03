@@ -1,67 +1,48 @@
-// 1. React & Framework Core
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-
-// 2. Third-party Libraries
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as Dialog from '@radix-ui/react-dialog';
-import * as XLSX from 'xlsx';
-import { toast } from 'sonner';
-
-// 3. Icons (Lucide)
 import { 
   Search, 
   Edit2, 
   Trash2, 
-  Loader2, 
-  FilterX, 
-  X, 
   UserPlus, 
   FileUp,
-  Plus,
+  X,
+  FilterX,
+  ChevronLeft,
+  ChevronRight,
   Shield,
-  Upload,
-  FileSpreadsheet,
-  CheckCircle2,
-  AlertCircle,
-  Download
+  LayoutGrid
 } from 'lucide-react';
+import { toast } from 'sonner';
 
-// 4. Internal Utilities & Stores
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useDebounce } from '../../hooks/useDebounce';
 
-// --- EXCEL IMPORT TYPES ---
-interface ImportRow {
-  email: string;
-  full_name: string;
-  mssv: string;
-  phone?: string;
-  hometown?: string;
-  role: string;
-  department?: string;
-  class_name?: string;
-  university_year: number;
-  _valid: boolean;
-  _error?: string;
-}
+// --- NEW REFINED COMPONENTS ---
+import { MemberDirectorySkeleton } from '../../components/members/MemberDirectorySkeleton';
+import MemberDetailDrawer from '../../components/members/MemberDetailDrawer';
+import MemberImport from '../../components/members/MemberImport';
 
-// --- ZOD SCHEMA ---
+// --- ZOD SCHEMA (Optimized) ---
 const memberSchema = z.object({
   user_id: z.string().optional(),
   membership_id: z.string().optional(),
   email: z.string().email('無効なメールアドレスです'),
   mssv: z.string().min(1, '学籍番号を入力してください'),
   full_name: z.string().min(1, '名前を入力してください'),
+  full_name_kana: z.string().optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional().nullable(),
   phone: z.string().optional(),
+  university_email: z.string().email('無効な大学メールです').optional().or(z.literal('')),
+  line_nickname: z.string().optional(),
   hometown: z.string().optional(),
   role: z.enum(['admin', 'executive', 'member', 'alumni']),
   department: z.string().optional(),
-  class_name: z.string().optional(),
   university_year: z.number().min(1).max(4),
 });
 
@@ -71,19 +52,21 @@ export default function Members() {
   const queryClient = useQueryClient();
   const { selectedYear } = useAppStore();
   
-  // States
+  // --- UI STATES ---
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 400);
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const debouncedSearch = useDebounce(searchTerm, 300); // Task 1: 300ms debounce
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [gradeFilter, setGradeFilter] = useState('all');
+  const [genderFilter, setGenderFilter] = useState('all');
   
-  // Modal states
-  const [modalOpen, setModalOpen] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importData, setImportData] = useState<ImportRow[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isCompact, setIsCompact] = useState(false); // Task: Density toggle
+  const itemsPerPage = isCompact ? 25 : 15; 
+  
+  // Modal / Drawer states
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null); // For Detail Drawer
   const [editingMember, setEditingMember] = useState<MemberFormData | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<MemberFormData>({
@@ -91,43 +74,21 @@ export default function Members() {
     defaultValues: { role: 'member', university_year: 1 }
   });
 
-  // --- EXCEL TEMPLATE GENERATION ---
-  const downloadTemplate = useCallback(() => {
-    const templateData = [
-      {
-        '名前': '山田 太郎',
-        'メールアドレス': 'yamada@example.com',
-        '学籍番号': 'B2001234',
-        '電話番号': '09012345678',
-        '出身地': '東京都',
-        '役職': 'member',
-        '学部': '工学部',
-        'クラス': 'A1',
-        '学年': 1
-      },
-      {
-        '名前': '鈴木 一郎',
-        'メールアドレス': 'suzuki@example.com',
-        '学籍番号': 'B2005678',
-        '電話番号': '08098765432',
-        '出身地': '大阪府',
-        '役職': 'executive',
-        '学部': '経済学部',
-        'クラス': 'B2',
-        '学年': 2
-      }
-    ];
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'member_import_template.xlsx');
-  }, []);
-
-  // 1. Fetch Members
-  const { data: members, isLoading } = useQuery({
+  // --- DATA FETCHING (Supabase) ---
+  const { 
+    data: members = [], 
+    isLoading, 
+    isError, 
+    error: queryError, 
+    refetch 
+  } = useQuery({
     queryKey: ['admin-members', selectedYear?.id],
     queryFn: async () => {
       if (!selectedYear) return [];
+      
+      // Safety: ensure we are actually fetching
+      console.log('Fetching members for year:', selectedYear.id);
+      
       const { data, error } = await supabase
         .from('club_memberships')
         .select(`
@@ -138,21 +99,37 @@ export default function Members() {
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Supabase Query Error:', error);
+        throw error;
+      }
+      return data || [];
     },
     enabled: !!selectedYear,
+    staleTime: 5 * 60 * 1000,
+    retry: 1, // Only retry once to avoid long hangs
   });
 
-  // 2. Client-side Filters & Pagination
+  // --- FILTER & PAGINATION LOGIC ---
   const filteredData = useMemo(() => {
-    const rawData = members || [];
-    let result = [...rawData];
+    let result = [...members];
     
-    if (roleFilter && roleFilter !== 'all') {
+    // 1. Role Filter
+    if (roleFilter !== 'all') {
       result = result.filter(m => m.role === roleFilter);
     }
+
+    // 2. Grade Filter
+    if (gradeFilter !== 'all') {
+      result = result.filter(m => m.university_year === parseInt(gradeFilter));
+    }
+
+    // 3. Gender Filter
+    if (genderFilter !== 'all') {
+      result = result.filter(m => m.users?.gender === genderFilter);
+    }
     
+    // 4. Search Filter (Debounced)
     const query = debouncedSearch?.trim().toLowerCase();
     if (query) {
       result = result.filter(m => 
@@ -162,27 +139,31 @@ export default function Members() {
       );
     }
     return result;
-  }, [members, roleFilter, debouncedSearch]);
+  }, [members, roleFilter, gradeFilter, genderFilter, debouncedSearch]);
 
-  const totalPages = Math.max(1, Math.ceil((filteredData?.length || 0) / itemsPerPage));
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = useMemo(() => {
-    const data = filteredData || [];
-    return data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  }, [filteredData, currentPage, itemsPerPage]);
+    return filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [filteredData, currentPage]);
 
-  // Reset page when filter changes
+  // Reset page when triggers change
   useEffect(() => {
     setCurrentPage(1);
-  }, [roleFilter, debouncedSearch]);
+  }, [roleFilter, gradeFilter, genderFilter, debouncedSearch]);
 
-  // 3. Save Mutation (Insert/Update)
+  // --- MUTATIONS ---
   const saveMutation = useMutation({
     mutationFn: async (data: MemberFormData) => {
       if (editingMember?.user_id && editingMember?.membership_id) {
+        // Update existing
         const { error: userError } = await supabase.from('users').update({
           full_name: data.full_name,
+          full_name_kana: data.full_name_kana,
+          gender: data.gender,
           mssv: data.mssv,
           phone: data.phone,
+          university_email: data.university_email,
+          line_nickname: data.line_nickname,
           hometown: data.hometown
         }).eq('id', editingMember.user_id);
         if (userError) throw userError;
@@ -190,653 +171,465 @@ export default function Members() {
         const { error: memError } = await supabase.from('club_memberships').update({
           role: data.role,
           department: data.department,
-          class_name: data.class_name,
           university_year: data.university_year
         }).eq('id', editingMember.membership_id);
         if (memError) throw memError;
 
       } else {
+        // Insert logic
         const { data: existingUser } = await supabase.from('users').select('id').eq('email', data.email).maybeSingle();
         let targetUserId = existingUser?.id;
 
         if (!targetUserId) {
           targetUserId = crypto.randomUUID();
           const { error: insertUserError } = await supabase.from('users').insert({
-            id: targetUserId,
-            email: data.email,
-            mssv: data.mssv,
-            full_name: data.full_name,
-            phone: data.phone,
-            hometown: data.hometown
+            id: targetUserId, email: data.email, mssv: data.mssv,
+            full_name: data.full_name, full_name_kana: data.full_name_kana,
+            gender: data.gender, phone: data.phone, university_email: data.university_email,
+            line_nickname: data.line_nickname, hometown: data.hometown
           });
-          if (insertUserError) throw new Error("ユーザー作成エラー: " + insertUserError.message);
+          if (insertUserError) throw insertUserError;
         }
 
         const { error: insertMemError } = await supabase.from('club_memberships').insert({
-          user_id: targetUserId,
-          academic_year_id: selectedYear!.id,
-          role: data.role,
-          department: data.department,
-          class_name: data.class_name,
-          university_year: data.university_year,
-          is_active: true
+          user_id: targetUserId, academic_year_id: selectedYear!.id,
+          role: data.role, department: data.department,
+          university_year: data.university_year, is_active: true
         });
         if (insertMemError) throw insertMemError;
       }
     },
     onSuccess: () => {
-      toast.success(editingMember ? 'メンバー情報を更新しました' : 'メンバーを追加しました');
+      toast.success('データが保存されました');
       queryClient.invalidateQueries({ queryKey: ['admin-members'] });
-      setModalOpen(false);
+      setIsFormOpen(false);
+      setEditingMember(null);
       reset();
     },
     onError: (err: any) => toast.error(err.message)
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (membershipId: string) => {
-      const { error } = await supabase
-        .from('club_memberships')
-        .update({ deleted_at: new Date().toISOString(), is_active: false })
-        .eq('id', membershipId);
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('club_memberships')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success('メンバーを削除しました');
       queryClient.invalidateQueries({ queryKey: ['admin-members'] });
-    },
-    onError: (err: any) => toast.error(err.message)
-  });
-
-  const openForm = (mem?: any) => {
-    if (mem) {
-      const payload: MemberFormData = {
-        user_id: mem.users.id,
-        membership_id: mem.id,
-        email: mem.users.email,
-        mssv: mem.users.mssv || '',
-        full_name: mem.users.full_name,
-        phone: mem.users.phone || '',
-        hometown: mem.users.hometown || '',
-        role: mem.role as any,
-        department: mem.department || '',
-        class_name: mem.class_name || '',
-        university_year: mem.university_year,
-      };
-      setEditingMember(payload);
-      reset(payload);
-    } else {
-      setEditingMember(null);
-      reset({ role: 'member', university_year: 1 });
     }
-    setModalOpen(true);
-  };
-
-  // --- EXCEL IMPORT LOGIC ---
-  const COLUMN_MAP: Record<string, string> = {
-    'email': 'email', 'e-mail': 'email', 'mail': 'email', 'メール': 'email', 'メールアドレス': 'email',
-    'ho va ten': 'full_name', 'họ và tên': 'full_name', 'ho ten': 'full_name', 'họ tên': 'full_name', 'full_name': 'full_name', 'fullname': 'full_name', 'name': 'full_name', 'tên': 'full_name', '名前': 'full_name', '氏名': 'full_name',
-    'mssv': 'mssv', 'ma so sinh vien': 'mssv', 'mã số sinh viên': 'mssv', 'student_id': 'mssv', '学籍番号': 'mssv',
-    'phone': 'phone', 'dien thoai': 'phone', 'điện thoại': 'phone', 'sdt': 'phone', 'số điện thoại': 'phone', '電話番号': 'phone', '連絡先': 'phone',
-    'que quan': 'hometown', 'quê quán': 'hometown', 'hometown': 'hometown', '出身地': 'hometown', '出身': 'hometown',
-    'vai tro': 'role', 'vai trò': 'role', 'role': 'role', 'chuc vu': 'role', 'chức vụ': 'role', '役職': 'role', 'ロール': 'role',
-    'khoa': 'department', 'department': 'department', 'khoa / ngành': 'department', 'nganh': 'department', 'ngành': 'department', '学部': 'department', '学科': 'department',
-    'lop': 'class_name', 'lớp': 'class_name', 'class': 'class_name', 'class_name': 'class_name', 'クラス': 'class_name',
-    'nam': 'university_year', 'năm': 'university_year', 'year': 'university_year', 'sinh vien nam': 'university_year', 'sinh viên năm': 'university_year', 'university_year': 'university_year', '学年': 'university_year',
-  };
-
-  const VALID_ROLES = ['admin', 'executive', 'member', 'alumni'];
-
-  const parseExcelFile = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const rawRows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-        if (rawRows.length === 0) {
-          toast.error('エクセルファイルが空か、データが存在しません。');
-          return;
-        }
-
-        const headers = Object.keys(rawRows[0]);
-        const mapping: Record<string, string> = {};
-        headers.forEach(h => {
-          const normalized = h.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          const mapped = COLUMN_MAP[h.trim().toLowerCase()] || COLUMN_MAP[normalized];
-          if (mapped) mapping[h] = mapped;
-        });
-
-        const parsed: ImportRow[] = rawRows.map((row, idx) => {
-          const r: any = {
-            email: '', full_name: '', mssv: '', phone: '', hometown: '',
-            role: 'member', department: '', class_name: '', university_year: 1,
-            _valid: true, _error: undefined,
-          };
-
-          Object.entries(mapping).forEach(([excelCol, field]) => {
-            const val = String(row[excelCol] ?? '').trim();
-            if (field === 'university_year') {
-              r[field] = parseInt(val) || 1;
-            } else if (field === 'role') {
-              const lower = val.toLowerCase();
-              r[field] = VALID_ROLES.includes(lower) ? lower : 'member';
-            } else {
-              r[field] = val;
-            }
-          });
-
-          if (!r.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) {
-            r._valid = false;
-            r._error = `${idx + 2}行目: メールアドレスが無効です`;
-          } else if (!r.full_name) {
-            r._valid = false;
-            r._error = `${idx + 2}行目: 名前が入力されていません`;
-          } else if (!r.mssv) {
-            r._valid = false;
-            r._error = `${idx + 2}行目: 学籍番号が入力されていません`;
-          }
-          return r as ImportRow;
-        });
-
-        setImportData(parsed);
-        toast.success(`"${file.name}" から ${parsed.length} 行のデータを読み込みました`);
-      } catch {
-        toast.error('ファイルを読み込めませんでした。');
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }, []);
-
-  const handleFileDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) parseExcelFile(file);
-  }, [parseExcelFile]);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) parseExcelFile(file);
-    e.target.value = '';
-  }, [parseExcelFile]);
-
-  const validRows = importData.filter(r => r._valid);
-  const invalidRows = importData.filter(r => !r._valid);
-
-  const importMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedYear) throw new Error('年度が選択されていません');
-      let successCount = 0;
-      for (const row of validRows) {
-        try {
-          const { data: existingUser } = await supabase.from('users').select('id').eq('email', row.email).maybeSingle();
-          let userId = existingUser?.id;
-
-          if (!userId) {
-            userId = crypto.randomUUID();
-            await supabase.from('users').insert({
-              id: userId, email: row.email, mssv: row.mssv,
-              full_name: row.full_name, phone: row.phone || null, hometown: row.hometown || null,
-            });
-          } else {
-            await supabase.from('users').update({
-              full_name: row.full_name, mssv: row.mssv,
-              phone: row.phone || null, hometown: row.hometown || null,
-            }).eq('id', userId);
-          }
-
-          const { data: existingMem } = await supabase.from('club_memberships')
-            .select('id').eq('user_id', userId).eq('academic_year_id', selectedYear.id).maybeSingle();
-
-          if (existingMem) {
-            await supabase.from('club_memberships').update({
-              role: row.role, department: row.department || null,
-              class_name: row.class_name || null, university_year: row.university_year,
-              is_active: true, deleted_at: null,
-            }).eq('id', existingMem.id);
-          } else {
-            await supabase.from('club_memberships').insert({
-              user_id: userId, academic_year_id: selectedYear.id,
-              role: row.role, department: row.department || null,
-              class_name: row.class_name || null, university_year: row.university_year,
-              is_active: true,
-            });
-          }
-          successCount++;
-        } catch { continue; }
-      }
-      return successCount;
-    },
-    onSuccess: (count) => {
-      toast.success(`${count} 名のメンバーをインポートしました`);
-      queryClient.invalidateQueries({ queryKey: ['admin-members'] });
-      setImportModalOpen(false);
-      setImportData([]);
-    },
-    onError: (err: any) => toast.error(err.message),
   });
+
+  // --- ACTIONS ---
+  const handleEdit = (mem: any) => {
+    const payload: MemberFormData = {
+      user_id: mem.users.id,
+      membership_id: mem.id,
+      email: mem.users.email,
+      mssv: mem.users.mssv || '',
+      full_name: mem.users.full_name,
+      full_name_kana: mem.users.full_name_kana || '',
+      gender: mem.users.gender || null,
+      phone: mem.users.phone || '',
+      university_email: mem.users.university_email || '',
+      line_nickname: mem.users.line_nickname || '',
+      hometown: mem.users.hometown || '',
+      role: mem.role as any,
+      department: mem.department || '',
+      university_year: mem.university_year,
+    };
+    setEditingMember(payload);
+    reset(payload);
+    setIsFormOpen(true);
+  };
+
+  // Grade styling logic (Task 2)
+  const getGradeBadge = (year: number) => {
+    switch (year) {
+      case 1: return { bg: 'bg-[#4F5BD5]/10', text: 'text-[#4F5BD5]', border: 'border-[#4F5BD5]/20', label: '1年生' }; // Blue
+      case 4: return { bg: 'bg-[#CDA01E]/10', text: 'text-[#CDA01E]', border: 'border-[#CDA01E]/20', label: '4年生' }; // Gold
+      default: return { bg: 'bg-stone-50', text: 'text-stone-500', border: 'border-stone-100', label: `${year}年生` };
+    }
+  };
 
   return (
-    <div className="h-full flex flex-col space-y-8 overflow-hidden font-sans">
-      {/* 1. Prestigious Header & Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 shrink-0">
-        <div>
-           <div className="flex items-center gap-4 mb-3">
-              <div className="w-2 h-10 bg-brand-stone-900 rounded-full" />
-              <h1 className="text-5xl font-black text-brand-stone-900 tracking-tight">メンバー管理</h1>
+    <div className="min-h-full flex flex-col space-y-10 lg:space-y-12">
+      
+      {/* 1. PRESTIGIOUS HEADER (Task 3) */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 shrink-0">
+        <div className="space-y-4">
+           <div className="flex items-center gap-6">
+              <div className="w-2.5 h-12 bg-stone-900 rounded-full" />
+              <h1 className="text-4xl lg:text-6xl font-black text-stone-900 tracking-tight leading-none uppercase">メンバー名簿</h1>
            </div>
-           <p className="text-brand-stone-400 font-black tracking-[0.3em] uppercase text-[16px] ml-6 opacity-60">
-              DATABASE / {selectedYear?.name} ACADEMIC YEAR
+           <p className="text-stone-400 font-extrabold tracking-[0.4em] uppercase text-[13px] ml-9 opacity-80 flex items-center gap-3">
+              <Shield className="w-5 h-5 text-stone-200" /> Member Directory / {selectedYear?.name} Database
            </p>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
           <button 
-            onClick={() => { setImportData([]); setImportModalOpen(true); }}
-            className="flex items-center gap-4 px-8 py-5 bg-[#FEDA75]/10 hover:bg-[#FEDA75]/20 text-brand-stone-900 rounded-[1.5rem] text-[16px] font-black tracking-tight transition-all active:scale-95 border-2 border-[#FEDA75]/20 shadow-md"
+            onClick={() => setIsImportOpen(true)}
+            className="flex-1 lg:flex-none flex items-center justify-center gap-4 px-8 py-5 bg-stone-50 hover:bg-stone-100 text-stone-900 rounded-[2rem] text-[15px] font-black tracking-tight border border-stone-200 transition-all active:scale-95 group shadow-sm"
           >
-            <FileUp className="w-6 h-6 text-[#CDA01E]" /> Import Data
+            <FileUp className="w-6 h-6 text-stone-400 group-hover:text-stone-900 transition-colors" /> スマートインポート
           </button>
           <button 
-            onClick={() => openForm()}
-            className="flex items-center gap-4 px-10 py-5 bg-[#4F5BD5] hover:bg-[#4F5BD5]/90 text-white rounded-[1.5rem] text-[16px] font-black tracking-tight transition-all shadow-2xl shadow-[#4F5BD5]/30 active:scale-95 border-b-4 border-[#3D47A8]"
+            onClick={() => { setEditingMember(null); reset({ role: 'member', university_year: 1 }); setIsFormOpen(true); }}
+            className="flex-1 lg:flex-none flex items-center justify-center gap-4 px-10 py-5 bg-[#4F5BD5] hover:brightness-110 text-white rounded-[2rem] text-[15px] font-black tracking-tight transition-all shadow-[0_20px_50px_rgba(79,91,213,0.3)] active:scale-95 group"
           >
-            <UserPlus className="w-6 h-6" /> 新規登録
+            <UserPlus className="w-6 h-6 group-hover:scale-110 transition-transform" /> 新規登録
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 2. Glassmorphism Filter Bar */}
-      <div className="bg-white/70 backdrop-blur-md border border-brand-stone-100 p-3 rounded-[2.5rem] flex flex-col md:flex-row gap-3 shrink-0 shadow-2xl shadow-brand-stone-200/30">
+      {/* 2. ADVANCED FILTER BAR & DENSITY TOGGLE (Task 2) */}
+      <section className="bg-white/70 backdrop-blur-3xl border border-stone-100 p-3 lg:p-4 rounded-[2rem] lg:rounded-[3.5rem] flex flex-col xl:flex-row gap-4 shrink-0 shadow-2xl shadow-stone-200/10">
+        
+        {/* Debounced Search Input */}
         <div className="relative flex-1 group">
-          <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-stone-300 group-focus-within:text-[#4F5BD5] transition-colors" />
+          <Search className="absolute left-10 top-1/2 -translate-y-1/2 w-6 h-6 text-stone-300 group-focus-within:text-[#4F5BD5] transition-colors" />
           <input 
             type="text"
-            placeholder="名前、学籍番号、メールで検索..."
+            placeholder="名前、学籍番号、メールで一括検索..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-16 pr-8 py-5 bg-transparent text-brand-stone-900 rounded-3xl text-[16px] font-black focus:outline-none placeholder:text-brand-stone-200"
+            className="w-full pl-20 pr-10 py-5 lg:py-6 bg-transparent text-stone-900 rounded-[2.5rem] text-[16px] lg:text-[17px] font-bold focus:outline-none placeholder:text-stone-300 transition-all"
           />
         </div>
-        <div className="flex gap-3 p-1">
+
+        {/* Dropdown Selectors & Density Toggle */}
+        <div className="flex flex-wrap items-center gap-3 p-1">
+          <div className="hidden lg:flex bg-stone-50 rounded-2xl p-1 gap-1 border border-stone-100">
+            <button 
+              onClick={() => setIsCompact(false)}
+              className={`px-4 py-2 rounded-xl text-[12px] font-black transition-all ${!isCompact ? 'bg-white shadow-sm text-[#4F5BD5]' : 'text-stone-400 hover:text-stone-600'}`}
+            >
+              標準
+            </button>
+            <button 
+              onClick={() => setIsCompact(true)}
+              className={`px-4 py-2 rounded-xl text-[12px] font-black transition-all ${isCompact ? 'bg-white shadow-sm text-[#4F5BD5]' : 'text-stone-400 hover:text-stone-600'}`}
+            >
+              コンパクト
+            </button>
+          </div>
+
           <select 
             value={roleFilter} 
             onChange={e => setRoleFilter(e.target.value)}
-            className="bg-brand-stone-50 border-none text-brand-stone-600 text-[16px] font-black px-8 py-3 rounded-2xl outline-none focus:ring-2 focus:ring-[#4F5BD5]/10 transition-all appearance-none cursor-pointer"
+            className="flex-1 h-12 lg:h-14 bg-stone-50/80 border-none text-stone-700 text-[13px] lg:text-[14px] font-black px-6 lg:px-8 rounded-2xl outline-none focus:ring-4 focus:ring-[#4F5BD5]/10 hover:bg-stone-100 transition-all appearance-none cursor-pointer min-w-[120px]"
           >
-            <option value="all">すべてのロール</option>
+            <option value="all">全ての役割</option>
             <option value="admin">管理者</option>
             <option value="executive">運営</option>
             <option value="member">メンバー</option>
             <option value="alumni">卒業生</option>
           </select>
+
+          <select 
+            value={gradeFilter} 
+            onChange={e => setGradeFilter(e.target.value)}
+            className="flex-1 h-12 lg:h-14 bg-stone-50/80 border-none text-stone-700 text-[13px] lg:text-[14px] font-black px-6 lg:px-8 rounded-2xl outline-none focus:ring-4 focus:ring-[#4F5BD5]/10 hover:bg-stone-100 transition-all appearance-none cursor-pointer min-w-[110px]"
+          >
+            <option value="all">全学年</option>
+            <option value="1">1年生</option>
+            <option value="2">2年生</option>
+            <option value="3">3年生</option>
+            <option value="4">4年生</option>
+          </select>
+
           <button 
-            onClick={() => { setSearchTerm(''); setRoleFilter('all'); }}
-            className="px-6 bg-brand-stone-50 text-brand-stone-400 hover:text-rose-500 rounded-2xl transition-all"
-            title="フィルタを解除"
+            onClick={() => { setSearchTerm(''); setRoleFilter('all'); setGradeFilter('all'); setGenderFilter('all'); }}
+            className="flex-none h-12 lg:h-14 px-5 lg:px-6 bg-stone-50 text-stone-400 hover:text-rose-500 rounded-2xl transition-all border border-transparent hover:border-rose-100"
+            title="リセット"
           >
             <FilterX className="w-5 h-5" />
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* 3. High-Fidelity Data Table */}
-      <div className="flex-1 min-h-0 bg-white border border-brand-stone-100 rounded-[2.5rem] shadow-xl shadow-brand-stone-200/10 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-x-auto">
-          <table className="w-full text-left text-[16px] text-brand-stone-600 whitespace-nowrap">
-            <thead className="bg-brand-stone-50/50 text-[16px] text-brand-stone-400 font-black uppercase tracking-[0.1em] sticky top-0 z-10">
-              <tr>
-                <th className="px-10 py-6 border-b border-brand-stone-100">名前</th>
-                <th className="px-8 py-6 border-b border-brand-stone-100">学籍番号 & メアド</th>
-                <th className="px-8 py-6 border-b border-brand-stone-100">ロール</th>
-                <th className="px-8 py-6 border-b border-brand-stone-100">学部・学年</th>
-                <th className="px-10 py-6 text-right border-b border-brand-stone-100">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-brand-stone-50">
-              {isLoading ? (
+      {/* 3. PERFORMANCE TABLE & MOBILE CARDS (Task 1, 2 & Mobile) */}
+      <section className="flex-1 min-h-0 bg-transparent lg:bg-white/40 lg:border border-stone-100 rounded-[3rem] lg:rounded-[4rem] flex flex-col overflow-hidden">
+        
+        {/* Desktop View: Traditional Table */}
+        <div className="hidden lg:block flex-1 overflow-x-auto custom-scrollbar">
+          {isLoading ? (
+            <MemberDirectorySkeleton />
+          ) : (
+            <table className="w-full text-left text-[16px] text-stone-600 border-separate border-spacing-0">
+              <thead className="bg-stone-50/50 backdrop-blur-md sticky top-0 z-10">
                 <tr>
-                  <td colSpan={5} className="px-10 py-32 text-center">
-                    <Loader2 className="w-10 h-10 animate-spin mx-auto text-[#4F5BD5] opacity-20" />
-                  </td>
+                  <th className={`px-10 border-b border-stone-100 text-[12px] font-black uppercase tracking-[0.25em] text-stone-400 ${isCompact ? 'py-5' : 'py-7'}`}>氏名</th>
+                  <th className={`px-8 border-b border-stone-100 text-[12px] font-black uppercase tracking-[0.25em] text-stone-400 ${isCompact ? 'py-5' : 'py-7'}`}>学籍番号 & メアド</th>
+                  <th className={`px-8 border-b border-stone-100 text-[12px] font-black uppercase tracking-[0.25em] text-stone-400 ${isCompact ? 'py-5' : 'py-7'}`}>役割</th>
+                  <th className={`px-8 border-b border-stone-100 text-[12px] font-black uppercase tracking-[0.25em] text-stone-400 ${isCompact ? 'py-5' : 'py-7'}`}>学部・学年</th>
+                  <th className={`px-10 text-right border-b border-stone-100 text-[12px] font-black uppercase tracking-[0.25em] text-stone-400 ${isCompact ? 'py-5' : 'py-7'}`}>アクション</th>
                 </tr>
-              ) : paginatedData.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-10 py-32 text-center text-brand-stone-300 font-black uppercase tracking-[0.3em] text-[13px]">
-                    No Data Available
-                  </td>
-                </tr>
-              ) : (
-                <AnimatePresence mode="popLayout">
-                  {paginatedData.map((mem) => (
-                    <motion.tr 
-                      key={mem.id} 
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="group border-b border-brand-stone-50 hover:bg-brand-stone-50/40 transition-all duration-300"
-                    >
-                      <td className="px-10 py-8">
-                        <div className="flex items-center gap-5">
-                           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-stone-100 to-brand-stone-50 border border-brand-stone-100 flex items-center justify-center text-[16px] font-black text-brand-stone-500 shadow-sm">
+              </thead>
+              <tbody className="divide-y divide-stone-50/60 bg-white/20 font-sans">
+                {paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-10 py-48 text-center text-stone-200 uppercase tracking-[0.5em] font-black">No Data Found</td>
+                  </tr>
+                ) : (
+                  <AnimatePresence mode="popLayout">
+                    {paginatedData.map((mem) => {
+                      const gradeStyle = getGradeBadge(mem.university_year);
+                      return (
+                        <motion.tr 
+                          key={mem.id} 
+                          layout
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setSelectedMember(mem)}
+                          className="group hover:bg-stone-50/60 transition-all duration-300 cursor-pointer"
+                        >
+                          <td className={`px-10 ${isCompact ? 'py-4' : 'py-8'}`}>
+                            <div className="flex items-center gap-5">
+                               <div className={`rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center font-black text-stone-400 shadow-sm group-hover:bg-white group-hover:scale-105 transition-all ${isCompact ? 'w-10 h-10 text-[13px]' : 'w-14 h-14 text-xl'}`}>
+                                  {mem.users?.full_name?.charAt(0) || 'U'}
+                               </div>
+                               <div className="min-w-0">
+                                 <span className={`font-extrabold text-stone-900 block truncate ${isCompact ? 'text-[15px]' : 'text-[18px]'}`}>{mem.users?.full_name || '—'}</span>
+                                 {!isCompact && <span className="text-[12px] font-black text-stone-300 uppercase tracking-widest">{mem.users?.full_name_kana || ''}</span>}
+                               </div>
+                            </div>
+                          </td>
+                          <td className={`px-8 ${isCompact ? 'py-4 text-[14px]' : 'py-8 text-[16px]'}`}>
+                            <div className="font-extrabold text-stone-800 mb-1 flex items-center gap-2">{mem.users?.mssv || '—'}</div>
+                            {!isCompact && <div className="text-[13px] font-bold text-stone-400 tracking-tight opacity-70 underline underline-offset-4 decoration-stone-200">{mem.users?.email || '—'}</div>}
+                          </td>
+                          <td className={`px-8 ${isCompact ? 'py-4' : 'py-8'}`}>
+                            <span className={`px-4 py-1.5 rounded-lg border-2 text-[10px] lg:text-[11px] font-black uppercase tracking-widest transition-all ${
+                              mem.role === 'admin' ? 'bg-[#D62976]/5 text-[#D62976] border-[#D62976]/10' :
+                              mem.role === 'executive' ? 'bg-[#4F5BD5]/5 text-[#4F5BD5] border-[#4F5BD5]/10' :
+                              mem.role === 'alumni' ? 'bg-stone-50 text-stone-400 border-stone-100 shadow-none' :
+                              'bg-[#FEDA75]/5 text-[#CDA01E] border-[#FEDA75]/10 shadow-sm'
+                            }`}>
+                              {mem.role === 'admin' ? '管理者' : mem.role === 'executive' ? '運営' : mem.role === 'alumni' ? '卒業生' : 'メンバー'}
+                            </span>
+                          </td>
+                          <td className={`px-8 ${isCompact ? 'py-4 text-[14px]' : 'py-8 text-[16px]'}`}>
+                            {!isCompact && <div className="font-bold text-stone-700 mb-2">{mem.department || '未設定'}</div>}
+                            <div className={`inline-flex items-center gap-2 px-3 lg:px-4 py-1 lg:py-1.5 rounded-lg border-2 text-[11px] lg:text-[12px] font-black tracking-tight ${gradeStyle.bg} ${gradeStyle.text} ${gradeStyle.border}`}>
+                               {gradeStyle.label}
+                            </div>
+                          </td>
+                          <td className={`px-10 text-right ${isCompact ? 'py-4' : 'py-8'}`}>
+                            <div className="flex items-center justify-end gap-2 lg:gap-3" onClick={e => e.stopPropagation()}>
+                              <button onClick={() => handleEdit(mem)} className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center bg-white border border-stone-100 text-stone-400 hover:text-[#4F5BD5] hover:border-[#4F5BD5]/40 hover:shadow-2xl rounded-xl lg:rounded-2xl transition-all"><Edit2 className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+                              <button onClick={() => window.confirm('削除しますか？') && deleteMutation.mutate(mem.id)} className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center bg-white border border-stone-100 text-stone-400 hover:text-rose-500 hover:border-rose-200 hover:shadow-2xl rounded-xl lg:rounded-2xl transition-all"><Trash2 className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Mobile View: Dynamic Card Grid (Touch Optimized) */}
+        <div className="lg:hidden flex-1 overflow-y-auto space-y-4 px-1 py-4">
+           {isLoading ? (
+             <div className="flex flex-col items-center justify-center py-48 gap-4">
+                <div className="w-12 h-12 border-4 border-[#4F5BD5]/20 border-t-[#4F5BD5] rounded-full animate-spin" />
+                <span className="text-sm font-black text-stone-300 uppercase tracking-[0.4em]">Loading members...</span>
+             </div>
+           ) : isError ? (
+             <div className="flex flex-col items-center justify-center py-20 bg-rose-50 rounded-[2rem] border border-rose-100 p-6 text-center">
+                <Shield className="w-12 h-12 text-rose-200 mb-4" />
+                <p className="text-[13px] font-black uppercase text-rose-500 tracking-widest mb-2">Error loading directory</p>
+                <p className="text-[11px] font-bold text-rose-400 mb-6">セッションが切れたか、通信エラーが発生しました</p>
+                <button onClick={() => refetch()} className="px-6 py-3 bg-white text-rose-500 rounded-xl font-black text-[12px] shadow-sm border border-rose-100 active:scale-95 transition-all">再試行する (Retry)</button>
+             </div>
+           ) : paginatedData.length === 0 ? (
+             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-stone-100">
+               <LayoutGrid className="w-12 h-12 text-stone-100 mb-4" />
+               <p className="text-[13px] font-black uppercase text-stone-300 tracking-widest">No entries found</p>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 gap-4">
+               {paginatedData.map(mem => {
+                 const g = getGradeBadge(mem.university_year);
+                 return (
+                   <motion.div 
+                     key={mem.id}
+                     whileTap={{ scale: 0.98 }}
+                     onClick={() => setSelectedMember(mem)}
+                     className="bg-white rounded-[2.5rem] p-6 border border-stone-100 shadow-xl shadow-stone-200/20 space-y-4 active:bg-stone-50 transition-colors"
+                   >
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                           <div className="w-14 h-14 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-center font-black text-stone-400 shadow-sm text-xl">
                               {mem.users?.full_name?.charAt(0) || 'U'}
                            </div>
-                           <span className="font-black text-brand-stone-900 tracking-tight text-[18px]">{mem.users?.full_name || '—'}</span>
+                           <div>
+                              <h4 className="text-[17px] font-black text-stone-900 tracking-tight">{mem.users?.full_name}</h4>
+                              <p className="text-[13px] font-bold text-stone-800">{mem.users?.mssv}</p>
+                           </div>
                         </div>
-                      </td>
-                      <td className="px-8 py-8">
-                        <div className="font-black text-brand-stone-800 text-[16px] leading-none mb-3">{mem.users?.mssv || '—'}</div>
-                        <div className="text-[16px] font-black text-brand-stone-300 tracking-tight opacity-80">{mem.users?.email || '—'}</div>
-                      </td>
-                      <td className="px-8 py-8">
-                        <span className={`px-6 py-3 text-[16px] font-black uppercase tracking-widest rounded-full border shadow-md ${
-                          mem.role === 'admin' ? 'bg-[#D62976]/5 text-[#D62976] border-[#D62976]/30' :
-                          mem.role === 'executive' ? 'bg-[#4F5BD5]/5 text-[#4F5BD5] border-[#4F5BD5]/30' :
-                          mem.role === 'alumni' ? 'bg-brand-stone-50 text-brand-stone-400 border-brand-stone-100' :
-                          'bg-[#FEDA75]/5 text-[#CDA01E] border-[#FEDA75]/40'
-                        }`}>
-                          {mem.role === 'admin' ? '管理者' :
-                          mem.role === 'executive' ? '運営' :
-                          mem.role === 'alumni' ? '卒業生' :
-                          'メンバー'}
+                        <span className={`px-4 py-1.5 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest ${mem.role === 'admin' ? 'bg-rose-50 text-rose-500 border-rose-100' : mem.role === 'executive' ? 'bg-indigo-50 text-indigo-500 border-indigo-100' : 'bg-stone-50 text-stone-400 border-stone-100'}`}>
+                          {mem.role === 'admin' ? '管理者' : mem.role === 'executive' ? '運営' : '一般'}
                         </span>
-                      </td>
-                      <td className="px-8 py-8">
-                        <div className="font-black text-brand-stone-800 text-[16px] mb-3">{mem.department || '—'}</div>
-                        <div className="text-[16px] font-black text-brand-stone-300 uppercase tracking-widest flex items-center gap-3">
-                           {mem.class_name || '—'} <div className="w-2 h-2 bg-brand-stone-200 rounded-full" /> {mem.university_year}年生
+                     </div>
+                     
+                     <div className="flex items-center justify-between border-t border-stone-50 pt-4">
+                        <div className={`px-4 py-1.5 rounded-lg border-2 text-[11px] font-black ${g.bg} ${g.text} ${g.border}`}>
+                           {g.label}
                         </div>
-                      </td>
-                      <td className="px-10 py-8 text-right">
-                        <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 transition-transform">
-                          <button 
-                            onClick={() => openForm(mem)}
-                            className="w-11 h-11 flex items-center justify-center bg-white border border-brand-stone-100 text-brand-stone-400 hover:text-[#4F5BD5] hover:border-[#4F5BD5]/40 hover:shadow-xl rounded-xl transition-all"
-                          >
-                            <Edit2 className="w-5 h-5" />
-                          </button>
-                          <button 
-                            onClick={() => {
-                              if (window.confirm('このメンバーを削除してもよろしいですか？')) {
-                                deleteMutation.mutate(mem.id);
-                              }
-                            }}
-                            className="w-11 h-11 flex items-center justify-center bg-white border border-brand-stone-100 text-brand-stone-400 hover:text-rose-500 hover:border-rose-200 hover:shadow-xl rounded-xl transition-all"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                           <button onClick={(e) => { e.stopPropagation(); handleEdit(mem); }} className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-xl text-stone-400 active:bg-stone-900 active:text-white transition-all"><Edit2 size={16} /></button>
+                           <button onClick={(e) => { e.stopPropagation(); window.confirm('削除？') && deleteMutation.mutate(mem.id); }} className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-xl text-stone-400 active:bg-rose-500 active:text-white transition-all"><Trash2 size={16} /></button>
                         </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              )}
-            </tbody>
-          </table>
+                     </div>
+                   </motion.div>
+                 );
+               })}
+             </div>
+           )}
         </div>
+
         
-        {/* Compact Pagination */}
+        {/* ARTFUL PAGINATION (Task 1) */}
         {!isLoading && totalPages > 1 && (
-          <div className="px-10 py-8 bg-brand-stone-50/10 border-t border-brand-stone-50 flex items-center justify-between shrink-0">
-            <div className="text-[16px] font-black text-brand-stone-300 uppercase tracking-[0.3em]">
-               Page <span className="text-brand-stone-900 border-b-2 border-[#4F5BD5]">{currentPage}</span> / {totalPages}
+          <div className="px-10 py-8 bg-stone-50/50 backdrop-blur-xl border-t border-stone-100 flex items-center justify-between shrink-0">
+            <div className="hidden sm:block text-[13px] font-black text-stone-300 uppercase tracking-[0.3em]">
+               Showing <span className="text-stone-900 border-b-2 border-[#4F5BD5] py-0.5">{currentPage}</span> / {totalPages} Pages
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-4 w-full sm:w-auto">
               <button 
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="w-10 h-10 flex items-center justify-center bg-white border border-brand-stone-100 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#4F5BD5] hover:text-white transition-all shadow-sm"
+                className="flex-1 sm:flex-none w-14 h-14 flex items-center justify-center bg-white border border-stone-200 rounded-[1.2rem] disabled:opacity-20 disabled:scale-95 disabled:cursor-not-allowed hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all shadow-lg active:scale-90"
               >
-                <X className="w-4 h-4 rotate-45" />
+                <ChevronLeft className="w-6 h-6" />
               </button>
               <button 
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="w-10 h-10 flex items-center justify-center bg-white border border-brand-stone-100 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#4F5BD5] hover:text-white transition-all shadow-sm"
+                className="flex-1 sm:flex-none w-14 h-14 flex items-center justify-center bg-white border border-stone-200 rounded-[1.2rem] disabled:opacity-20 disabled:scale-95 disabled:cursor-not-allowed hover:bg-[#4F5BD5] hover:text-white hover:border-[#4F5BD5] transition-all shadow-lg active:scale-90"
               >
-                <Plus className="w-4 h-4 rotate-45" />
+                <ChevronRight className="w-6 h-6" />
               </button>
             </div>
           </div>
         )}
+      </section>
+
+      {/* 4. MOBILE FLOATING ACTION BUTTON (Task: Ease for Mobile) */}
+      <div className="lg:hidden fixed bottom-8 right-8 z-[100]">
+        <button 
+            onClick={() => { setEditingMember(null); reset({ role: 'member', university_year: 1 }); setIsFormOpen(true); }}
+            className="w-16 h-16 bg-[#4F5BD5] text-white rounded-full shadow-[0_20px_50px_rgba(79,91,213,0.5)] flex items-center justify-center active:scale-90 transition-all"
+        >
+          <UserPlus size={28} />
+        </button>
       </div>
 
-      {/* 4. Refined Modals (Dialog Design) */}
-      <Dialog.Root open={modalOpen} onOpenChange={setModalOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-brand-stone-900/60 backdrop-blur-xl z-50 animate-in fade-in duration-500" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-xl translate-x-[-50%] translate-y-[-50%] bg-white rounded-[2.5rem] shadow-2xl p-0 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300">
-            
-            <div className="p-10 border-b border-brand-stone-50 flex justify-between items-center shrink-0">
-              <div>
-                <Dialog.Title className="text-2xl font-black text-brand-stone-900 tracking-tighter">
-                  {editingMember ? 'メンバー編集' : '新規登録'}
-                </Dialog.Title>
-                <p className="text-[10px] font-black uppercase tracking-widest text-brand-stone-300 mt-1">Profile Configuration</p>
-              </div>
-              <Dialog.Close asChild>
-                <button className="w-10 h-10 flex items-center justify-center bg-brand-stone-50 rounded-xl text-brand-stone-400 hover:bg-brand-stone-900 hover:text-white transition-all"><X className="w-5 h-5"/></button>
-              </Dialog.Close>
-            </div>
+      {/* --- SLIDE OVER PANEL & MODALS --- */}
+      <MemberDetailDrawer
+        member={selectedMember}
+        isOpen={!!selectedMember}
+        onClose={() => setSelectedMember(null)}
+      />
 
-            <div className="p-10 overflow-y-auto custom-scrollbar flex-1">
-              <form id="member-form" onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-10">
-                
-                <div className="space-y-6">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#4F5BD5] flex items-center gap-3">
-                    <Shield className="w-4 h-4" /> Personal Information
-                  </h3>
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-brand-stone-400">氏名 *</label>
-                      <input {...register('full_name')} className="w-full bg-brand-stone-50 border-none text-brand-stone-900 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-[#4F5BD5]/20 outline-none transition-all placeholder:text-brand-stone-200" placeholder="山田 太郎" />
-                      {errors.full_name && <p className="text-[#D62976] text-[10px] font-black uppercase ml-2 mt-2 tracking-widest">{errors.full_name.message}</p>}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-2">
-                         <label className="text-[11px] font-black uppercase tracking-widest text-brand-stone-400">学籍番号 *</label>
-                         <input {...register('mssv')} className="w-full bg-brand-stone-50 border-none text-brand-stone-900 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-[#4F5BD5]/20 outline-none transition-all" />
-                         {errors.mssv && <p className="text-[#D62976] text-[10px] font-black uppercase ml-2 mt-2 tracking-widest">{errors.mssv.message}</p>}
-                       </div>
-                       <div className="space-y-2">
-                         <label className="text-[11px] font-black uppercase tracking-widest text-brand-stone-400">学年 *</label>
-                         <select {...register('university_year', { valueAsNumber: true })} className="w-full bg-brand-stone-50 border-none text-brand-stone-900 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-[#4F5BD5]/20 outline-none transition-all appearance-none cursor-pointer">
-                           <option value={1}>1年生</option>
-                           <option value={2}>2年生</option>
-                           <option value={3}>3年生</option>
-                           <option value={4}>4年生</option>
-                         </select>
-                       </div>
-                    </div>
+      <MemberImport 
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+      />
 
-                    <div className="space-y-2">
-                       <label className="text-[11px] font-black uppercase tracking-widest text-brand-stone-400">メールアドレス *</label>
-                       <input 
-                         {...register('email')} 
-                         readOnly={!!editingMember}
-                         className="w-full bg-brand-stone-50 border-none text-brand-stone-900 rounded-2xl px-6 py-4 text-sm font-bold read-only:opacity-50 focus:ring-2 focus:ring-[#4F5BD5]/20 outline-none transition-all" 
-                       />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#D62976] flex items-center gap-3">
-                    <Shield className="w-4 h-4" /> Club Configuration
-                  </h3>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-brand-stone-400">役割 *</label>
-                      <select {...register('role')} className="w-full bg-brand-stone-50 border-none text-brand-stone-900 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-[#4F5BD5]/20 outline-none transition-all appearance-none cursor-pointer font-black uppercase tracking-widest text-xs">
-                        <option value="member">メンバー</option>
-                        <option value="executive">運営</option>
-                        <option value="admin">管理者</option>
-                        <option value="alumni">卒業生</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-brand-stone-400">学部 / 学科</label>
-                      <input {...register('department')} className="w-full bg-brand-stone-50 border-none text-brand-stone-900 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-[#4F5BD5]/20 outline-none transition-all" />
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <div className="p-10 border-t border-brand-stone-50 shrink-0 flex justify-end gap-4 bg-brand-stone-50/30">
-              <Dialog.Close asChild>
-                <button type="button" className="px-8 py-4 text-brand-stone-400 text-[13px] font-black tracking-tight rounded-2xl hover:bg-white hover:text-brand-stone-900 transition-all">キャンセル</button>
-              </Dialog.Close>
-              <button 
-                type="submit" 
-                form="member-form"
-                disabled={saveMutation.isPending}
-                className="px-12 py-4 bg-[#4F5BD5] hover:bg-[#4F5BD5]/90 text-white text-[13px] font-black tracking-tight rounded-2xl shadow-xl shadow-[#4F5BD5]/30 transition-all active:scale-95 flex items-center justify-center gap-3 min-w-[160px]"
-              >
-                {saveMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : '更新を適用'}
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      {/* ============ IMPORT EXCEL MODAL ============ */}
-      <Dialog.Root open={importModalOpen} onOpenChange={(open) => { setImportModalOpen(open); if (!open) setImportData([]); }}>
-        <Dialog.Portal>
-           <Dialog.Overlay className="fixed inset-0 bg-brand-stone-900/60 backdrop-blur-xl z-50 animate-in fade-in duration-500" />
-           <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-5xl translate-x-[-50%] translate-y-[-50%] bg-white rounded-[3rem] shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-            
-            <div className="p-10 border-b border-brand-stone-50 flex justify-between items-center shrink-0">
-               <div>
-                  <Dialog.Title className="text-3xl font-black text-brand-stone-900 tracking-tighter flex items-center gap-5">
-                    <div className="p-3 bg-[#FEDA75]/20 rounded-2xl">
-                       <FileSpreadsheet className="w-6 h-6 text-brand-stone-900" />
-                    </div>
-                    一括インポート
-                  </Dialog.Title>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-stone-300 mt-2 ml-[68px]">Batch Data Processing</p>
-               </div>
-               <Dialog.Close asChild>
-                 <button className="w-12 h-12 flex items-center justify-center bg-brand-stone-50 rounded-2xl text-brand-stone-400 hover:bg-brand-stone-900 hover:text-white transition-all"><X className="w-6 h-6"/></button>
-               </Dialog.Close>
-            </div>
-
-            <div className="p-10 overflow-y-auto flex-1 space-y-10 custom-scrollbar">
-              {importData.length === 0 ? (
-                <div className="space-y-8">
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleFileDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-4 border-dashed rounded-[2.5rem] p-24 text-center cursor-pointer transition-all duration-500 ${
-                      isDragging
-                        ? 'border-[#4F5BD5] bg-[#4F5BD5]/5 scale-[0.98]'
-                        : 'border-brand-stone-100 hover:border-[#4F5BD5]/40 bg-brand-stone-50/30'
-                    }`}
-                  >
-                    <div className={`w-20 h-20 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-lg transition-all ${isDragging ? 'bg-[#4F5BD5] text-white' : 'bg-white text-brand-stone-200'}`}>
-                       <Upload className="w-10 h-10" />
-                    </div>
-                    <p className="text-2xl font-black text-brand-stone-900 tracking-tight mb-3">
-                      {isDragging ? 'その通り、ドロップしてください' : 'エクセルファイルをここに'}
-                    </p>
-                    <p className="text-brand-stone-400 font-bold text-sm tracking-tight">ドラッグ＆ドロップ、またはクリックしてファイルを選択</p>
-                    <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleFileSelect} className="hidden" />
-                  </div>
-                  
-                  <div className="flex flex-col items-center gap-4">
-                     <button onClick={downloadTemplate} className="group flex items-center gap-3 px-8 py-5 bg-white border border-brand-stone-100 text-[13px] font-black text-brand-stone-600 hover:text-[#4F5BD5] hover:border-[#4F5BD5]/30 rounded-2xl transition-all shadow-sm">
-                        <Download className="w-5 h-5 transition-transform group-hover:translate-y-1" />
-                        テンプレートをダウンロード (.xlsx)
-                     </button>
-                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-stone-200">System supports .xlsx and .xls formats</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-10">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 px-6 py-4 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-2xl shadow-sm">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span className="text-sm font-black tracking-tight">{validRows.length} 件が有効</span>
-                    </div>
-                    {invalidRows.length > 0 && (
-                      <div className="flex items-center gap-3 px-6 py-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl shadow-sm">
-                        <AlertCircle className="w-5 h-5" />
-                        <span className="text-sm font-black tracking-tight">{invalidRows.length} 件のエラー</span>
-                      </div>
-                    )}
-                    <button onClick={() => setImportData([])} className="ml-auto text-[11px] font-black uppercase tracking-widest text-brand-stone-300 hover:text-brand-stone-900 flex items-center gap-3 transition-colors">
-                      <X className="w-4 h-4" /> 別のファイル
-                    </button>
-                  </div>
-
-                  <div className="border border-brand-stone-100 rounded-[2rem] overflow-hidden bg-brand-stone-50/10 shadow-inner">
-                    <div className="overflow-x-auto max-h-[40vh]">
-                      <table className="w-full text-left text-[12px] text-brand-stone-600 whitespace-nowrap">
-                        <thead className="bg-brand-stone-50 text-brand-stone-400 font-black uppercase tracking-widest sticky top-0 z-20">
-                          <tr>
-                            <th className="px-6 py-4">Status</th>
-                            <th className="px-6 py-4">名前</th>
-                            <th className="px-6 py-4">Email</th>
-                            <th className="px-6 py-4 text-center">ロール</th>
-                            <th className="px-6 py-4">学年</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-brand-stone-50/50">
-                          {importData.map((row, i) => (
-                            <tr key={i} className={`transition-colors ${row._valid ? 'bg-white hover:bg-brand-stone-50/30' : 'bg-rose-50/30'}`}>
-                              <td className="px-6 py-4">
-                                {row._valid 
-                                  ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 
-                                  : <span title={row._error}><AlertCircle className="w-4 h-4 text-rose-400" /></span>
-                                }
-                              </td>
-                              <td className="px-6 py-4 font-black text-brand-stone-900">{row.full_name || '—'}</td>
-                              <td className="px-6 py-4 font-bold text-brand-stone-400">{row.email || '—'}</td>
-                              <td className="px-6 py-4 text-center">
-                                <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${
-                                  row.role === 'admin' ? 'bg-rose-50 text-rose-500 border-rose-100' :
-                                  row.role === 'executive' ? 'bg-indigo-50 text-indigo-500 border-indigo-100' :
-                                  'bg-slate-50 text-slate-500 border-slate-100'
-                                }`}>
-                                  {row.role}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 font-black text-brand-stone-900">{row.university_year}年生</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-10 border-t border-brand-stone-50 shrink-0 flex justify-end gap-4 bg-brand-stone-50/30">
-               <Dialog.Close asChild>
-                  <button type="button" className="px-8 py-5 text-brand-stone-400 text-[13px] font-black rounded-2xl hover:bg-white hover:text-brand-stone-900 transition-all">キャンセル</button>
-               </Dialog.Close>
-               {importData.length > 0 && (
-                  <button 
-                    onClick={() => importMutation.mutate()}
-                    disabled={importMutation.isPending || validRows.length === 0}
-                    className="px-12 py-5 bg-[#4F5BD5] hover:bg-[#4F5BD5]/90 text-white text-[13px] font-black tracking-tight rounded-2xl shadow-xl shadow-[#4F5BD5]/30 transition-all active:scale-95 flex items-center justify-center gap-3 min-w-[200px]"
-                  >
-                    {importMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : `${validRows.length} 名の登録を実行`}
+      {/* Edit Form Modal (Traditional Dialog remains for heavy editing) */}
+      <AnimatePresence>
+        {isFormOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               onClick={() => setIsFormOpen(false)}
+               className="absolute inset-0 bg-stone-900/40 backdrop-blur-md"
+             />
+             <motion.div 
+               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+               className="relative w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]"
+             >
+                <div className="p-10 border-b border-stone-100 flex justify-between items-center bg-stone-50/50">
+                  <h2 className="text-3xl font-black text-stone-900 tracking-tight">
+                    {editingMember ? 'メンバー編集' : '新規登録'}
+                  </h2>
+                  <button onClick={() => setIsFormOpen(false)} className="p-3 bg-white rounded-2xl hover:bg-stone-900 hover:text-white transition-all shadow-sm">
+                    <X size={24} />
                   </button>
-               )}
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+                </div>
+
+                <div className="p-10 overflow-y-auto custom-scrollbar flex-1 bg-white">
+                  <form id="member-form" onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-10">
+                    <div className="space-y-6">
+                      <label className="text-[11px] font-black uppercase text-[#4F5BD5] tracking-[0.3em]">Basic Profile</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         <div className="space-y-2">
+                            <span className="text-[11px] font-black uppercase text-stone-400 tracking-widest pl-1">氏名 *</span>
+                            <input {...register('full_name')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all" />
+                            {errors.full_name && <p className="text-red-500 text-[10px] font-black ml-2">{errors.full_name.message}</p>}
+                         </div>
+                         <div className="space-y-2">
+                            <span className="text-[11px] font-black uppercase text-stone-400 tracking-widest pl-1">学籍番号 *</span>
+                            <input {...register('mssv')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all" />
+                         </div>
+                      </div>
+                      <div className="space-y-2">
+                        <span className="text-[11px] font-black uppercase text-stone-400 tracking-widest pl-1">メールアドレス *</span>
+                        <input {...register('email')} readOnly={!!editingMember} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold opacity-80" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <label className="text-[11px] font-black uppercase text-[#D62976] tracking-[0.3em]">Club Configuration</label>
+                      <div className="grid grid-cols-2 gap-6">
+                         <div className="space-y-2">
+                            <span className="text-[11px] font-black uppercase text-stone-400 tracking-widest pl-1">役割</span>
+                            <select {...register('role')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none">
+                              <option value="member">メンバー</option>
+                              <option value="executive">運営</option>
+                              <option value="admin">管理者</option>
+                              <option value="alumni">卒業生</option>
+                            </select>
+                         </div>
+                         <div className="space-y-2">
+                            <span className="text-[11px] font-black uppercase text-stone-400 tracking-widest pl-1">学年</span>
+                            <select {...register('university_year', { valueAsNumber: true })} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none">
+                              <option value={1}>1年生</option>
+                              <option value={2}>2年生</option>
+                              <option value={3}>3年生</option>
+                              <option value={4}>4年生</option>
+                            </select>
+                         </div>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="p-10 border-t border-stone-100 flex gap-4 bg-stone-50/50">
+                  <button onClick={() => setIsFormOpen(false)} className="flex-1 h-16 bg-white rounded-[1.5rem] font-black border border-stone-200">キャンセル</button>
+                  <button 
+                    type="submit" 
+                    form="member-form"
+                    disabled={saveMutation.isPending}
+                    className="flex-1 h-16 bg-[#4F5BD5] text-white rounded-[1.5rem] font-black shadow-xl"
+                  >
+                    {saveMutation.isPending ? '保存中...' : '保存する'}
+                  </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

@@ -350,51 +350,55 @@ export default function Activities() {
                 </Dialog.Title>
 
                 {/* Optimized Stats Grid for Mobile */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                  {/* Time box */}
-                  <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-3 md:p-4 flex items-center gap-3 md:gap-4">
-                    <div className="bg-white rounded-xl p-2 md:p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
-                      <Clock className="w-4 h-4 md:w-5 md:h-5 text-[#4F5BD5]" />
+                <div className="space-y-3 md:space-y-4">
+                  {/* Top Row: Time, Capacity, Deadline */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                    {/* Time box */}
+                    <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 flex items-center gap-4">
+                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
+                        <Clock className="w-5 h-5 text-[#4F5BD5]" />
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0">
+                        <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">開催日時</span>
+                        <span className="text-sm font-black text-brand-stone-900 truncate">
+                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'HH:mm') : '---'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col justify-center min-w-0">
-                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5 truncate">開催日時</span>
-                      <span className="text-xs md:text-sm font-black text-brand-stone-900 truncate">
-                        {selectedActivity.date ? format(new Date(selectedActivity.date), 'HH:mm') : '---'}
-                      </span>
+                    {/* Quantity box */}
+                    <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 flex items-center gap-4">
+                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
+                        <Users className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0">
+                        <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">定員</span>
+                        <span className="text-sm font-black text-brand-stone-900 truncate">
+                          {selectedActivity.capacity ? `${selectedActivity.registered}/${selectedActivity.capacity}名` : `${selectedActivity.registered}名`}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Deadline box */}
+                    <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 flex items-center gap-4">
+                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
+                        <AlertCircle className="w-5 h-5 text-rose-500" />
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0">
+                        <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">募集終了</span>
+                        <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'MM/dd HH:mm', { locale: jaLocale })}</span>
+                      </div>
                     </div>
                   </div>
-                  {/* Location box */}
-                  <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-3 md:p-4 flex items-start gap-3 md:gap-4 min-h-[70px] md:min-h-[80px]">
-                    <div className="bg-white rounded-xl p-2 md:p-2.5 h-fit shadow-sm border border-stone-100 shrink-0 mt-0.5">
-                      <MapPin className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
+
+                  {/* Bottom Row: Full-width Location */}
+                  <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-5 flex items-start gap-4">
+                    <div className="bg-white rounded-xl p-2.5 md:p-3 h-fit shadow-sm border border-stone-100 shrink-0 mt-1">
+                      <MapPin className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-1 truncate">開催場所</span>
-                      <span className="text-[11px] md:text-sm font-black text-brand-stone-900 leading-snug break-words">
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-1.5 block">開催場所</span>
+                      <span className="text-sm md:text-base font-black text-brand-stone-900 leading-relaxed break-words">
                         {selectedActivity.displayLocation}
                       </span>
-                    </div>
-                  </div>
-                  {/* Quantity box */}
-                  <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-3 md:p-4 flex items-center gap-3 md:gap-4">
-                    <div className="bg-white rounded-xl p-2 md:p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
-                      <Users className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
-                    </div>
-                    <div className="flex flex-col justify-center min-w-0">
-                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5 truncate">定員</span>
-                      <span className="text-xs md:text-sm font-black text-brand-stone-900 truncate">
-                        {selectedActivity.capacity ? `${selectedActivity.registered}/${selectedActivity.capacity}名` : `${selectedActivity.registered}名`}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Deadline box */}
-                  <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-3 md:p-4 flex items-center gap-3 md:gap-4">
-                    <div className="bg-white rounded-xl p-2 md:p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
-                      <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-rose-500" />
-                    </div>
-                    <div className="flex flex-col justify-center min-w-0">
-                      <span className="text-[8px] md:text-[10px] text-brand-stone-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5 truncate">募集終了</span>
-                      <span className="text-xs md:text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'MM/dd HH:mm', { locale: jaLocale })}</span>
                     </div>
                   </div>
                 </div>

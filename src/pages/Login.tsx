@@ -4,26 +4,30 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Home } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
+import { useAppStore } from '../store/useAppStore';
 import { ForgotPasswordModal } from '../components/auth/ForgotPasswordModal';
 
 const loginSchema = z.object({
-  email: z.string().min(1, '学籍番号を入力してください').email('有効な学籍番号（メール形式）を入力してください'),
-  password: z.string()
-    .min(6, 'パスワードは6文字以上20文字以内で入力してください')
-    .max(20, 'パスワードは6文字以上20文字以内で入力してください'),
+  studentId: z.string()
+    .min(1, '学籍番号を入力してください')
+    .max(10, '学籍番号は10文字以内で入力してください')
+    .regex(/^\d+$/, '数字のみを入力してください'),
+  password: z.string().optional().or(z.literal('')),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { session, setAuth, signOut } = useAuthStore();
+  const { academicYears, fetchAcademicYears } = useAppStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,13 +45,38 @@ export default function Login() {
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
+      // --- Step 1: Look up email by Student ID (mssv) ---
+      const { data: userRecord, error: lookupError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('mssv', data.studentId.trim())
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+      
+      if (!userRecord || !userRecord.email) {
+        throw new Error('この学籍番号は登録されていません。');
+      }
+
+      // --- Step 2: Proceed with Supabase Auth ---
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+        email: userRecord.email,
+        password: isAdminMode ? (data.password || '') : data.studentId.trim(),
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (!isAdminMode) {
+          throw new Error('学生ログインに失敗しました。管理権限が必要な可能性があります。管理ログインをお試しください。');
+        }
+        throw authError;
+      }
+
       if (!authData.session) throw new Error('セッションの作成に失敗しました。');
+
+      // Make sure years are loaded before we determine role
+      if (academicYears.length === 0) {
+        await fetchAcademicYears();
+      }
 
       await setAuth(authData.session);
 
@@ -121,7 +150,7 @@ export default function Login() {
       {/* 3. Flexible Main Content (Centered Layout) */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center pt-20 lg:pt-0 pb-8 h-full overflow-y-auto lg:overflow-hidden">
 
-        {/* Left Side: Editorial Art (Floating in Corner on Desktop) */}
+        {/* Left Side: Editorial Art */}
         <div className="hidden lg:flex absolute bottom-12 left-12 pointer-events-none z-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
@@ -129,7 +158,6 @@ export default function Login() {
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
             className="relative"
           >
-            {/* Artistic Frame */}
             <div className="max-w-[160px] bg-white/10 backdrop-blur-3xl border border-white/20 p-2 rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.1)]">
               <img
                 src="/hoa.jpg"
@@ -140,7 +168,7 @@ export default function Login() {
           </motion.div>
         </div>
 
-        {/* Center: Touch-Optimized Login Card */}
+        {/* Center: Login Card */}
         <div className="flex flex-col items-center justify-center w-full relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -176,51 +204,57 @@ export default function Login() {
                     学籍番号
                   </label>
                   <input
-                    {...register('email')}
-                    type="email"
+                    {...register('studentId')}
+                    type="text"
+                    inputMode="numeric"
                     className="w-full h-[52px] bg-stone-50/60 border border-stone-200 text-black rounded-2xl px-6 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500/30 transition-all placeholder:text-stone-400 font-bold text-base shadow-inner"
                     placeholder="例：32xxxx25"
                   />
-                  {errors.email && <p className="text-red-600 text-[0.7rem] font-bold mt-0.5 pl-2">{errors.email.message}</p>}
+                  {errors.studentId && <p className="text-red-600 text-[0.7rem] font-bold mt-0.5 pl-2">{errors.studentId.message}</p>}
                 </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4, duration: 0.6 }}
-                  className="space-y-2"
-                >
-                  <label className="text-[0.85rem] lg:text-[0.92rem] font-black text-black uppercase tracking-[0.2em] pl-1">
-                    パスワード
-                  </label>
-                  <div className="relative">
-                    <input
-                      {...register('password')}
-                      type={showPassword ? 'text' : 'password'}
-                      className="w-full h-[52px] bg-stone-50/60 border border-stone-200 text-black rounded-2xl px-6 py-3 pr-14 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500/30 transition-all placeholder:text-stone-400 font-bold text-base shadow-inner"
-                      placeholder="******"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 inset-y-0 flex items-center p-2 text-stone-500 hover:text-indigo-600 transition-all active:scale-90"
+                <AnimatePresence mode="wait">
+                  {isAdminMode && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                      className="space-y-2 overflow-hidden"
                     >
-                      {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
-                    </button>
-                  </div>
-                  {errors.password && <p className="text-red-600 text-[0.7rem] font-bold mt-0.5 pl-2 leading-tight">{errors.password.message}</p>}
-                </motion.div>
+                      <label className="text-[0.85rem] lg:text-[0.92rem] font-black text-black uppercase tracking-[0.2em] pl-1">
+                        パスワード
+                      </label>
+                      <div className="relative">
+                        <input
+                          {...register('password')}
+                          type={showPassword ? 'text' : 'password'}
+                          className="w-full h-[52px] bg-stone-50/60 border border-stone-200 text-black rounded-2xl px-6 py-3 pr-14 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500/30 transition-all placeholder:text-stone-400 font-bold text-base shadow-inner"
+                          placeholder="******"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 inset-y-0 flex items-center p-2 text-stone-500 hover:text-indigo-600 transition-all active:scale-90"
+                        >
+                          {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                        </button>
+                      </div>
+                      {errors.password && <p className="text-red-600 text-[0.7rem] font-bold mt-0.5 pl-2 leading-tight">{errors.password.message}</p>}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5, duration: 0.6 }}
-                  className="pt-0 flex flex-col items-center gap-2.5"
+                  className="pt-2 flex flex-col items-center gap-3"
                 >
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-[52px] bg-gradient-to-r from-[#4F5BD5] to-[#D62976] hover:brightness-110 text-white font-black text-[1.05rem] rounded-2xl transition-all shadow-[0_12px_40px_rgba(79,91,213,0.3)] active:scale-[0.97] hover:-translate-y-0.5 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-3 tracking-[0.1em]"
+                    className="w-full h-[52px] bg-gradient-to-r from-[#4F5BD5] to-[#D62976] hover:brightness-110 text-white font-black text-[1.05rem] rounded-2xl transition-all shadow-[0_12px_40_rgba(79,91,213,0.3)] active:scale-[0.97] hover:-translate-y-0.5 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-3 tracking-[0.1em]"
                   >
                     {isSubmitting ? (
                       <div className="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin" />
@@ -229,13 +263,25 @@ export default function Login() {
                     )}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsForgotModalOpen(true)}
-                    className="text-[0.85rem] font-black text-black/60 hover:text-black transition-colors tracking-tight hover:underline py-1"
-                  >
-                    パスワードを忘れた場合
-                  </button>
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsAdminMode(!isAdminMode)}
+                      className="text-[0.9rem] font-black text-[#4F5BD5] hover:text-[#D62976] transition-all tracking-tight hover:underline py-1"
+                    >
+                      {isAdminMode ? '学生ログイン' : '管理ログイン'}
+                    </button>
+
+                    {isAdminMode && (
+                      <button
+                        type="button"
+                        onClick={() => setIsForgotModalOpen(true)}
+                        className="text-[0.75rem] font-bold text-black/40 hover:text-black transition-colors"
+                      >
+                        パスワードを忘れた場合
+                      </button>
+                    )}
+                  </div>
                 </motion.div>
               </form>
             </div>
