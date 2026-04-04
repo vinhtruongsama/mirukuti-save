@@ -456,56 +456,59 @@ export default function Activities() {
                             const isRegistered = !!myReg;
                             const activeSessions = myReg?.selected_sessions || selectedSessions;
                             
-                            return selectedActivity.sessions.map((session: any, idx: number) => {
-                              const isSelected = activeSessions.includes(idx);
-                              const canToggle = !isRegistered;
-                              
-                              return (
-                                <div 
-                                  key={idx}
-                                  onClick={() => canToggle && toggleSession(idx)}
-                                  className={`group p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
-                                    !canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
-                                  } ${
-                                    isSelected
-                                      ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm'
-                                      : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
-                                  }`}
-                                >
-                                <div className="flex items-center gap-4">
-                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${
-                                   isSelected
-                                     ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
-                                     : 'bg-white text-stone-400 border-stone-200'
-                                  }`}>
-                                    <span className="text-xs font-black">Vol.{idx + 1}</span>
-                                  </div>
-                                  <div>
-                                    <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
-                                      {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
-                                    </p>
-                                    <p className="text-sm font-bold text-brand-stone-900">
-                                      {session.start_time} - {session.end_time}
-                                    </p>
-                                  </div>
-                                </div>
+                            return selectedActivity.sessions
+                              .map((s: any, i: number) => ({ ...s, originalIdx: i }))
+                              .filter((s: any) => !isRegistered || activeSessions.includes(s.originalIdx))
+                              .map((session: any) => {
+                                const isSelected = activeSessions.includes(session.originalIdx);
+                                const canToggle = !isRegistered;
                                 
-                                <div className="flex items-center gap-4">
-                                  <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
-                                    {isSelected ? '参加予定' : '未選択'}
-                                  </span>
-                                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                                    isSelected
-                                      ? 'bg-brand-emerald-500 border-brand-emerald-500 text-white'
-                                      : 'bg-white border-stone-200'
-                                  }`}>
-                                    {isSelected && <motion.svg initial={{scale:0}} animate={{scale:1}} className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></motion.svg>}
+                                return (
+                                  <div 
+                                    key={session.originalIdx}
+                                    onClick={() => canToggle && toggleSession(session.originalIdx)}
+                                    className={`group p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
+                                      !canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                                    } ${
+                                      isSelected
+                                        ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm'
+                                        : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-4">
+                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${
+                                       isSelected
+                                         ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
+                                         : 'bg-white text-stone-400 border-stone-200'
+                                      }`}>
+                                        <span className="text-xs font-black">Vol.{session.originalIdx + 1}</span>
+                                      </div>
+                                      <div>
+                                        <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
+                                          {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
+                                        </p>
+                                        <p className="text-sm font-bold text-brand-stone-900">
+                                          {session.start_time} - {session.end_time}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4">
+                                      <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
+                                        {isSelected ? '参加予定' : '未選択'}
+                                      </span>
+                                      <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                        isSelected
+                                          ? 'bg-brand-emerald-500 border-brand-emerald-500 text-white'
+                                          : 'bg-white border-stone-200'
+                                      }`}>
+                                        {isSelected && <motion.svg initial={{scale:0}} animate={{scale:1}} className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></motion.svg>}
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                            );
-                          });
-                        })()}
+                                );
+                              });
+                          })()}
                         </div>
                       </div>
                     )}

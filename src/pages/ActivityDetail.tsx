@@ -220,18 +220,23 @@ export default function ActivityDetail() {
                 スケジュール
               </h3>
               <div className="space-y-4">
-                {activity.sessions.map((session: any, idx: number) => (
+                {activity.sessions
+                  .map((s: any, i: number) => ({ ...s, originalIdx: i }))
+                  .filter((s: any) => !myRegistration || activeSessions.includes(s.originalIdx))
+                  .map((session: any) => (
                   <motion.div 
-                    key={idx}
+                    key={session.originalIdx}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="group bg-brand-stone-900/50 border border-brand-stone-800/50 hover:border-brand-emerald-500/30 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all duration-300"
+                    className={cn(
+                      "group bg-brand-stone-900/50 border border-brand-stone-800/50 hover:border-brand-emerald-500/30 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all duration-300",
+                      activeSessions.includes(session.originalIdx) && myRegistration && "border-brand-emerald-500/30 bg-brand-emerald-500/5"
+                    )}
                   >
                     <div className="flex items-center gap-5">
                       <div className="w-12 h-12 rounded-xl bg-brand-stone-800/50 flex flex-col items-center justify-center border border-brand-stone-700/50 group-hover:bg-brand-emerald-500/10 group-hover:border-brand-emerald-500/20 transition-colors">
                         <span className="text-[10px] font-black text-brand-stone-500 uppercase leading-none mb-1">Vol.</span>
-                        <span className="text-lg font-serif text-brand-stone-100 leading-none">{idx + 1}</span>
+                        <span className="text-lg font-serif text-brand-stone-100 leading-none">{session.originalIdx + 1}</span>
                       </div>
                       <div>
                         <p className="text-brand-stone-100 font-black text-xs uppercase tracking-[0.2em] mb-1">
@@ -249,20 +254,20 @@ export default function ActivityDetail() {
                       </div>
                       <div className="pl-6 border-l border-brand-stone-800 flex items-center gap-4">
                         <div className="flex flex-col items-end gap-1">
-                          <p className="text-sm font-serif text-brand-stone-400">{activeSessions.includes(idx) ? '参加予定' : '未選択'}</p>
+                          <p className="text-sm font-serif text-brand-stone-400">{activeSessions.includes(session.originalIdx) ? '参加予定' : '未選択'}</p>
                         </div>
                         <button
-                          onClick={() => !myRegistration && toggleSession(idx)}
+                          onClick={() => !myRegistration && toggleSession(session.originalIdx)}
                           disabled={!!myRegistration}
                           className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-90",
-                            activeSessions.includes(idx) 
+                            activeSessions.includes(session.originalIdx) 
                               ? "bg-brand-emerald-500 text-white shadow-lg shadow-brand-emerald-500/20" 
                               : "bg-brand-stone-800 border border-brand-stone-700 text-brand-stone-500 hover:border-brand-stone-500",
                             myRegistration && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          {activeSessions.includes(idx) ? <CheckCircle2 className="w-6 h-6" /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-20" />}
+                          {activeSessions.includes(session.originalIdx) ? <CheckCircle2 className="w-6 h-6" /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-20" />}
                         </button>
                       </div>
                     </div>
