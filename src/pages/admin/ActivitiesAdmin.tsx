@@ -24,6 +24,7 @@ const activitySchema = z.object({
   description: z.string().optional(),
   date: z.string().min(1, '開催日時を入力してください'),
   registration_deadline: z.string().min(1, '申込締切を入力してください'),
+  cancellation_deadline: z.string().optional(),
   location: z.string().min(1, '開催場所を入力してください'),
   location_type: z.enum(['internal', 'external']),
   capacity: z.number().min(0, '0以上の数値を入力してください').optional().or(z.nan()),
@@ -131,6 +132,7 @@ export default function ActivitiesAdmin() {
         description: data.description,
         date: new Date(data.date).toISOString(),
         registration_deadline: new Date(data.registration_deadline).toISOString(),
+        cancellation_deadline: data.cancellation_deadline ? new Date(data.cancellation_deadline).toISOString() : null,
         location: data.location,
         location_type: data.location_type,
         capacity: isNaN(data.capacity as number) ? null : data.capacity,
@@ -230,6 +232,7 @@ export default function ActivitiesAdmin() {
   const resetForm = () => {
     reset({
       title: '', description: '', date: '', registration_deadline: '',
+      cancellation_deadline: '',
       location: '', capacity: '' as any, status: 'open', is_pinned: false,
       sessions: []
     });
@@ -256,6 +259,7 @@ export default function ActivitiesAdmin() {
         description: act.description || '',
         date: act.date ? toLocalDT(act.date) : '',
         registration_deadline: act.registration_deadline ? toLocalDT(act.registration_deadline) : '',
+        cancellation_deadline: act.cancellation_deadline ? toLocalDT(act.cancellation_deadline) : '',
         location: act.location,
         location_type: act.location_type || 'internal',
         capacity: act.capacity || NaN,
@@ -353,19 +357,20 @@ export default function ActivitiesAdmin() {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex-1"
+            className="flex items-start gap-6"
           >
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-1 h-5 bg-gradient-to-b from-[#D62976] to-[#4F5BD5] rounded-full" />
-              <h1 className="text-xl sm:text-2xl font-black tracking-tighter text-gray-900 uppercase">
+            {/* Vertical Gradient Bar */}
+            <div className="w-1.5 h-16 rounded-full bg-gradient-to-b from-[#D62976] to-[#4F5BD5] mt-1 hidden sm:block" />
+
+            <div className="flex flex-col gap-3 text-left">
+              <h1 className="text-4xl md:text-4xl font-black text-brand-stone-900 tracking-tighter leading-none">
                 活動管理
               </h1>
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.4em] leading-none">
+                <span className="text-brand-stone-400">Management</span>
+                <span className="text-[#D62976]">Console</span>
+              </div>
             </div>
-            <p className="text-[13px] font-black text-gray-400 uppercase tracking-[0.2em] ml-3 hidden sm:block">
-              Management <span className="text-[#D62976]">Console</span>
-            </p>
-            {/* Mobile specific console label */}
-            <span className="text-[13px] font-black text-[#D62976] uppercase tracking-widest ml-3 sm:hidden">管理コンソール</span>
           </motion.div>
 
           <div className="flex items-center gap-2">
@@ -646,22 +651,107 @@ export default function ActivitiesAdmin() {
                       <textarea {...register('description')} rows={4} className="w-full bg-gray-50 border border-gray-400 text-[#0f172a] rounded-3xl px-8 py-6 text-sm font-bold focus:bg-white focus:border-gray-200 outline-none transition-all resize-none placeholder:text-gray-300" placeholder="イベントの詳細内容を入力..." />
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-[#D62976]" />
-                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest">開催日時 *</label>
+                    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      {/* Event Date Card */}
+                      <div className="relative group/card p-6 bg-pink-50/30 border border-pink-100/50 rounded-[2.5rem] transition-all hover:bg-white hover:shadow-[0_20px_40px_rgba(214,41,118,0.05)]">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-[#D62976]/10 rounded-2xl flex items-center justify-center text-[#D62976] shadow-sm">
+                            <CalendarDays className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <label className="text-[13px] font-black text-gray-900 uppercase tracking-widest block">開催日時 *</label>
+                            <span className="text-[10px] font-bold text-pink-500/60 uppercase tracking-widest">活動が行われる日</span>
+                          </div>
+                        </div>
+                        <div className="relative group/input">
+                          <input
+                            type="text"
+                            readOnly
+                            value={(() => {
+                              const val = watch('date');
+                              return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                            })()}
+                            onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
+                            placeholder="DD/MM/YYYY"
+                            className="w-full bg-white/50 border border-pink-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-[#D62976]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#D62976]/40"
+                          />
+                          <input
+                            type="date"
+                            {...register('date')}
+                            className="absolute inset-0 opacity-0 pointer-events-none"
+                            tabIndex={-1}
+                          />
+                          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
+                        </div>
+                        {errors.date && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-4 mt-2">{errors.date.message}</p>}
                       </div>
-                      <input type="datetime-local" {...register('date')} className="w-full bg-gray-50 border border-gray-300 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#D62976]/30 outline-none transition-all" />
-                      {errors.date && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.date.message}</p>}
-                    </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-[#4F5BD5]" />
-                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest">申込締切 *</label>
+                      {/* Reg Deadline Card */}
+                      <div className="relative group/card p-6 bg-indigo-50/30 border border-indigo-100/50 rounded-[2.5rem] transition-all hover:bg-white hover:shadow-[0_20px_40px_rgba(79,91,213,0.05)]">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-[#4F5BD5]/10 rounded-2xl flex items-center justify-center text-[#4F5BD5] shadow-sm">
+                            <Clock className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <label className="text-[13px] font-black text-gray-900 uppercase tracking-widest block">申込締切 *</label>
+                            <span className="text-[10px] font-bold text-indigo-500/60 uppercase tracking-widest">参加登録の最後の日</span>
+                          </div>
+                        </div>
+                        <div className="relative group/input">
+                          <input
+                            type="text"
+                            readOnly
+                            value={(() => {
+                              const val = watch('registration_deadline');
+                              return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                            })()}
+                            onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
+                            placeholder="DD/MM/YYYY"
+                            className="w-full bg-white/50 border border-indigo-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#4F5BD5]/40"
+                          />
+                          <input
+                            type="date"
+                            {...register('registration_deadline')}
+                            className="absolute inset-0 opacity-0 pointer-events-none"
+                            tabIndex={-1}
+                          />
+                          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
+                        </div>
+                        {errors.registration_deadline && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-4 mt-2">{errors.registration_deadline.message}</p>}
                       </div>
-                      <input type="datetime-local" {...register('registration_deadline')} className="w-full bg-gray-50 border border-gray-300 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all" />
-                      {errors.registration_deadline && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.registration_deadline.message}</p>}
+
+                      {/* Cancel Deadline Card */}
+                      <div className="relative group/card p-6 bg-amber-50/30 border border-amber-100/50 rounded-[2.5rem] transition-all hover:bg-white hover:shadow-[0_20px_40px_rgba(245,158,11,0.05)]">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-600 shadow-sm">
+                            <Edit2 className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <label className="text-[13px] font-black text-gray-900 uppercase tracking-widest block">取消期限</label>
+                            <span className="text-[10px] font-bold text-amber-600/60 uppercase tracking-widest">自身で変更できる最後の日</span>
+                          </div>
+                        </div>
+                        <div className="relative group/input">
+                          <input
+                            type="text"
+                            readOnly
+                            value={(() => {
+                              const val = watch('cancellation_deadline');
+                              return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                            })()}
+                            onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
+                            placeholder="DD/MM/YYYY"
+                            className="w-full bg-white/50 border border-amber-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-amber-500/30 outline-none transition-all shadow-sm cursor-pointer hover:border-amber-500/40"
+                          />
+                          <input
+                            type="date"
+                            {...register('cancellation_deadline')}
+                            className="absolute inset-0 opacity-0 pointer-events-none"
+                            tabIndex={-1}
+                          />
+                          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-3">
@@ -681,22 +771,24 @@ export default function ActivitiesAdmin() {
                       <input type="number" min="0" {...register('capacity', { valueAsNumber: true })} placeholder="無制限の場合は空欄" className="w-full bg-gray-50 border border-gray-200 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white outline-none transition-all" />
                     </div>
 
-                    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-8 pt-6 border-t border-gray-300">
+                    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-8 pt-6 border-t border-gray-300">
+                      {/* Type Toggle */}
                       <div className="space-y-3">
                         <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest px-8">タイプ</label>
-                        <div className="flex gap-4 p-1 bg-gray-50 rounded-3xl border border-gray-300">
+                        <div className="flex gap-4 p-1 bg-gray-50 rounded-3xl border border-gray-300 h-[62px] items-center px-4">
                           <label className="flex-1 cursor-pointer relative">
                             <input type="radio" value="internal" {...register('location_type')} className="peer opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10" />
-                            <div className="w-full py-2 text-center rounded-xl text-[18px] font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:text-[#4F5BD5] peer-checked:shadow-sm text-gray-400 hover:text-gray-600">学内</div>
+                            <div className="w-full py-2 text-center rounded-xl text-[16px] font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:text-[#4F5BD5] peer-checked:shadow-sm text-gray-400 hover:text-gray-600">学内</div>
                           </label>
                           <label className="flex-1 cursor-pointer relative">
                             <input type="radio" value="external" {...register('location_type')} className="peer opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10" />
-                            <div className="w-full py-2 text-center rounded-xl text-[18px] font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:text-[#D62976] peer-checked:shadow-sm text-gray-400 hover:text-gray-600">学外</div>
+                            <div className="w-full py-2 text-center rounded-xl text-[16px] font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:text-[#D62976] peer-checked:shadow-sm text-gray-400 hover:text-gray-600">学外</div>
                           </label>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
+                      {/* Status Selector */}
+                      <div className="space-y-3">
                         <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest px-8">公開ステータス</label>
                         {(() => {
                           const currentStatus = watch('status');
@@ -704,7 +796,7 @@ export default function ActivitiesAdmin() {
                             <Select.Root value={currentStatus} onValueChange={(val) => setValue('status', val as any)}>
                               <Select.Trigger
                                 className={cn(
-                                  "w-full flex items-center justify-between gap-2 px-8 py-5 rounded-3xl border-2 transition-all outline-none font-black text-sm uppercase tracking-widest",
+                                  "w-full h-[62px] flex items-center justify-between gap-2 px-8 py-5 rounded-3xl border-2 transition-all outline-none font-black text-sm uppercase tracking-widest overflow-hidden",
                                   currentStatus === 'open' ? 'border-emerald-100 bg-emerald-50/30 text-emerald-600' :
                                     currentStatus === 'closed' ? 'border-rose-100 bg-rose-50/30 text-rose-600' :
                                       'border-stone-100 bg-stone-50/50 text-stone-500'
@@ -724,82 +816,83 @@ export default function ActivitiesAdmin() {
                                 </Select.Icon>
                               </Select.Trigger>
 
-                          <Select.Portal>
-                            <Select.Content className="z-[105] overflow-hidden rounded-[2rem] bg-white border border-stone-100 shadow-2xl animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
-                              <Select.Viewport className="p-2">
-                                {[
-                                  { value: 'draft', label: '下書き', color: 'stone', desc: '管理者のみ確認可能' },
-                                  { value: 'open', label: '公開', color: 'emerald', desc: 'メンバー全員が閲覧・申込可能' },
-                                  { value: 'closed', label: '締切', color: 'rose', desc: '閲覧のみ可能' }
-                                ].map((opt) => (
-                                  <Select.Item
-                                    key={opt.value}
-                                    value={opt.value}
-                                    className="relative flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-black outline-none cursor-pointer group transition-all focus:bg-stone-50 data-[state=checked]:bg-stone-50"
-                                  >
-                                    <div className={cn(
-                                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border-2 transition-colors",
-                                      opt.value === 'open' ? 'border-emerald-100 bg-emerald-50 text-emerald-500' :
-                                        opt.value === 'closed' ? 'border-rose-100 bg-rose-50 text-rose-500' :
-                                          'border-stone-100 bg-stone-50 text-stone-400'
-                                    )}>
-                                      <div className="w-2.5 h-2.5 rounded-full border-2 border-current shadow-sm" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <Select.ItemText>
-                                        <span className="text-[13px] uppercase tracking-widest leading-none mb-1 text-gray-900 block">{opt.label}</span>
-                                      </Select.ItemText>
-                                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{opt.desc}</span>
-                                    </div>
-                                    <Select.ItemIndicator className="ml-auto flex items-center justify-center">
-                                      <Check className={cn(
-                                        "w-5 h-5",
-                                        opt.value === 'open' ? 'text-emerald-500' :
-                                          opt.value === 'closed' ? 'text-rose-500' :
-                                            'text-stone-900'
-                                      )} />
-                                    </Select.ItemIndicator>
-                                  </Select.Item>
-                                ))}
-                              </Select.Viewport>
-                            </Select.Content>
-                          </Select.Portal>
-                        </Select.Root>
-                        )
-                      })()}
-                    </div>
+                              <Select.Portal>
+                                <Select.Content className="z-[110] overflow-hidden rounded-[2rem] bg-white border border-stone-100 shadow-2xl animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                                  <Select.Viewport className="p-2">
+                                    {[
+                                      { value: 'draft', label: '下書き', color: 'stone', desc: '管理者のみ確認可能' },
+                                      { value: 'open', label: '公開', color: 'emerald', desc: 'メンバー全員が閲覧・申込可能' },
+                                      { value: 'closed', label: '締切', color: 'rose', desc: '閲覧のみ可能' }
+                                    ].map((opt) => (
+                                      <Select.Item
+                                        key={opt.value}
+                                        value={opt.value}
+                                        className="relative flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-black outline-none cursor-pointer group transition-all focus:bg-stone-50 data-[state=checked]:bg-stone-50"
+                                      >
+                                        <div className={cn(
+                                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border-2 transition-colors",
+                                          opt.value === 'open' ? 'border-emerald-100 bg-emerald-50 text-emerald-500' :
+                                            opt.value === 'closed' ? 'border-rose-100 bg-rose-50 text-rose-500' :
+                                              'border-stone-100 bg-stone-50 text-stone-400'
+                                        )}>
+                                          <div className="w-2.5 h-2.5 rounded-full border-2 border-current shadow-sm" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                          <Select.ItemText>
+                                            <span className="text-[13px] uppercase tracking-widest leading-none mb-1 text-gray-900 block">{opt.label}</span>
+                                          </Select.ItemText>
+                                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{opt.desc}</span>
+                                        </div>
+                                        <Select.ItemIndicator className="ml-auto flex items-center justify-center">
+                                          <Check className={cn(
+                                            "w-5 h-5",
+                                            opt.value === 'open' ? 'text-emerald-500' :
+                                              opt.value === 'closed' ? 'text-rose-500' :
+                                                'text-stone-900'
+                                          )} />
+                                        </Select.ItemIndicator>
+                                      </Select.Item>
+                                    ))}
+                                  </Select.Viewport>
+                                </Select.Content>
+                              </Select.Portal>
+                            </Select.Root>
+                          )
+                        })()}
+                      </div>
 
-                      <div className="space-y-3 sm:col-span-2 p-6 bg-[#4F5BD5]/5 rounded-[2rem] border border-[#4F5BD5]/10 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${useWatch({ control, name: 'is_pinned' }) ? 'bg-[#4F5BD5] text-white shadow-lg' : 'bg-white text-[#4F5BD5] border border-[#4F5BD5]/20'}`}>
-                            <Pin className="w-6 h-6" />
+                      {/* Pinned Toggle */}
+                      <div className="space-y-3 p-4 bg-[#4F5BD5]/5 rounded-[1.5rem] border border-[#4F5BD5]/10 flex items-center justify-between h-[62px] self-end mb-[1px]">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                            useWatch({ control, name: 'is_pinned' }) ? 'bg-[#4F5BD5] text-white shadow-lg' : 'bg-white text-[#4F5BD5] border border-[#4F5BD5]/20'
+                          )}>
+                            <Pin className="w-5 h-5" />
                           </div>
-                          <div>
-                            <p className="text-[14px] font-black text-[#4F5BD5] uppercase tracking-widest leading-none mb-1">トップに固定 (Pin Activity)</p>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">この活動をリストの最上部に表示します</p>
-                          </div>
+                          <p className="text-[14px] font-black text-[#4F5BD5] uppercase tracking-widest leading-none">トップに固定</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" {...register('is_pinned')} className="sr-only peer" />
-                          <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#4F5BD5]"></div>
+                          <div className="w-12 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4F5BD5]"></div>
                         </label>
                       </div>
                     </div>
 
                     <div className="sm:col-span-2 pt-10 border-t border-gray-100">
-                      <div className="flex items-center justify-between mb-8">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 bg-[#4F5BD5]/10 rounded-2xl flex items-center justify-center text-[#4F5BD5]">
                             <CalendarDays className="w-5 h-5" />
                           </div>
-                          <div>
+                          <div className="text-center sm:text-left">
                             <h3 className="text-[15px] font-black text-gray-800 uppercase tracking-widest leading-none mb-1">スケジュール</h3>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => append({ date: '', start_time: '', end_time: '', capacity: undefined })}
-                          className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all shadow-lg hover:shadow-[#4F5BD5]/20"
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all shadow-lg hover:shadow-[#4F5BD5]/20"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           セッションを追加
@@ -812,7 +905,7 @@ export default function ActivitiesAdmin() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             key={field.id}
-                            className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow relative group"
+                            className="bg-white border border-gray-200 rounded-3xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow relative group"
                           >
                             <button
                               type="button"
@@ -823,50 +916,65 @@ export default function ActivitiesAdmin() {
                               <X className="w-5 h-5" />
                             </button>
 
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                              <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">日付</label>
-                                <div className="relative">
-                                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                            <div className="grid grid-cols-2 gap-4 md:gap-6 items-end">
+                              {/* Row 1: Date & Capacity */}
+                              <div className="space-y-2 col-span-1">
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">日付</label>
+                                <div className="relative group/input">
+                                  <input
+                                    type="text"
+                                    readOnly
+                                    value={(() => {
+                                      const val = watch(`sessions.${index}.date`);
+                                      return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                                    })()}
+                                    onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
+                                    placeholder="DD/MM/YYYY"
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer"
+                                  />
                                   <input
                                     type="date"
                                     {...register(`sessions.${index}.date` as const)}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all"
+                                    className="absolute inset-0 opacity-0 pointer-events-none"
+                                    tabIndex={-1}
                                   />
+                                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm pointer-events-none group-hover/input:text-[#4F5BD5] transition-colors" />
                                 </div>
                               </div>
-                              <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">開始</label>
+                              <div className="space-y-2 col-span-1">
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">定員 (限定)</label>
                                 <div className="relative">
-                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-                                  <input
-                                    type="time"
-                                    {...register(`sessions.${index}.start_time` as const)}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white outline-none transition-all"
-                                  />
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">終了</label>
-                                <div className="relative">
-                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-                                  <input
-                                    type="time"
-                                    {...register(`sessions.${index}.end_time` as const)}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white outline-none transition-all"
-                                  />
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">定員 (限定)</label>
-                                <div className="relative">
-                                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
                                   <input
                                     type="number"
                                     min="0"
                                     placeholder="無制限"
                                     {...register(`sessions.${index}.capacity` as const, { valueAsNumber: true })}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white outline-none transition-all"
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Row 2: Start & End */}
+                              <div className="space-y-2 col-span-1">
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">開始</label>
+                                <div className="relative">
+                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
+                                  <input
+                                    type="time"
+                                    {...register(`sessions.${index}.start_time` as const)}
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2 col-span-1">
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">終了</label>
+                                <div className="relative">
+                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
+                                  <input
+                                    type="time"
+                                    {...register(`sessions.${index}.end_time` as const)}
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
                                   />
                                 </div>
                               </div>

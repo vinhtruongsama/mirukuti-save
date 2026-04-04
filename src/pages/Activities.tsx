@@ -23,7 +23,7 @@ export default function Activities() {
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
 
   const toggleSession = (idx: number) => {
-    setSelectedSessions(prev => 
+    setSelectedSessions(prev =>
       prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
     );
   };
@@ -142,11 +142,12 @@ export default function Activities() {
   }, [activities, selectedYear, filterMode, searchTerm]);
 
   return (
-    <div className={`min-h-screen bg-brand-stone-50/50 pb-32 relative overflow-hidden ${customFontClass}`}>
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[5%] -right-[5%] w-[40%] h-[40%] bg-[#4F5BD5] rounded-full blur-[140px] opacity-[0.08]" />
-        <div className="absolute top-1/2 left-0 w-[40%] h-[40%] bg-[#D62976] rounded-full blur-[140px] opacity-[0.05]" />
-        <div className="absolute -bottom-[10%] left-1/2 w-[50%] h-[50%] bg-[#FEDA75] rounded-full blur-[140px] opacity-[0.1]" />
+    <div className="min-h-screen bg-[#fafafb] relative overflow-hidden selection:bg-brand-emerald-100 selection:text-brand-emerald-900">
+      {/* Premium Modern Background Accents */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[#4F5BD5]/[0.03] blur-[150px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#D62976]/[0.03] blur-[150px] rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.01] mix-blend-overlay" />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-12 relative z-10">
@@ -181,7 +182,7 @@ export default function Activities() {
                 placeholder="活動名・場所を検索..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-16 pr-8 py-4 bg-white/60 backdrop-blur-xl border border-white/60 rounded-[1.2rem] text-brand-stone-700 placeholder-brand-stone-300 focus:outline-none focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_15px_40px_-5px_rgba(79,91,213,0.1)] transition-all duration-500 font-bold text-[15px] tracking-tight placeholder:italic"
+                className="w-full pl-16 pr-8 py-4 bg-white/60 backdrop-blur-xl border border-brand-stone-700/10 rounded-[1.2rem] text-brand-stone-700 placeholder-brand-stone-300 focus:outline-none focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_15px_40px_-5px_rgba(79,91,213,0.1)] transition-all duration-500 font-bold text-[15px] tracking-tight placeholder:italic"
               />
               {/* Decorative Search Accent */}
               <div className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-brand-stone-50 text-brand-stone-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-brand-stone-100 hidden sm:block">
@@ -190,7 +191,7 @@ export default function Activities() {
             </div>
 
             {/* Streamlined Filter Pills */}
-            <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md p-1.5 rounded-[1.5rem] border border-white/40 shadow-sm overflow-x-auto scrollbar-hide shrink-0">
+            <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md p-1.5 rounded-[1.5rem] border border-brand-stone-700/10 shadow-sm overflow-x-auto scrollbar-hide shrink-0">
               {[
                 { id: 'ALL', label: 'すべて' },
                 { id: 'OPEN', label: '募集中' },
@@ -235,8 +236,8 @@ export default function Activities() {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     key={activity.id}
                     className={`bg-white rounded-2xl overflow-hidden border transition-all duration-500 flex flex-col h-full group relative ${isOpen
-                        ? 'border-[#4F5BD5]/20 shadow-[0_15px_35px_-5px_rgba(79,91,213,0.1)] hover:shadow-[0_25px_50px_-12px_rgba(79,91,213,0.2)]'
-                        : 'border-stone-100 shadow-sm hover:shadow-xl'
+                      ? 'border-[#4F5BD5]/20 shadow-[0_15px_35px_-5px_rgba(79,91,213,0.1)] hover:shadow-[0_25px_50px_-12px_rgba(79,91,213,0.2)]'
+                      : 'border-stone-100 shadow-sm hover:shadow-xl'
                       }`}
                   >
                     <div className="relative aspect-[16/9] overflow-hidden bg-stone-100 rounded-t-2xl">
@@ -451,62 +452,58 @@ export default function Activities() {
                           <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
                           <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">スケジュール</h3>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 gap-4">
                           {(() => {
                             const activityId = selectedActivity.id as string;
                             const isRegistered = userRegistrations.includes(activityId);
                             const activeSessions = isRegistered ? (userRegMap as Record<string, any[]>)[activityId] || [] : selectedSessions;
-                            
+
                             return selectedActivity.sessions.map((session: any, idx: number) => {
                               const isSelected = activeSessions.includes(idx);
                               const canToggle = !isRegistered;
-                              
+
                               return (
-                                <div 
+                                <div
                                   key={idx}
                                   onClick={() => canToggle && toggleSession(idx)}
-                                  className={`group p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
-                                    !canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
-                                  } ${
-                                    isSelected
+                                  className={`group p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                                    } ${isSelected
                                       ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm'
                                       : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${
-                                     isSelected
-                                       ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
-                                       : 'bg-white text-stone-400 border-stone-200'
-                                    }`}>
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${isSelected
+                                      ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
+                                      : 'bg-white text-stone-400 border-stone-200'
+                                      }`}>
                                       <span className="text-xs font-black">Vol.{idx + 1}</span>
                                     </div>
-                                      <div>
-                                        <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
-                                          {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
-                                        </p>
-                                        <p className="text-sm font-bold text-brand-stone-900">
-                                          {session.start_time} - {session.end_time}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-4">
-                                      <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
-                                        {isSelected ? '参加予定' : '未選択'}
-                                      </span>
-                                      <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                                        isSelected
-                                          ? 'bg-brand-emerald-500 border-brand-emerald-500 text-white'
-                                          : 'bg-white border-stone-200'
-                                      }`}>
-                                        {isSelected && <motion.svg initial={{scale:0}} animate={{scale:1}} className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></motion.svg>}
-                                      </div>
+                                    <div>
+                                      <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
+                                        {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
+                                      </p>
+                                      <p className="text-sm font-bold text-brand-stone-900">
+                                        {session.start_time} - {session.end_time}
+                                      </p>
                                     </div>
                                   </div>
-                                );
-                              });
+
+                                  <div className="flex items-center gap-4">
+                                    <span className={`text-[14px] font-black uppercase tracking-widest ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
+                                      {isSelected ? '参加予定' : '未選択'}
+                                    </span>
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected
+                                      ? 'bg-brand-emerald-500 border-brand-emerald-500 text-white'
+                                      : 'bg-white border-stone-200'
+                                      }`}>
+                                      {isSelected && <motion.svg initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></motion.svg>}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            });
                           })()}
                         </div>
                       </div>
@@ -523,14 +520,37 @@ export default function Activities() {
                         <>
                           <div className="w-full flex items-center justify-center">
                             {isRegistered ? (
-                              <div className="flex flex-col items-center gap-3 bg-brand-emerald-50/50 border border-brand-emerald-100 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-sm">
-                                <div className="flex items-center gap-2 text-brand-emerald-600 font-black text-sm uppercase tracking-widest">
-                                  <div className="w-2 h-2 rounded-full bg-brand-emerald-500 animate-pulse" />
-                                  申し込み済み
+                              <div className="flex flex-col items-center gap-6 bg-brand-emerald-50/50 border border-brand-emerald-100 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-sm">
+                                <div className="flex flex-col items-center gap-3">
+                                  <div className="flex items-center gap-2 text-brand-emerald-600 font-black text-sm uppercase tracking-widest">
+                                    <div className="w-2 h-2 rounded-full bg-brand-emerald-500 animate-pulse" />
+                                    申し込み済み
+                                  </div>
                                 </div>
-                                <p className="text-[10px] md:text-[11px] font-bold text-brand-stone-400 text-center whitespace-nowrap italic">
-                                  ※ キャンセル・変更については、ミルクティ運営部まで直接ご連絡ください。
-                                </p>
+
+                                {selectedActivity.cancellation_deadline && !isPast(new Date(selectedActivity.cancellation_deadline)) && (
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm('参加申し込みをキャンセルしますか？')) {
+                                        toggleRegistrationMutation.mutate({
+                                          activityId: selectedActivity.id,
+                                          isRegistered: true
+                                        });
+                                      }
+                                    }}
+                                    disabled={isPending}
+                                    className="py-4 px-8 border-2 border-rose-200 bg-rose-50/50 text-rose-500 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] hover:bg-white hover:border-rose-400 hover:text-rose-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-wait group"
+                                  >
+                                    <div className="flex items-center justify-center gap-2">
+                                      {isPending ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <X className="w-3 h-3 transition-transform group-hover:rotate-90" />
+                                      )}
+                                      申し込みを取り消す
+                                    </div>
+                                  </button>
+                                )}
                               </div>
                             ) : (
                               <div className="w-full flex flex-col items-center gap-8">
@@ -538,13 +558,13 @@ export default function Activities() {
                                   <div
                                     onClick={() => setIsConfirmed(!isConfirmed)}
                                     className={`group/confirm flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer w-full max-w-lg ${isConfirmed
-                                        ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm shadow-brand-emerald-500/5'
-                                        : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
+                                      ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm shadow-brand-emerald-500/5'
+                                      : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
                                       }`}
                                   >
                                     <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 shrink-0 ${isConfirmed
-                                        ? 'bg-brand-emerald-500 border-brand-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                                        : 'bg-white border-stone-200 group-hover/confirm:border-brand-stone-300'
+                                      ? 'bg-brand-emerald-500 border-brand-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                                      : 'bg-white border-stone-200 group-hover/confirm:border-brand-stone-300'
                                       }`}>
                                       {isConfirmed && (
                                         <motion.svg
@@ -585,8 +605,8 @@ export default function Activities() {
                                     });
                                   }}
                                   disabled={
-                                    selectedActivity.computedStatus !== 'OPEN' || 
-                                    !!isPending || 
+                                    selectedActivity.computedStatus !== 'OPEN' ||
+                                    !!isPending ||
                                     (!!currentUser && !isConfirmed) ||
                                     (selectedActivity.sessions?.length > 0 && selectedSessions.length === 0)
                                   }

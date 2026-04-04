@@ -9,7 +9,9 @@ import {
   CalendarDays, 
   LogOut, 
   X,
-  ChevronRight
+  ChevronRight,
+  Trophy,
+  Home
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,6 +23,7 @@ const ADMIN_NAVIGATION = [
   { name: 'ダッシュボード', to: '/admin', icon: LayoutDashboard },
   { name: 'メンバー管理', to: '/admin/members', icon: Users },
   { name: 'ボランティア活動', to: '/admin/activities', icon: CalendarDays },
+  { name: '表彰・資格', to: '/admin/awards', icon: Trophy },
 ];
 
 export default function AdminLayout() {
@@ -144,9 +147,26 @@ export default function AdminLayout() {
             layout
             className="h-16 bg-white border-b border-brand-stone-100 flex items-center justify-between px-6 lg:px-10 shrink-0 z-10 shadow-sm"
           >
-            {/* Left: Clean Logo/Brand Context */}
-            <div className="flex items-center">
-               <span className="text-[13px] font-black uppercase tracking-[0.2em] text-brand-stone-900 hidden sm:block">Management Console</span>
+            {/* Left: Modern Home Navigation & Brand Context */}
+            <div className="flex items-center gap-4">
+               <Link 
+                 to="/" 
+                 className="group relative flex items-center justify-center"
+                 title="Go to Homepage"
+               >
+                 {/* Premium Glow Effect on Hover */}
+                 <div className="absolute inset-0 bg-[#4F5BD5] opacity-0 blur-xl group-hover:opacity-20 transition-all duration-700 rounded-full" />
+                 
+                 <div className="relative w-10 h-10 rounded-2xl bg-[#4F5BD5]/5 border border-[#4F5BD5]/10 flex items-center justify-center transition-all duration-500 group-hover:bg-[#4F5BD5] group-hover:border-transparent group-hover:scale-110 group-hover:shadow-[0_12px_24px_-8px_rgba(79,91,213,0.4)] group-active:scale-90">
+                    <Home className="w-5 h-5 text-[#4F5BD5] group-hover:text-white transition-all duration-500 group-hover:-translate-y-0.5 group-hover:rotate-[-8deg]" />
+                 </div>
+               </Link>
+
+               <div className="h-6 w-[1px] bg-brand-stone-100 hidden sm:block mx-1" />
+               
+               <span className="text-[13px] font-black uppercase tracking-[0.2em] text-brand-stone-900 hidden sm:block">
+                 Management Console
+               </span>
             </div>
 
             {/* Right: Year Selector */}
@@ -159,7 +179,7 @@ export default function AdminLayout() {
 
           {/* 4. Page Content with Viewport Management */}
           <div className="flex-1 overflow-auto p-6 md:p-8 lg:p-10 scrollbar-thin scrollbar-thumb-brand-stone-100">
-            <div className="max-w-7xl mx-auto h-full">
+            <div className="max-w-7xl mx-auto">
                <Outlet />
             </div>
           </div>

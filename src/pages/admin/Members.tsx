@@ -187,7 +187,7 @@ export default function Members() {
       // Find the user_id for this membership first
       const mem = members.find(m => m.id === id);
       if (!mem?.user_id) throw new Error('User not found');
-      
+
       const { error } = await supabase.rpc('archive_member', { user_uuid: mem.user_id });
       if (error) throw error;
     },
@@ -214,12 +214,18 @@ export default function Members() {
 
       {/* 1. PRESTIGIOUS HEADER */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 shrink-0 px-2 lg:px-0">
-        <div className="space-y-4">
-          <div className="flex items-center gap-4 lg:gap-6">
-            <div className="w-2 lg:w-2.5 h-10 lg:h-12 bg-stone-900 rounded-full" />
-            <h1 className="text-[26px] lg:text-[30px] font-black text-stone-900 tracking-tight leading-none uppercase font-serif">
-              メンバー名簿
+        <div className="flex items-start gap-6">
+          {/* Vertical Gradient Bar */}
+          <div className="w-1.5 h-16 rounded-full bg-gradient-to-b from-[#D62976] to-[#4F5BD5] mt-1 hidden sm:block" />
+
+          <div className="flex flex-col gap-3 text-left">
+            <h1 className="text-4xl md:text-4xl font-black text-brand-stone-900 tracking-tighter leading-none">
+              部員一覧表
             </h1>
+            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.4em] leading-none">
+              <span className="text-brand-stone-400">Management</span>
+              <span className="text-[#D62976]">Console</span>
+            </div>
           </div>
         </div>
 
@@ -232,7 +238,7 @@ export default function Members() {
             <span className="lg:hidden text-[12px] leading-tight">スマート<br />インポート</span>
             <span className="hidden lg:inline">スマートインポート</span>
           </button>
-          
+
           <button
             onClick={() => { setSelectedMember({ users: {}, role: 'member', university_year: 1 }); }}
             className="flex items-center justify-center gap-3 px-6 py-5 lg:px-10 lg:py-5 bg-[#4F5BD5] hover:brightness-110 text-white rounded-[2rem] text-[13px] lg:text-[15px] font-black tracking-tight transition-all shadow-[0_20px_50px_rgba(79,91,213,0.3)] active:scale-95 group"
@@ -241,7 +247,7 @@ export default function Members() {
             <span className="lg:hidden text-[12px] leading-tight text-left">新規メンバー<br />登録</span>
             <span className="hidden lg:inline">新規登録</span>
           </button>
-          
+
           <Link
             to="/admin/members/archived"
             className="col-span-2 lg:col-span-1 hidden sm:flex h-14 lg:w-16 lg:h-16 items-center justify-center rounded-3xl lg:rounded-full transition-all border-2 bg-white border-stone-100 text-stone-300 hover:text-[#D62976] hover:border-[#D62976]/20 shadow-sm group"
@@ -429,23 +435,22 @@ export default function Members() {
                         <h4 className="text-[16px] font-black text-stone-900 tracking-tight leading-tight group-hover:text-[#4F5BD5] transition-colors truncate uppercase">{mem.users?.full_name}</h4>
                         <p className="text-[13px] font-bold text-stone-400 font-mono">{mem.users?.mssv}</p>
                       </div>
-                      <span className={`shrink-0 px-4 py-1.5 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest ${
-                        mem.role === 'admin' ? 'bg-[#D62976]/5 text-[#D62976] border-[#D62976]/10' :
+                      <span className={`shrink-0 px-4 py-1.5 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest ${mem.role === 'admin' ? 'bg-[#D62976]/5 text-[#D62976] border-[#D62976]/10' :
                         mem.role === 'executive' ? 'bg-[#4F5BD5]/5 text-[#4F5BD5] border-[#4F5BD5]/10' :
-                        mem.role === 'alumni' ? 'bg-stone-50 text-stone-400 border-stone-100' :
-                        'bg-[#FEDA75]/5 text-[#CDA01E] border-[#FEDA75]/10'
-                      }`}>
+                          mem.role === 'alumni' ? 'bg-stone-50 text-stone-400 border-stone-100' :
+                            'bg-[#FEDA75]/5 text-[#CDA01E] border-[#FEDA75]/10'
+                        }`}>
                         {mem.role === 'admin' ? '管理者' : mem.role === 'executive' ? '運営' : mem.role === 'alumni' ? '卒業生' : '一般'}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between border-t border-stone-50 pt-4 mt-2">
-                       <div className={`px-4 py-1.5 rounded-lg border-2 text-[11px] font-black tracking-tight ${g.bg} ${g.text} ${g.border}`}>
+                      <div className={`px-4 py-1.5 rounded-lg border-2 text-[11px] font-black tracking-tight ${g.bg} ${g.text} ${g.border}`}>
                         {g.label}
                       </div>
                       <div className="flex items-center gap-2 text-stone-300">
-                         <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-stone-900 transition-colors">View Profile</span>
-                         <Eye size={14} className="group-hover:text-[#4F5BD5] transition-colors" />
+                        <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-stone-900 transition-colors">View Profile</span>
+                        <Eye size={14} className="group-hover:text-[#4F5BD5] transition-colors" />
                       </div>
                     </div>
                   </motion.div>
@@ -506,8 +511,8 @@ export default function Members() {
             });
             setSelectedMember(null); // Optional: close on save success
           } catch (err: any) {
-             console.error('Save failed:', err);
-             // Error breadcrumb already handled by mutation onError toast
+            console.error('Save failed:', err);
+            // Error breadcrumb already handled by mutation onError toast
           }
         }}
         onDelete={(id) => deleteMutation.mutate(id)}

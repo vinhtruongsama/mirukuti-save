@@ -1,19 +1,14 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { format, isPast } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
-import { MapPin, Calendar, Clock, Users, ArrowLeft, Info, CalendarDays, AlertCircle, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
+import { MapPin, Clock, Users, AlertCircle, CheckCircle2, ChevronRight, Loader2, Edit2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../lib/utils';
 
 export default function ActivityDetail() {
   const { id } = useParams();
@@ -25,7 +20,7 @@ export default function ActivityDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('activities')
-        .select('*, registrations(count)')
+        .select('*, registrations(count), academic_years(name)')
         .eq('id', id)
         .is('deleted_at', null)
         .single();
@@ -33,10 +28,10 @@ export default function ActivityDetail() {
       if (error) throw error;
 
       const registeredCount = data.registrations?.[0]?.count || 0;
-      const isClosed = 
-          data.status === 'closed' || 
-          isPast(new Date(data.registration_deadline)) || 
-          (data.capacity && registeredCount >= data.capacity);
+      const isClosed =
+        data.status === 'closed' ||
+        isPast(new Date(data.registration_deadline)) ||
+        (data.capacity && registeredCount >= data.capacity);
 
       return { ...data, registeredCount, isClosed };
     },
@@ -67,8 +62,7 @@ export default function ActivityDetail() {
 
   const toggleSession = (idx: number) => {
     if (myRegistration) return;
-    
-    setSelectedSessions((prev: number[]) => 
+    setSelectedSessions((prev: number[]) =>
       prev.includes(idx) ? prev.filter((i: number) => i !== idx) : [...prev, idx]
     );
   };
@@ -82,24 +76,22 @@ export default function ActivityDetail() {
         throw new Error('内容を確認し、同意チェックを入れてください。');
       }
 
-      // 1. Verify capacity immediately before inserting to prevent slight race condition
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from('registrations')
         .select('*', { count: 'exact', head: true })
         .eq('activity_id', id);
 
+      if (countError) throw countError;
       if (activity.capacity && (count || 0) >= activity.capacity) {
         throw new Error('定員に達したため、申し込みを締め切りました。');
       }
 
-      const { error } = await supabase
-        .from('registrations')
-        .insert({
-          activity_id: id,
-          user_id: currentUser!.id,
-          attendance_status: 'pending',
-          selected_sessions: selectedSessions
-        });
+      const { error } = await supabase.from('registrations').insert({
+        activity_id: id,
+        user_id: currentUser!.id,
+        attendance_status: 'pending',
+        selected_sessions: selectedSessions
+      });
 
       if (error) throw error;
     },
@@ -109,19 +101,12 @@ export default function ActivityDetail() {
       queryClient.invalidateQueries({ queryKey: ['registration', id] });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
     },
-    onError: (err: any) => {
-      toast.error(err.message || '申し込みに失敗しました。もう一度お試しください。');
-    }
+    onError: (err: any) => toast.error(err.message || '申し込みに失敗しました。')
   });
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('registrations')
-        .delete()
-        .eq('activity_id', id)
-        .eq('user_id', currentUser!.id);
-
+      const { error } = await supabase.from('registrations').delete().eq('activity_id', id).eq('user_id', currentUser!.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -130,275 +115,250 @@ export default function ActivityDetail() {
       queryClient.invalidateQueries({ queryKey: ['registration', id] });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
     },
-    onError: () => {
-      toast.error('キャンセルの処理に失敗しました。');
-    }
+    onError: () => toast.error('キャンセルの処理に失敗しました。')
   });
 
   if (isActivityLoading || isRegLoading) {
     return (
-      <div className="flex justify-center flex-col items-center min-h-[calc(100vh-4rem)] bg-brand-stone-900">
-         <div className="w-8 h-8 border-2 border-brand-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex justify-center flex-col items-center min-h-screen bg-[#F8F9FA]">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
       </div>
     );
   }
 
   if (!activity) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-serif text-brand-stone-50">活動が見つかりませんでした</h2>
-        <p className="text-brand-stone-400 mt-2">この活動は削除されたか、存在しない可能性があります。</p>
-        <Link to="/activities" className="mt-8 inline-block text-brand-emerald-400 hover:text-brand-emerald-300">一覧に戻る</Link>
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6 text-center">
+        <AlertCircle className="w-16 h-16 text-rose-500 mb-6" />
+        <h2 className="text-3xl font-serif text-gray-900 mb-4 uppercase tracking-tighter">Activity Not Found</h2>
+        <p className="text-gray-500 max-w-md mx-auto mb-10">この活動は削除されたか、存在しない可能性があります。</p>
+        <Link to="/activities" className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-[13px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">Back to Activities</Link>
       </div>
     );
   }
 
-  const progress = activity.capacity 
-    ? Math.min((activity.registeredCount / activity.capacity) * 100, 100) 
-    : 0;
-
   return (
-    <div className="bg-brand-stone-900 pb-20">
-      {/* Cover Image Header */}
-      <div className="w-full h-[40vh] md:h-[50vh] relative border-b border-brand-stone-800">
-        {activity.cover_image_url ? (
-          <img 
-            src={activity.cover_image_url} 
-            alt={activity.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-brand-stone-800/50 flex items-center justify-center">
-             <span className="font-serif italic text-4xl text-brand-stone-700">Milktea</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-stone-900 via-brand-stone-900/60 to-transparent" />
-        
-        <div className="absolute inset-0 flex items-end">
-          <div className="max-w-4xl mx-auto w-full px-6 pb-12">
-            <Link to="/activities" className="inline-flex items-center gap-2 text-brand-stone-400 hover:text-white transition-colors text-sm mb-6">
-              <ArrowLeft className="w-4 h-4" /> 一覧に戻る
-            </Link>
-            
-            <div className="flex flex-wrap gap-3 mb-4">
-              {activity.isClosed ? (
-                <span className="px-3 py-1 bg-rose-500/20 text-rose-400 text-xs font-bold uppercase tracking-widest rounded-sm border border-rose-500/30">募集終了</span>
-              ) : (
-                <span className="px-3 py-1 bg-brand-emerald-500/20 text-brand-emerald-400 text-xs font-bold uppercase tracking-widest rounded-sm border border-brand-emerald-500/30">募集中</span>
-              )}
-              {activity.capacity && progress >= 100 && (
-                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest rounded-sm border border-amber-500/30">満員</span>
-              )}
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl font-serif text-brand-stone-50 leading-tight">
-              {activity.title}
-            </h1>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#F8F9FA] relative overflow-hidden py-10 sm:py-20 px-4 sm:px-6">
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#4F5BD5]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[5%] left-[-10%] w-[700px] h-[700px] bg-[#FEDA75]/3 blur-[150px] rounded-full" />
+        <div className="absolute top-[20%] left-[20%] w-[500px] h-[500px] bg-[#D62976]/5 blur-[100px] rounded-full" />
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-12">
-        {/* Main Content */}
-        <div className="md:col-span-2 space-y-8">
-          <div className="prose prose-invert prose-stone max-w-none mb-12">
-            <h3 className="text-xl font-serif text-brand-stone-50 mb-6 flex items-center gap-3">
-              <Info className="w-6 h-6 text-brand-emerald-500" />
-              活動内容
-            </h3>
-            <p className="text-lg text-brand-stone-300 leading-relaxed whitespace-pre-wrap">
-              {activity.description || '詳細情報はありません。'}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-4xl mx-auto bg-white rounded-[3rem] shadow-[0_50px_100px_rgba(0,0,0,0.08)] border border-gray-100 relative z-10 overflow-hidden flex flex-col"
+      >
+        <Link
+          to="/activities"
+          className="absolute top-8 right-8 w-12 h-12 bg-gray-50 hover:bg-rose-50 text-gray-400 hover:text-rose-500 rounded-2xl flex items-center justify-center transition-all z-20 group"
+        >
+          <X className="w-6 h-6 group-hover:scale-110" />
+        </Link>
+
+        <div className="p-8 sm:p-14">
+          <div className="flex flex-wrap items-center gap-3 mb-8">
+            <span className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-gray-900/20">
+              {activity.academic_years?.name || '2026-2027'}
+            </span>
+            <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[11px] font-black uppercase tracking-[0.2em] border border-indigo-100">
+              {format(new Date(activity.date), "EEEE, MM/dd", { locale: jaLocale })}
+            </span>
+            <span className={cn(
+              "px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-[0.2em] shadow-sm",
+              activity.isClosed
+                ? "bg-rose-50 text-rose-500 border border-rose-100"
+                : "bg-emerald-500 text-white shadow-emerald-500/20"
+            )}>
+              {activity.isClosed ? '募集終了' : '募集中'}
+            </span>
+          </div>
+
+          <h1 className="text-4xl sm:text-7xl font-serif text-gray-900 leading-[1.1] tracking-tighter mb-12">
+            {activity.title}
+          </h1>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm transition-transform group-hover:scale-110">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">開催日時</p>
+                <p className="text-2xl font-serif text-gray-900">{format(new Date(activity.date), "HH:mm")}</p>
+              </div>
+            </div>
+
+            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm transition-transform group-hover:scale-110">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">定員</p>
+                <p className="text-2xl font-serif text-gray-900">{activity.capacity ? `${activity.capacity}名` : '制限なし'}</p>
+              </div>
+            </div>
+
+            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-rose-500 shadow-sm transition-transform group-hover:scale-110">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">募集終了</p>
+                <p className="text-2xl font-serif text-gray-900">
+                  <span className={cn(isPast(new Date(activity.registration_deadline)) && "line-through opacity-30")}>
+                    {format(new Date(activity.registration_deadline), "MM/dd HH:mm")}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex items-center gap-6 mb-6 group hover:bg-white hover:shadow-xl transition-all duration-500">
+            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm group-hover:bg-indigo-500 group-hover:text-white transition-all">
+              <MapPin className="w-7 h-7" />
+            </div>
+            <div>
+              <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">開催場所</p>
+              <p className="text-2xl font-black text-gray-900 uppercase tracking-tight">{activity.location}</p>
+            </div>
+          </div>
+
+          {activity.cancellation_deadline && (
+            <div className="p-8 bg-amber-50/30 rounded-[2.5rem] border border-amber-100/50 flex items-center gap-6 mb-12 group hover:bg-white hover:shadow-xl transition-all duration-500">
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm group-hover:bg-amber-500 group-hover:text-white transition-all">
+                <Edit2 className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black text-amber-600/60 uppercase tracking-widest mb-1">取消・変更期限</p>
+                <p className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+                  <span className={cn(isPast(new Date(activity.cancellation_deadline)) && "text-rose-500/50")}>
+                    {format(new Date(activity.cancellation_deadline), "yyyy/MM/dd HH:mm")}
+                  </span>
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-1 h-6 bg-indigo-500 rounded-full" />
+              <h3 className="text-xl font-black text-gray-900 uppercase tracking-[0.2em]">活動内容</h3>
+            </div>
+            <p className="text-xl text-gray-500 leading-[1.8] font-medium whitespace-pre-wrap max-w-3xl">
+              {activity.description || '活動の詳細情報はありません。'}
             </p>
           </div>
 
-          {/* Schedule Section */}
-          {activity.sessions && Array.isArray(activity.sessions) && activity.sessions.length > 0 && (
-            <div className="mt-12 pt-12 border-t border-brand-stone-800">
-              <h3 className="text-2xl font-serif text-brand-stone-50 mb-8 flex items-center gap-4">
-                <CalendarDays className="w-7 h-7 text-brand-emerald-500" />
-                スケジュール
-              </h3>
-              <div className="grid grid-cols-1 gap-4">
+          {activity.sessions && activity.sessions.length > 0 && (
+            <div className="mb-20">
+              <div className="flex items-center gap-3 mb-10">
+                <div className="w-1 h-6 bg-emerald-500 rounded-full" />
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-[0.2em]">参加時間帯</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {activity.sessions.map((session: any, idx: number) => (
-                  <motion.div
+                  <button
                     key={idx}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => toggleSession(idx)}
+                    disabled={!!myRegistration}
                     className={cn(
-                      "group p-6 rounded-2xl border transition-all duration-500 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6",
-                      activeSessions.includes(idx) 
-                        ? "bg-brand-emerald-500/5 border-brand-emerald-500/20 shadow-lg shadow-brand-emerald-500/5" 
-                        : "bg-brand-stone-900/30 border-brand-stone-800 hover:border-brand-stone-700",
-                      myRegistration && "opacity-80"
+                      "p-8 rounded-[2rem] border transition-all duration-500 text-left relative overflow-hidden group",
+                      activeSessions.includes(idx)
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-200"
+                        : "bg-white border-gray-200 text-gray-900 hover:border-indigo-400 hover:shadow-lg",
+                      myRegistration && "opacity-80 cursor-default"
                     )}
                   >
-                    <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 rounded-xl bg-brand-stone-800/50 flex flex-col items-center justify-center border border-brand-stone-700/50 group-hover:bg-brand-emerald-500/10 group-hover:border-brand-emerald-500/20 transition-colors">
-                        <span className="text-[10px] font-black text-brand-stone-500 uppercase leading-none mb-1">Vol.</span>
-                        <span className="text-lg font-serif text-brand-stone-100 leading-none">{idx + 1}</span>
-                      </div>
-                      <div>
-                        <p className="text-brand-stone-100 font-black text-xs uppercase tracking-[0.2em] mb-1">
-                          {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
-                        </p>
-                        <p className="text-lg font-serif text-brand-stone-400 group-hover:text-brand-stone-100 transition-colors">
-                          Session Event
-                        </p>
-                      </div>
+                    <div className={cn(
+                      "absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full translate-x-10 -translate-y-10 transition-opacity",
+                      activeSessions.includes(idx) ? "bg-white/10 opacity-100" : "bg-indigo-500/5 opacity-0 group-hover:opacity-100"
+                    )} />
+                    <div className="relative z-10">
+                      <p className={cn("text-[11px] font-black uppercase tracking-widest mb-3", activeSessions.includes(idx) ? "text-indigo-200" : "text-gray-400")}>
+                        Session {idx + 1}
+                      </p>
+                      <p className="text-2xl font-black uppercase tracking-tight mb-1">
+                        {format(new Date(session.date), "MM/dd (EEE)", { locale: jaLocale })}
+                      </p>
+                      <p className={cn("text-lg font-medium", activeSessions.includes(idx) ? "text-indigo-100" : "text-gray-500")}>
+                        {session.start_time} - {session.end_time}
+                      </p>
                     </div>
-                    <div className="w-full sm:w-auto p-4 sm:p-0 bg-brand-stone-800/30 sm:bg-transparent rounded-xl flex items-center justify-between sm:justify-end gap-6">
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-brand-stone-500 uppercase tracking-widest mb-1">Duration</p>
-                        <p className="text-xl font-serif text-brand-stone-50">{session.start_time} - {session.end_time}</p>
-                      </div>
-                      <div className="pl-6 border-l border-brand-stone-800 flex items-center gap-4">
-                        <div className="flex flex-col items-end gap-1">
-                          <p className="text-sm font-serif text-brand-stone-400">{activeSessions.includes(idx) ? '参加予定' : '未選択'}</p>
-                        </div>
-                        <button
-                          onClick={() => !myRegistration && toggleSession(idx)}
-                          disabled={!!myRegistration}
-                          className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-90",
-                            activeSessions.includes(idx) 
-                              ? "bg-brand-emerald-500 text-white shadow-lg shadow-brand-emerald-500/20" 
-                              : "bg-brand-stone-800 border border-brand-stone-700 text-brand-stone-500 hover:border-brand-stone-500",
-                            myRegistration && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          {activeSessions.includes(idx) ? <CheckCircle2 className="w-6 h-6" /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-20" />}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
+                  </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Agreement Section */}
-          {!myRegistration && activity.sessions?.length > 0 && (
-            <div className="mt-8 p-6 bg-brand-stone-900/30 border border-brand-stone-800 rounded-2xl flex items-center gap-4">
-              <button 
-                onClick={() => setAgreed(!agreed)}
-                className={cn(
-                  "w-6 h-6 rounded-md flex items-center justify-center transition-all",
-                  agreed ? "bg-brand-emerald-500 text-white" : "bg-brand-stone-800 border border-brand-stone-700"
-                )}
-              >
-                {agreed && <CheckCircle2 className="w-4 h-4" />}
-              </button>
-              <p className="text-sm text-brand-stone-400">
-                活動内容およびスケジュールをすべて読み、理解した上で参加を申し込みます。
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar Info & Action */}
-        <div className="space-y-6">
-          <div className="bg-brand-stone-800/30 border border-brand-stone-700/50 p-6 rounded-sm">
-            <h3 className="text-lg font-serif text-brand-stone-50 mb-6">基本情報</h3>
-            
-            <div className="space-y-4 text-sm text-brand-stone-300">
-              <div className="flex gap-3">
-                <Calendar className="w-5 h-5 text-brand-emerald-500 shrink-0" />
-                <div>
-                  <p className="font-medium text-brand-stone-200">開催日時</p>
-                  <p className="mt-0.5">{format(new Date(activity.date), "yyyy年MM月dd日(EEE) HH:mm", { locale: jaLocale })}</p>
+          <div className="pt-14 border-t border-gray-100 flex flex-col items-center gap-10">
+            {!myRegistration && !activity.isClosed && (
+              <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setAgreed(!agreed)}>
+                <div className={cn(
+                  "w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all",
+                  agreed ? "bg-indigo-600 border-indigo-600 text-white scale-110" : "border-gray-200 group-hover:border-indigo-400"
+                )}>
+                  {agreed && <CheckCircle2 className="w-5 h-5" />}
                 </div>
+                <p className="text-sm font-black text-gray-500 uppercase tracking-widest">内容を確認し、参加を希望します</p>
               </div>
-              
-              <div className="flex gap-3">
-                <Clock className="w-5 h-5 text-rose-400 shrink-0" />
-                <div>
-                  <p className="font-medium text-brand-stone-200">申込締切</p>
-                  <p className="mt-0.5">{format(new Date(activity.registration_deadline), "yyyy年MM月dd日 HH:mm", { locale: jaLocale })}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <MapPin className="w-5 h-5 text-brand-emerald-500 shrink-0" />
-                <div>
-                  <p className="font-medium text-brand-stone-200">開催場所</p>
-                  <p className="mt-0.5">{activity.location}</p>
-                </div>
-              </div>
-              
-              <div className="pt-4 mt-4 border-t border-brand-stone-700/50">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="font-medium text-brand-stone-200 flex items-center gap-2">
-                    <Users className="w-4 h-4" /> 参加状況
-                  </span>
-                  <span className="text-brand-stone-400">
-                    {activity.registeredCount} / {activity.capacity || '制限なし'}
-                  </span>
-                </div>
-                {activity.capacity && (
-                  <div className="h-2 w-full bg-brand-stone-800 overflow-hidden rounded-full">
-                    <div 
-                      className={`h-full transition-all duration-500 ${progress >= 100 ? 'bg-rose-500' : 'bg-brand-emerald-500'}`}
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Registration Actions */}
-          <div className="pt-2">
-            {!session ? (
-              <Link 
-                to={`/login`}
-                state={{ from: `/activities/${id}` }}
-                className="w-full block text-center bg-brand-stone-800 hover:bg-brand-stone-700 text-brand-stone-50 font-medium py-3.5 rounded-sm transition-colors"
-              >
-                ログインして申し込む
-              </Link>
-            ) : myRegistration ? (
-              <div className="space-y-3">
-                <div className="p-4 bg-brand-emerald-500/10 border border-brand-emerald-500/20 rounded-sm mb-4">
-                  <p className="text-xs font-black text-brand-emerald-500 uppercase tracking-widest mb-1">申込完了</p>
-                  <p className="text-xs text-brand-stone-400">この活動への申し込みは完了しています。</p>
-                </div>
-                <button 
-                  onClick={() => cancelMutation.mutate()}
-                  disabled={cancelMutation.isPending}
-                  className="w-full bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/30 font-medium py-3.5 rounded-sm transition-colors flex justify-center items-center"
-                >
-                  {cancelMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : '申し込みをキャンセルする'}
-                </button>
-              </div>
-            ) : activity.isClosed ? (
-              <button 
-                disabled
-                className="w-full bg-brand-stone-800 text-brand-stone-500 font-medium py-3.5 rounded-sm cursor-not-allowed border border-brand-stone-800"
-              >
-                募集終了 / 定員到達
-              </button>
-            ) : (
-              <button 
-                onClick={() => registerMutation.mutate()}
-                disabled={registerMutation.isPending || !agreed || (activity.sessions?.length > 0 && selectedSessions.length === 0)}
-                className={cn(
-                  "w-full py-4 rounded-sm font-black text-[12px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3",
-                  agreed && (!activity.sessions?.length || selectedSessions.length > 0)
-                    ? "bg-brand-stone-800 text-brand-stone-50 hover:bg-brand-stone-700 shadow-xl"
-                    : "bg-brand-stone-800/50 text-brand-stone-500 cursor-not-allowed"
-                )}
-              >
-                {registerMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>参加を申し込む <ChevronRight className="w-4 h-4" /></>
-                )}
-              </button>
             )}
+
+            <div className="w-full max-w-md">
+              {!session ? (
+                <Link
+                  to="/login"
+                  state={{ from: `/activities/${id}` }}
+                  className="w-full py-6 bg-gray-900 text-white rounded-[2rem] text-[15px] font-black uppercase tracking-[0.3em] flex items-center justify-center shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Login to Apply
+                </Link>
+              ) : myRegistration ? (
+                <div className="space-y-6 flex flex-col items-center">
+                  <div className="px-10 py-4 bg-emerald-50 text-emerald-600 rounded-full text-[13px] font-black uppercase tracking-[0.2em] border border-emerald-100 flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5" /> 申し込みが完了しています
+                  </div>
+                  <button
+                    onClick={() => cancelMutation.mutate()}
+                    disabled={cancelMutation.isPending || (activity.cancellation_deadline && isPast(new Date(activity.cancellation_deadline)))}
+                    className={cn(
+                      "w-full py-6 rounded-[2rem] text-[13px] font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all border group",
+                      (activity.cancellation_deadline && isPast(new Date(activity.cancellation_deadline)))
+                        ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+                        : "bg-white border-gray-200 text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 shadow-sm"
+                    )}
+                  >
+                    {cancelMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : '申し込みをキャンセルする'}
+                  </button>
+                  {activity.cancellation_deadline && isPast(new Date(activity.cancellation_deadline)) && (
+                    <p className="text-[11px] text-rose-500/70 font-black uppercase tracking-widest italic animate-pulse">
+                      ※ 取消期限を過ぎているため、キャンセルできません
+                    </p>
+                  )}
+                </div>
+              ) : activity.isClosed ? (
+                <div className="w-full py-6 bg-gray-100 text-gray-400 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.3em] flex items-center justify-center cursor-not-allowed">
+                  Registration Closed
+                </div>
+              ) : (
+                <button
+                  onClick={() => registerMutation.mutate()}
+                  disabled={registerMutation.isPending || !agreed || (activity.sessions?.length > 0 && selectedSessions.length === 0)}
+                  className={cn(
+                    "w-full py-6 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.3em] flex items-center justify-center transition-all shadow-2xl",
+                    agreed && (!activity.sessions?.length || selectedSessions.length > 0)
+                      ? "bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white hover:scale-[1.02] active:scale-95 shadow-indigo-500/20"
+                      : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                  )}
+                >
+                  {registerMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Apply Now <ChevronRight className="w-5 h-5 ml-2" /></>}
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,179 +1,194 @@
-import { useQuery } from '@tanstack/react-query';
-import { Users, CalendarDays, Loader2, BarChart3 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import { 
+  Users, 
+  CalendarDays, 
+  BarChart3, 
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { useAppStore } from '../../store/useAppStore';
 
 export default function Dashboard() {
-  const { selectedYear } = useAppStore();
-
-  // 1. Fetch Current Year Stats
+  // 1. Fetch Stats
   const { data: stats, isLoading: isStatsLoading } = useQuery({
-    queryKey: ['admin-stats', selectedYear?.id],
+    queryKey: ['admin-stats'],
     queryFn: async () => {
-      if (!selectedYear) return null;
-      const yearId = selectedYear.id;
-
-      const [membersRes, upcomingRes, activitiesRes] = await Promise.all([
-        supabase.from('club_memberships').select('id', { count: 'exact', head: true }).eq('academic_year_id', yearId).is('deleted_at', null).eq('is_active', true),
-        supabase.from('activities').select('id', { count: 'exact', head: true }).eq('academic_year_id', yearId).is('deleted_at', null).gte('date', new Date().toISOString()),
-        supabase.from('activities').select('id, registrations(count)').eq('academic_year_id', yearId).is('deleted_at', null)
+      const [members, activities] = await Promise.all([
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('activities').select('*', { count: 'exact', head: true })
       ]);
-
-      const totalActivities = (activitiesRes.data as any[])?.length || 0;
-      const totalRegistrations = ((activitiesRes.data as any[]) || []).reduce((sum, act: any) => sum + (act.registrations?.[0]?.count || 0), 0);
-
       return {
-        members: membersRes.count || 0,
-        activities: totalActivities,
-        upcoming: upcomingRes.count || 0,
-        registrations: totalRegistrations
+        members: members.count || 0,
+        activities: activities.count || 0
       };
-    },
-    enabled: !!selectedYear,
-  });
-
-  // 2. Fetch Historical Data for Charts
-  const { data: chartData, isLoading: isChartLoading } = useQuery({
-    queryKey: ['admin-chart-data'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('academic_years')
-        .select(`
-          id, name,
-          club_memberships (count),
-          activities (count)
-        `)
-        .order('name', { ascending: true });
-        
-      if (error) throw error;
-
-      return (data || []).map((year: any) => ({
-        name: year.name,
-        '会員数': year.club_memberships?.[0]?.count || 0,
-        '活動数': year.activities?.[0]?.count || 0
-      }));
     }
   });
 
-  return (
-    <div className="h-full flex flex-col space-y-6 md:space-y-8 overflow-hidden">
-      {/* 1. Compact Metric Cards (Top Section) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 shrink-0">
-        {[
-          { label: '会員総数', value: stats?.members, icon: Users, color: 'text-[#4F5BD5]', bg: 'bg-[#4F5BD5]/5', borderColor: 'border-[#4F5BD5]/10', delay: 0.1 },
-          { label: '活動総数', value: stats?.activities, icon: CalendarDays, color: 'text-[#D62976]', bg: 'bg-[#D62976]/5', borderColor: 'border-[#D62976]/10', delay: 0.2 },
-        ].map((stat, i) => (
-          <motion.div 
-            key={i} 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: stat.delay }}
-            className={`relative bg-white border ${stat.borderColor} p-4 md:p-5 rounded-2xl flex items-center justify-between group hover:shadow-lg hover:shadow-[#4F5BD5]/5 transition-all duration-500 overflow-hidden shadow-sm`}
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.bg} ${stat.color} border ${stat.borderColor}`}>
-                 <stat.icon className="w-5 h-5" />
-              </div>
-              <p className="text-lg font-black text-brand-stone-900 tracking-tighter leading-none">{stat.label}</p>
-            </div>
-            <div className="text-right">
-              {isStatsLoading ? (
-                <div className="h-6 w-10 bg-brand-stone-50 animate-pulse rounded-md"></div>
-              ) : (
-                <h3 className="text-2xl font-black text-brand-stone-900 tracking-tighter leading-none">{stat.value || 0}</h3>
-              )}
-            </div>
-            <div className={`absolute bottom-0 right-0 w-12 h-12 ${stat.bg} blur-[25px] translate-x-1/2 translate-y-1/2`} />
-          </motion.div>
-        ))}
-      </div>
+  // 2. Fetch Audit Logs
+  const { data: activityFeed, isLoading: isActivityLoading } = useQuery({
+    queryKey: ['admin-audit-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_audit_logs')
+        .select(`
+          *,
+          users:user_id (full_name, avatar_url, email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      {/* 2. Fluid Analytics Chart Container (Center Section) */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="flex-1 min-h-0 bg-white border border-brand-stone-100 rounded-[2rem] p-6 md:p-10 shadow-xl shadow-brand-stone-200/10 flex flex-col relative overflow-hidden"
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#FEDA75]/10 rounded-xl">
-               <BarChart3 className="w-5 h-5 text-brand-stone-900" />
-            </div>
-            <h3 className="text-lg font-black text-brand-stone-900 tracking-tight">年度別の成長推移</h3>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-brand-stone-50 rounded-xl border border-brand-stone-100">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[10px] font-black text-brand-stone-500 tracking-widest uppercase">Real-Time Sync</span>
-          </div>
+      if (error) throw error;
+
+      return (data || []).map((log: any) => {
+        const user = Array.isArray(log.users) ? log.users[0] : log.users;
+
+        const logMap: Record<string, { label: string; icon: any; color: string; type: string }> = {
+          'profile_update': { label: 'が個人情報を更新しました', icon: Users, color: 'text-[#4F5BD5]', type: 'profile' },
+          'registration_new': { label: 'が新しく活動に登録しました', icon: CalendarDays, color: 'text-emerald-500', type: 'registration' },
+          'registration_update': { label: 'が活動申込を更新しました', icon: CheckCircle2, color: 'text-amber-500', type: 'update' },
+          'registration_delete': { label: 'が活動をキャンセルしました', icon: XCircle, color: 'text-rose-500', type: 'cancellation' }
+        };
+
+        const config = logMap[log.action_type] || { label: 'が行われました', icon: AlertCircle, color: 'text-brand-stone-400', type: 'system' };
+
+        let changeSummary = '';
+        if (log.action_type === 'registration_update' && log.details?.old && log.details?.new) {
+          const oldSessions = JSON.stringify(log.details.old.selected_sessions);
+          const newSessions = JSON.stringify(log.details.new.selected_sessions);
+          if (oldSessions !== newSessions) {
+            changeSummary = ` (Sessions: ${oldSessions} → ${newSessions})`;
+          }
+        }
+
+        return {
+          id: log.id,
+          user: user?.full_name || 'Unknown User',
+          email: user?.email,
+          avatar: user?.avatar_url,
+          action: config.label,
+          summary: changeSummary,
+          target: log.content_name || 'System',
+          timestamp: new Date(log.created_at),
+          icon: config.icon,
+          color: config.color,
+          type: config.type
+        };
+      });
+    },
+    refetchInterval: 10000
+  });
+
+  return (
+    <div className="space-y-12 pb-20">
+      {/* 1. Header with Consolidated Stats */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pt-4">
+        <div className="relative">
+          <div className="absolute -left-5 top-0 w-1.5 h-full bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
+          <h1 className="text-4xl font-black text-brand-stone-900 tracking-tighter">アクティビティ履歴</h1>
+          <p className="text-brand-stone-400 text-sm font-bold mt-2 uppercase tracking-widest italic opacity-60">System Audit Core</p>
         </div>
 
-        <div className="flex-1 w-full min-h-0">
-          {isChartLoading ? (
-            <div className="w-full h-full flex items-center justify-center">
-               <Loader2 className="w-10 h-10 text-[#D62976] animate-spin opacity-20" />
+        <div className="flex items-center gap-4">
+          {isStatsLoading ? (
+            <div className="flex items-center gap-4 bg-white px-8 py-4 rounded-[2rem] border border-brand-stone-100 animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-brand-stone-50" />
+              <div className="w-20 h-4 bg-brand-stone-50 rounded" />
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 0, right: 10, left: -20, bottom: 0 }} barGap={10}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f8fafc" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#cbd5e1" 
-                  fontSize={10} 
-                  fontWeight={900}
-                  tickLine={false} 
-                  axisLine={false} 
-                  dy={10}
-                />
-                <YAxis 
-                  stroke="#cbd5e1" 
-                  fontSize={10} 
-                  fontWeight={900}
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc', radius: 8 }}
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #f1f5f9', 
-                    borderRadius: '1.5rem', 
-                    padding: '16px',
-                    boxShadow: '0 20px 50px -12px rgba(0,0,0,0.08)'
-                  }}
-                  itemStyle={{ fontWeight: 900, fontSize: '12px' }}
-                />
-                <Legend 
-                  iconType="circle" 
-                  wrapperStyle={{ 
-                    fontSize: '10px', 
-                    fontWeight: 900, 
-                    paddingTop: '30px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    color: '#94a3b8'
-                  }} 
-                />
-                <Bar name="会員数" dataKey="会員数" fill="#4F5BD5" radius={[8, 8, 0, 0]} maxBarSize={30} />
-                <Bar name="活動数" dataKey="活動数" fill="#D62976" radius={[8, 8, 0, 0]} maxBarSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <div className="group bg-white hover:bg-brand-stone-900 px-8 py-4 rounded-[2rem] border border-brand-stone-100 shadow-sm transition-all duration-500 flex items-center gap-5 hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-stone-200/50">
+                <div className="w-10 h-10 rounded-xl bg-[#4F5BD5]/5 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+                  <Users className="w-5 h-5 text-[#4F5BD5] group-hover:text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black group-hover:text-white/50 text-brand-stone-300 uppercase tracking-widest mb-0.5">Total Members</p>
+                  <p className="text-2xl font-black text-brand-stone-900 group-hover:text-white leading-none">{stats?.members}</p>
+                </div>
+              </div>
+
+              <div className="group bg-white hover:bg-brand-stone-900 px-8 py-4 rounded-[2rem] border border-brand-stone-100 shadow-sm transition-all duration-500 flex items-center gap-5 hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-stone-200/50">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+                  <CalendarDays className="w-5 h-5 text-emerald-500 group-hover:text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black group-hover:text-white/50 text-brand-stone-300 uppercase tracking-widest mb-0.5">Total Activities</p>
+                  <p className="text-2xl font-black text-brand-stone-900 group-hover:text-white leading-none">{stats?.activities}</p>
+                </div>
+              </div>
+            </>
           )}
         </div>
-      </motion.div>
-      
-      {/* 3. Compact Support Footer (Bottom Section) */}
-      <div className="pt-4 flex items-center justify-between border-t border-brand-stone-50 shrink-0 opacity-40 hover:opacity-100 transition-opacity">
-        <span className="text-[10px] font-black tracking-widest text-brand-stone-400 uppercase">Administrator Panel v2.0</span>
-        <div className="flex items-center gap-6">
-           <button className="text-[10px] font-black tracking-widest text-[#4F5BD5] hover:underline uppercase">Export Data</button>
-           <button className="text-[10px] font-black tracking-widest text-[#D62976] hover:underline uppercase">System Log</button>
-        </div>
       </div>
+
+      {/* 2. Management Activity Feed Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="w-full bg-white border border-brand-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-brand-stone-200/10"
+      >
+        {isActivityLoading ? (
+          <div className="w-full flex flex-col items-center justify-center gap-4 py-20">
+            <Loader2 className="w-10 h-10 text-[#4F5BD5] animate-spin opacity-20" />
+          </div>
+        ) : !activityFeed || activityFeed.length === 0 ? (
+          <div className="w-full flex flex-col items-center justify-center gap-4 py-20 opacity-30">
+            <BarChart3 className="w-12 h-12 text-brand-stone-200" />
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {(() => {
+              const groups: Record<string, any[]> = {};
+              activityFeed.forEach(item => {
+                if (!item.timestamp) return;
+                const dateKey = item.timestamp.toLocaleDateString('ja-JP', { 
+                  year: 'numeric', month: 'long', day: 'numeric' 
+                });
+                if (!groups[dateKey]) groups[dateKey] = [];
+                groups[dateKey].push(item);
+              });
+
+              return Object.entries(groups).map(([date, items]) => (
+                <div key={date} className="relative space-y-4">
+                  <div className="sticky top-0 z-20 py-4 bg-white/95 backdrop-blur-sm -mx-4 px-4 flex items-center gap-4">
+                    <h2 className="text-lg font-black text-brand-stone-900 tracking-tighter">{date}</h2>
+                    <div className="h-px flex-1 bg-gradient-to-r from-brand-stone-100 to-transparent" />
+                  </div>
+
+                  <div className="space-y-1">
+                    {items.map((item) => (
+                      <div key={item.id} className="relative group flex items-start gap-8 p-4 rounded-2xl hover:bg-brand-stone-50/50 transition-colors">
+                        <div className="w-20 pt-1 text-right shrink-0">
+                          <span className="text-[11px] font-black text-brand-stone-300 tracking-widest tabular-nums uppercase">
+                            {item.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        <div className="relative pt-1 flex-1 flex items-start gap-4">
+                          <div className={`w-8 h-8 rounded-xl bg-white border border-brand-stone-100 shadow-sm flex items-center justify-center shrink-0 ${item.color}`}>
+                            <item.icon className="w-4 h-4" />
+                          </div>
+
+                          <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-0 sm:gap-2">
+                            <span className="text-[14px] font-black text-[#4F5BD5]">{item.user}</span>
+                            <span className="text-[13px] font-medium text-brand-stone-600 block sm:inline">
+                              {item.action.replace('が', '')} <span className="text-brand-stone-400 mx-1">→</span> <span className="font-bold">{item.target}</span>
+                              {item.summary && <span className="text-[#D62976] font-black ml-1.5">{item.summary}</span>}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

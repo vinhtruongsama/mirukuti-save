@@ -258,17 +258,17 @@ export default function Profile() {
                   </div>
                 </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">大学メール</label>
-                    <p className="text-[13px] font-bold text-indigo-600 truncate">{profileData.university_email || '—'}</p>
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">大学メール</label>
+                  <p className="text-[13px] font-bold text-indigo-600 truncate">{profileData.university_email || '—'}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">連絡先</label>
+                  <div className="space-y-3">
+                    <p className="text-[13px] font-bold flex items-center gap-2"><Phone className="w-3 h-3 text-stone-600" /> {profileData.phone || '—'}</p>
+                    <p className="text-[13px] font-bold flex items-center gap-2 text-[#00B900]"><LineIcon className="w-3 h-3 text-stone-600" /> @{profileData.line_nickname || '—'}</p>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">連絡先</label>
-                    <div className="space-y-3">
-                      <p className="text-[13px] font-bold flex items-center gap-2"><Phone className="w-3 h-3 text-stone-600" /> {profileData.phone || '—'}</p>
-                      <p className="text-[13px] font-bold flex items-center gap-2 text-[#00B900]"><LineIcon className="w-3 h-3 text-stone-600" /> @{profileData.line_nickname || '—'}</p>
-                    </div>
-                  </div>
+                </div>
               </div>
             </div>
 
@@ -332,6 +332,7 @@ export default function Profile() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
                 {historyData.map((reg, idx) => {
                   const activity = reg.activities;
+                  const isPresent = reg.attendance_status === 'present';
                   return (
                     <motion.div
                       key={reg.id}
