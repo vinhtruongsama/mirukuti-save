@@ -61,7 +61,7 @@ export default function ActivitiesAdmin() {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
 
-  const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<ActivityFormData>({
+  const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<ActivityFormData>({
     resolver: zodResolver(activitySchema),
     defaultValues: { status: 'open', location_type: 'internal', sessions: [], is_pinned: false }
   });
@@ -197,7 +197,7 @@ export default function ActivitiesAdmin() {
   // 4. Delete Mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('activities').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await supabase.from('activities').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -698,40 +698,39 @@ export default function ActivitiesAdmin() {
 
                       <div className="space-y-4">
                         <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest px-8">公開ステータス</label>
-                        <Select.Root value={useWatch({ control, name: 'status' })} onValueChange={(val) => setValue('status', val as any)}>
-                          <Select.Trigger
-                            className={cn(
-                              "w-full flex items-center justify-between gap-2 px-8 py-5 rounded-3xl border-2 transition-all outline-none font-black text-sm uppercase tracking-widest",
-                              useWatch({ control, name: 'status' }) === 'open' ? 'border-emerald-100 bg-emerald-50/30 text-emerald-600' :
-                                useWatch({ control, name: 'status' }) === 'closed' ? 'border-rose-100 bg-rose-50/30 text-rose-600' :
-                                  'border-stone-100 bg-stone-50/50 text-stone-500'
-                            )}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={cn(
-                                "w-2.5 h-2.5 rounded-full border-2 border-current",
-                                useWatch({ control, name: 'status' }) === 'open' ? 'text-emerald-500' :
-                                  useWatch({ control, name: 'status' }) === 'closed' ? 'text-rose-500' :
-                                    'text-stone-400'
-                              )} />
-                              <Select.Value>
-                                {useWatch({ control, name: 'status' }) === 'open' ? '公開 (募集中)' :
-                                  useWatch({ control, name: 'status' }) === 'closed' ? '締切 (募集終了)' :
-                                    '下書き (非公開)'}
-                              </Select.Value>
-                            </div>
-                            <Select.Icon>
-                              <ChevronDown className="w-4 h-4 opacity-50" />
-                            </Select.Icon>
-                          </Select.Trigger>
+                        {(() => {
+                          const currentStatus = watch('status');
+                          return (
+                            <Select.Root value={currentStatus} onValueChange={(val) => setValue('status', val as any)}>
+                              <Select.Trigger
+                                className={cn(
+                                  "w-full flex items-center justify-between gap-2 px-8 py-5 rounded-3xl border-2 transition-all outline-none font-black text-sm uppercase tracking-widest",
+                                  currentStatus === 'open' ? 'border-emerald-100 bg-emerald-50/30 text-emerald-600' :
+                                    currentStatus === 'closed' ? 'border-rose-100 bg-rose-50/30 text-rose-600' :
+                                      'border-stone-100 bg-stone-50/50 text-stone-500'
+                                )}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "w-2.5 h-2.5 rounded-full border-2 border-current",
+                                    currentStatus === 'open' ? 'text-emerald-500' :
+                                      currentStatus === 'closed' ? 'text-rose-500' :
+                                        'text-stone-400'
+                                  )} />
+                                  <Select.Value />
+                                </div>
+                                <Select.Icon>
+                                  <ChevronDown className="w-4 h-4 opacity-50" />
+                                </Select.Icon>
+                              </Select.Trigger>
 
                           <Select.Portal>
                             <Select.Content className="z-[105] overflow-hidden rounded-[2rem] bg-white border border-stone-100 shadow-2xl animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
                               <Select.Viewport className="p-2">
                                 {[
-                                  { value: 'draft', label: '下書き (Bản nháp)', color: 'stone', desc: '管理者のみ確認可能' },
-                                  { value: 'open', label: '公開 (Mở đăng ký)', color: 'emerald', desc: 'メンバー全員が閲覧・申込可能' },
-                                  { value: 'closed', label: '締切 (Đóng đăng ký)', color: 'rose', desc: '閲覧のみ可能' }
+                                  { value: 'draft', label: '下書き', color: 'stone', desc: '管理者のみ確認可能' },
+                                  { value: 'open', label: '公開', color: 'emerald', desc: 'メンバー全員が閲覧・申込可能' },
+                                  { value: 'closed', label: '締切', color: 'rose', desc: '閲覧のみ可能' }
                                 ].map((opt) => (
                                   <Select.Item
                                     key={opt.value}
@@ -740,18 +739,19 @@ export default function ActivitiesAdmin() {
                                   >
                                     <div className={cn(
                                       "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border-2 transition-colors",
-                                      opt.color === 'description' ? 'border-emerald-100 bg-emerald-50 text-emerald-500' :
-                                        opt.value === 'open' ? 'border-emerald-100 bg-emerald-50 text-emerald-500' :
-                                          opt.value === 'closed' ? 'border-rose-100 bg-rose-50 text-rose-500' :
-                                            'border-stone-100 bg-stone-50 text-stone-400'
+                                      opt.value === 'open' ? 'border-emerald-100 bg-emerald-50 text-emerald-500' :
+                                        opt.value === 'closed' ? 'border-rose-100 bg-rose-50 text-rose-500' :
+                                          'border-stone-100 bg-stone-50 text-stone-400'
                                     )}>
                                       <div className="w-2.5 h-2.5 rounded-full border-2 border-current shadow-sm" />
                                     </div>
                                     <div className="flex flex-col">
-                                      <Select.ItemText className="text-[13px] uppercase tracking-widest leading-none mb-1 text-gray-900">{opt.label}</Select.ItemText>
+                                      <Select.ItemText>
+                                        <span className="text-[13px] uppercase tracking-widest leading-none mb-1 text-gray-900 block">{opt.label}</span>
+                                      </Select.ItemText>
                                       <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{opt.desc}</span>
                                     </div>
-                                    <Select.ItemIndicator className="ml-auto">
+                                    <Select.ItemIndicator className="ml-auto flex items-center justify-center">
                                       <Check className={cn(
                                         "w-5 h-5",
                                         opt.value === 'open' ? 'text-emerald-500' :
@@ -765,7 +765,9 @@ export default function ActivitiesAdmin() {
                             </Select.Content>
                           </Select.Portal>
                         </Select.Root>
-                      </div>
+                        )
+                      })()}
+                    </div>
 
                       <div className="space-y-3 sm:col-span-2 p-6 bg-[#4F5BD5]/5 rounded-[2rem] border border-[#4F5BD5]/10 flex items-center justify-between">
                         <div className="flex items-center gap-4">

@@ -145,11 +145,8 @@ export default function AdminLayout() {
             className="h-16 bg-white border-b border-brand-stone-100 flex items-center justify-between px-6 lg:px-10 shrink-0 z-10 shadow-sm"
           >
             {/* Left: Clean Logo/Brand Context */}
-            <div className="flex items-center gap-3">
-               <div className="w-8 h-8 rounded-lg bg-brand-stone-900 flex items-center justify-center text-white">
-                  <LayoutDashboard className="w-4 h-4" />
-               </div>
-               <span className="text-sm font-black tracking-tight text-brand-stone-900 hidden sm:block">Management Console</span>
+            <div className="flex items-center">
+               <span className="text-[13px] font-black uppercase tracking-[0.2em] text-brand-stone-900 hidden sm:block">Management Console</span>
             </div>
 
             {/* Right: Year Selector */}
