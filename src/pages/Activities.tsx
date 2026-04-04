@@ -47,20 +47,22 @@ export default function Activities() {
   });
 
   // --- REGISTRATION STATUS (User Specific) ---
-  const { data: userRegistrations = [] } = useQuery({
+  const { data: userRegMap = {} as Record<string, any[]> } = useQuery({
     queryKey: ['user-registrations', currentUser?.id, selectedYear?.id],
     queryFn: async () => {
-      if (!currentUser || !selectedYear) return [];
+      if (!currentUser || !selectedYear) return {};
       const { data, error } = await supabase
         .from('registrations')
-        .select('activity_id')
+        .select('activity_id, selected_sessions')
         .eq('user_id', currentUser.id);
 
       if (error) throw error;
-      return data.map(r => r.activity_id);
+      return data.reduce((acc, r) => ({ ...acc, [r.activity_id]: r.selected_sessions }), {});
     },
     enabled: !!currentUser && !!selectedYear,
   });
+
+  const userRegistrations = Object.keys(userRegMap);
 
   const toggleRegistrationMutation = useMutation({
     mutationFn: async ({ activityId, isRegistered }: { activityId: string, isRegistered: boolean }) => {
@@ -452,37 +454,34 @@ export default function Activities() {
                         
                         <div className="grid grid-cols-1 gap-4">
                           {(() => {
-                            const myReg = selectedActivity.registrations?.find((r: any) => r.user_id === currentUser?.id);
-                            const isRegistered = !!myReg;
-                            const activeSessions = myReg?.selected_sessions || selectedSessions;
+                            const activityId = selectedActivity.id as string;
+                            const isRegistered = userRegistrations.includes(activityId);
+                            const activeSessions = isRegistered ? (userRegMap as Record<string, any[]>)[activityId] || [] : selectedSessions;
                             
-                            return selectedActivity.sessions
-                              .map((s: any, i: number) => ({ ...s, originalIdx: i }))
-                              .filter((s: any) => !isRegistered || activeSessions.includes(s.originalIdx))
-                              .map((session: any) => {
-                                const isSelected = activeSessions.includes(session.originalIdx);
-                                const canToggle = !isRegistered;
-                                
-                                return (
-                                  <div 
-                                    key={session.originalIdx}
-                                    onClick={() => canToggle && toggleSession(session.originalIdx)}
-                                    className={`group p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
-                                      !canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
-                                    } ${
-                                      isSelected
-                                        ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm'
-                                        : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${
-                                       isSelected
-                                         ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
-                                         : 'bg-white text-stone-400 border-stone-200'
-                                      }`}>
-                                        <span className="text-xs font-black">Vol.{session.originalIdx + 1}</span>
-                                      </div>
+                            return selectedActivity.sessions.map((session: any, idx: number) => {
+                              const isSelected = activeSessions.includes(idx);
+                              const canToggle = !isRegistered;
+                              
+                              return (
+                                <div 
+                                  key={idx}
+                                  onClick={() => canToggle && toggleSession(idx)}
+                                  className={`group p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
+                                    !canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                                  } ${
+                                    isSelected
+                                      ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm'
+                                      : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${
+                                     isSelected
+                                       ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
+                                       : 'bg-white text-stone-400 border-stone-200'
+                                    }`}>
+                                      <span className="text-xs font-black">Vol.{idx + 1}</span>
+                                    </div>
                                       <div>
                                         <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
                                           {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
