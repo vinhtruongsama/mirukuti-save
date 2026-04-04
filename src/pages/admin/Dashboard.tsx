@@ -153,31 +153,66 @@ export default function Dashboard() {
 
               return Object.entries(groups).map(([date, items]) => (
                 <div key={date} className="relative space-y-4">
-                  <div className="sticky top-0 z-20 py-4 bg-white/95 backdrop-blur-sm -mx-4 px-4 flex items-center gap-4">
+                  {/* Sticky Date Header with Lowered Z-Index to avoid overlap */}
+                  <div className="sticky top-0 sm:top-4 z-10 py-4 bg-white/95 backdrop-blur-sm -mx-4 px-4 flex items-center gap-4">
                     <h2 className="text-lg font-black text-brand-stone-900 tracking-tighter">{date}</h2>
                     <div className="h-px flex-1 bg-gradient-to-r from-brand-stone-100 to-transparent" />
                   </div>
-
-                  <div className="space-y-1">
-                    {items.map((item) => (
-                      <div key={item.id} className="relative group flex items-start gap-8 p-4 rounded-2xl hover:bg-brand-stone-50/50 transition-colors">
-                        <div className="w-20 pt-1 text-right shrink-0">
-                          <span className="text-[11px] font-black text-brand-stone-300 tracking-widest tabular-nums uppercase">
+                  
+                  {/* Activity List with Connecting Line */}
+                  <div className="relative space-y-0">
+                    {/* Vertical Timeline Thread */}
+                    <div className="absolute left-[22px] top-4 bottom-4 w-px bg-brand-stone-100 hidden sm:block" />
+                    
+                    {items.map((item, idx) => (
+                      <div key={item.id} className="relative group flex items-start gap-4 sm:gap-8 p-4 sm:p-5 rounded-[1.5rem] hover:bg-brand-stone-50/50 transition-all duration-300">
+                        {/* Desktop: Time Column (Hidden on Mobile) */}
+                        <div className="hidden sm:block w-20 pt-1.5 text-right shrink-0">
+                          <span className="text-[11px] font-black text-brand-stone-700 tracking-widest tabular-nums uppercase">
                             {item.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
 
-                        <div className="relative pt-1 flex-1 flex items-start gap-4">
-                          <div className={`w-8 h-8 rounded-xl bg-white border border-brand-stone-100 shadow-sm flex items-center justify-center shrink-0 ${item.color}`}>
-                            <item.icon className="w-4 h-4" />
+                        {/* Activity Content Container */}
+                        <div className="relative flex-1 flex items-start gap-4">
+                          {/* Status Icon with Relative Line Center */}
+                          <div className="relative z-10 shrink-0">
+                             <div className={`w-11 h-11 rounded-[0.9rem] bg-white border border-brand-stone-100 shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 ${item.color}`}>
+                              <item.icon className="w-5 h-5" />
+                            </div>
+                            {/* Mobile Timeline Thread */}
+                            {idx !== items.length - 1 && (
+                              <div className="absolute top-12 left-1/2 -translate-x-1/2 w-px h-8 bg-brand-stone-100 sm:hidden" />
+                            )}
                           </div>
 
-                          <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-0 sm:gap-2">
-                            <span className="text-[14px] font-black text-[#4F5BD5]">{item.user}</span>
-                            <span className="text-[13px] font-medium text-brand-stone-600 block sm:inline">
-                              {item.action.replace('が', '')} <span className="text-brand-stone-400 mx-1">→</span> <span className="font-bold">{item.target}</span>
-                              {item.summary && <span className="text-[#D62976] font-black ml-1.5">{item.summary}</span>}
-                            </span>
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[14px] font-black text-[#4F5BD5] truncate">
+                                  {item.user}
+                                </span>
+                                {/* Mobile: Time (Visible on Mobile Only) */}
+                                <span className="sm:hidden text-[10px] font-bold text-brand-stone-700 tabular-nums">
+                                  {item.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <p className="text-[13px] font-medium text-brand-stone-500 leading-snug">
+                                  {item.action.replace('が', '')} 
+                                  <span className="text-brand-stone-300 mx-1 sm:mx-2 hidden sm:inline">/</span>
+                                  <span className="font-black text-brand-stone-900 block sm:inline mt-1 sm:mt-0">
+                                     <span className="sm:hidden text-brand-stone-300 mr-1 opacity-50">→</span>
+                                     {item.target}
+                                  </span>
+                                  {item.summary && (
+                                    <span className="inline-block bg-rose-50 text-[#D62976] px-2 py-0.5 rounded-lg text-[10px] font-black ml-0 sm:ml-2 mt-2 sm:mt-0">
+                                      {item.summary}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
