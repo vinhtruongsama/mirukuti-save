@@ -63,7 +63,11 @@ export default function ActivityDetail() {
   const [agreed, setAgreed] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
 
+  const activeSessions = myRegistration?.selected_sessions || selectedSessions;
+
   const toggleSession = (idx: number) => {
+    if (myRegistration) return;
+    
     setSelectedSessions((prev: number[]) => 
       prev.includes(idx) ? prev.filter((i: number) => i !== idx) : [...prev, idx]
     );
@@ -244,20 +248,21 @@ export default function ActivityDetail() {
                         <p className="text-xl font-serif text-brand-stone-50">{session.start_time} - {session.end_time}</p>
                       </div>
                       <div className="pl-6 border-l border-brand-stone-800 flex items-center gap-4">
-                        <div className="text-right hidden xs:block">
-                          <p className="text-[10px] font-black text-brand-emerald-500 uppercase tracking-widest mb-1">Status</p>
-                          <p className="text-sm font-serif text-brand-stone-400">{selectedSessions.includes(idx) ? '参加予定' : '未選択'}</p>
+                        <div className="flex flex-col items-end gap-1">
+                          <p className="text-sm font-serif text-brand-stone-400">{activeSessions.includes(idx) ? '参加予定' : '未選択'}</p>
                         </div>
                         <button
-                          onClick={() => toggleSession(idx)}
+                          onClick={() => !myRegistration && toggleSession(idx)}
+                          disabled={!!myRegistration}
                           className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-90",
-                            selectedSessions.includes(idx) 
+                            activeSessions.includes(idx) 
                               ? "bg-brand-emerald-500 text-white shadow-lg shadow-brand-emerald-500/20" 
-                              : "bg-brand-stone-800 border border-brand-stone-700 text-brand-stone-500 hover:border-brand-stone-500"
+                              : "bg-brand-stone-800 border border-brand-stone-700 text-brand-stone-500 hover:border-brand-stone-500",
+                            myRegistration && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          {selectedSessions.includes(idx) ? <CheckCircle2 className="w-6 h-6" /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-20" />}
+                          {activeSessions.includes(idx) ? <CheckCircle2 className="w-6 h-6" /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-20" />}
                         </button>
                       </div>
                     </div>
