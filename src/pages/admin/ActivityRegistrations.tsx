@@ -3,8 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
-import { ArrowLeft, Download, Loader2, Search, CheckCircle2, UserX, FileWarning, Calendar, User, Sparkles, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
@@ -184,6 +183,7 @@ function RegistrationItem({ reg, activityId }: { reg: any, activityId: string })
 export default function ActivityRegistrations() {
   const { id: activityId } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 400);
 
   const { data: activity, isLoading: actLoading } = useQuery({
@@ -213,15 +213,34 @@ export default function ActivityRegistrations() {
     enabled: !!activityId
   });
 
+  const registrationDates = useMemo(() => {
+    if (!registrations) return [];
+    const dates = registrations.map((r: any) => format(new Date(r.registered_at), 'yyyy-MM-dd'));
+    return Array.from(new Set(dates)).sort();
+  }, [registrations]);
+
   const filteredRegs = useMemo(() => {
     if (!registrations) return [];
-    if (!debouncedSearch.trim()) return registrations;
-    const lower = debouncedSearch.toLowerCase();
-    return registrations.filter((r: any) =>
-      r.users.full_name.toLowerCase().includes(lower) ||
-      (r.users.mssv && r.users.mssv.toLowerCase().includes(lower))
-    );
-  }, [registrations, debouncedSearch]);
+    let result = registrations;
+
+    // Filter by Date
+    if (selectedDate) {
+      result = result.filter((r: any) => 
+        format(new Date(r.registered_at), 'yyyy-MM-dd') === selectedDate
+      );
+    }
+
+    // Filter by Search
+    if (debouncedSearch.trim()) {
+      const lower = debouncedSearch.toLowerCase();
+      result = result.filter((r: any) =>
+        r.users.full_name.toLowerCase().includes(lower) ||
+        (r.users.mssv && r.users.mssv.toLowerCase().includes(lower))
+      );
+    }
+
+    return result;
+  }, [registrations, debouncedSearch, selectedDate]);
 
   const exportToExcel = () => {
     if (!registrations || !activity) return;
@@ -316,18 +335,47 @@ export default function ActivityRegistrations() {
       </div>
 
       {/* Control Bar with Gradient Border */}
-      <div className="p-[1px] bg-gradient-to-r from-[#D62976] to-[#4F5BD5] rounded-3xl shadow-lg shadow-[#4F5BD5]/10">
-        <div className="bg-white/95 backdrop-blur-2xl p-2.5 sm:p-3.5 rounded-[1.4rem] sm:rounded-[1.95rem] overflow-hidden">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4F5BD5]" />
-            <input
-              type="text"
-              placeholder="氏名や学籍番号でクイック検索..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-6 py-3 bg-transparent text-[#0f172a] text-sm font-black uppercase tracking-widest outline-none transition-all placeholder:text-gray-400"
-            />
+      <div className="space-y-4">
+        <div className="p-[1px] bg-gradient-to-r from-[#D62976] to-[#4F5BD5] rounded-3xl shadow-lg shadow-[#4F5BD5]/10">
+          <div className="bg-white/95 backdrop-blur-2xl p-2.5 sm:p-3.5 rounded-[1.4rem] sm:rounded-[1.95rem] overflow-hidden">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4F5BD5]" />
+              <input
+                type="text"
+                placeholder="氏名や学籍番号でクイック検索..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-6 py-3 bg-transparent text-[#0f172a] text-sm font-black uppercase tracking-widest outline-none transition-all placeholder:text-gray-400"
+              />
+            </div>
           </div>
+        </div>
+
+        {/* Date Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <button
+            onClick={() => setSelectedDate(null)}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${
+              selectedDate === null
+                ? 'bg-gray-900 border-gray-900 text-white shadow-lg'
+                : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+            }`}
+          >
+            All Updates
+          </button>
+          {registrationDates.map((dateString) => (
+            <button
+              key={dateString}
+              onClick={() => setSelectedDate(dateString)}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${
+                selectedDate === dateString
+                  ? 'bg-[#4F5BD5] border-[#4F5BD5] text-white shadow-lg shadow-[#4F5BD5]/20'
+                  : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+              }`}
+            >
+              {format(new Date(dateString), 'MM/dd')}
+            </button>
+          ))}
         </div>
       </div>
 

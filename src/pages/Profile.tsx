@@ -332,7 +332,6 @@ export default function Profile() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
                 {historyData.map((reg, idx) => {
                   const activity = reg.activities;
-                  const isPresent = reg.attendance_status === 'present';
                   return (
                     <motion.div
                       key={reg.id}
