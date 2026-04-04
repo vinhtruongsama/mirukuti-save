@@ -20,6 +20,13 @@ export default function Activities() {
   const [filterMode, setFilterMode] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
+
+  const toggleSession = (idx: number) => {
+    setSelectedSessions(prev => 
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    );
+  };
 
   const queryClient = useQueryClient();
   const { data: activities = [], isLoading } = useQuery({
@@ -76,6 +83,7 @@ export default function Activities() {
             user_id: currentUser.id,
             activity_id: activityId,
             attendance_status: 'pending',
+            selected_sessions: selectedSessions,
             confirmed_at: new Date().toISOString()
           });
         if (error) throw error;
@@ -321,6 +329,7 @@ export default function Activities() {
         if (!open) {
           setSelectedActivity(null);
           setIsConfirmed(false);
+          setSelectedSessions([]);
         }
       }}>
         <Dialog.Portal>
@@ -403,33 +412,90 @@ export default function Activities() {
 
                 <div className="pt-2 md:pt-4 space-y-10 md:space-y-12">
                   {/* Body: Activity Content */}
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
-                      <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">内容</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
-                      <div className={selectedActivity.displayNote ? "md:col-span-2" : "md:col-span-3"}>
-                        <div className="bg-stone-50/50 rounded-[2.5rem] p-8 md:p-12 border border-stone-100/50 w-full">
-                          <p className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-600 bg-clip-text text-transparent text-sm md:text-base font-medium leading-relaxed whitespace-pre-line w-full">
-                            {selectedActivity.displayDesc}
-                          </p>
-                        </div>
+                  <div className="space-y-12">
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
+                        <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">内容</h3>
                       </div>
 
-                      {selectedActivity.displayNote && (
-                        <div className="md:col-span-1">
-                          <div className="bg-amber-50/30 rounded-2xl p-6 border border-amber-100/50 flex gap-4 h-full">
-                            <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="text-[14px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
-                              <p className="text-amber-800 italic text-xs leading-relaxed whitespace-pre-line">{selectedActivity.displayNote}</p>
-                            </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
+                        <div className={selectedActivity.displayNote ? "md:col-span-2" : "md:col-span-3"}>
+                          <div className="bg-stone-50/50 rounded-[2.5rem] p-8 md:p-12 border border-stone-100/50 w-full shadow-sm">
+                            <p className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-600 bg-clip-text text-transparent text-sm md:text-base font-medium leading-relaxed whitespace-pre-line w-full">
+                              {selectedActivity.displayDesc}
+                            </p>
                           </div>
                         </div>
-                      )}
+
+                        {selectedActivity.displayNote && (
+                          <div className="md:col-span-1">
+                            <div className="bg-amber-50/30 rounded-2xl p-6 border border-amber-100/50 flex gap-4 h-full">
+                              <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[14px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
+                                <p className="text-amber-800 italic text-xs leading-relaxed whitespace-pre-line">{selectedActivity.displayNote}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* NEW: Schedule Section in Modal */}
+                    {selectedActivity.sessions && Array.isArray(selectedActivity.sessions) && selectedActivity.sessions.length > 0 && (
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
+                          <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">スケジュール</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                          {selectedActivity.sessions.map((session: any, idx: number) => (
+                            <div 
+                              key={idx}
+                              onClick={() => toggleSession(idx)}
+                              className={`group p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
+                                selectedSessions.includes(idx)
+                                  ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm'
+                                  : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${
+                                  selectedSessions.includes(idx)
+                                    ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
+                                    : 'bg-white text-stone-400 border-stone-200'
+                                }`}>
+                                  <span className="text-xs font-black">Vol.{idx + 1}</span>
+                                </div>
+                                <div>
+                                  <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${selectedSessions.includes(idx) ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
+                                    {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
+                                  </p>
+                                  <p className="text-sm font-bold text-brand-stone-900">
+                                    {session.start_time} - {session.end_time}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-4">
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${selectedSessions.includes(idx) ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
+                                  {selectedSessions.includes(idx) ? '参加予定' : '未選択'}
+                                </span>
+                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                  selectedSessions.includes(idx)
+                                    ? 'bg-brand-emerald-500 border-brand-emerald-500 text-white'
+                                    : 'bg-white border-stone-200'
+                                }`}>
+                                  {selectedSessions.includes(idx) && <motion.svg initial={{scale:0}} animate={{scale:1}} className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></motion.svg>}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Top: Status Badges / Info / Registration */}
@@ -503,7 +569,12 @@ export default function Activities() {
                                       isRegistered: false
                                     });
                                   }}
-                                  disabled={selectedActivity.computedStatus !== 'OPEN' || !!isPending || (!!currentUser && !isConfirmed)}
+                                  disabled={
+                                    selectedActivity.computedStatus !== 'OPEN' || 
+                                    !!isPending || 
+                                    (!!currentUser && !isConfirmed) ||
+                                    (selectedActivity.sessions?.length > 0 && selectedSessions.length === 0)
+                                  }
                                   className={`w-full sm:w-auto rounded-xl transition-all duration-500 flex items-center justify-center gap-3 font-black px-12 py-5 text-sm shadow-xl relative overflow-hidden group
                                     ${isPending ? 'opacity-70 cursor-wait' : ''}
                                     ${(selectedActivity.computedStatus === 'OPEN' && (!currentUser || isConfirmed))

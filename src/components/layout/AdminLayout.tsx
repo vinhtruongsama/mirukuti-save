@@ -39,9 +39,10 @@ export default function AdminLayout() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             onClick={() => setIsSidebarVisible(true)}
-            className="absolute left-0 top-[15%] z-50 w-10 h-24 bg-rose-500 text-white rounded-r-3xl flex items-center justify-center shadow-lg shadow-rose-200 hover:w-12 transition-all group"
+            className="absolute left-0 top-32 z-50 w-8 h-20 bg-[#D62976] hover:w-10 transition-all flex items-center justify-start pl-1 shadow-xl shadow-[#D62976]/20 active:scale-95 group"
+            style={{ clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }}
           >
-            <ChevronRight className="w-6 h-6 group-hover:scale-125 transition-transform" />
+            <ChevronRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -71,11 +72,11 @@ export default function AdminLayout() {
           className="bg-white border-r border-brand-stone-100 flex flex-col shadow-[20px_0_40px_-20px_rgba(0,0,0,0.02)] z-20 shrink-0 overflow-hidden absolute lg:relative h-full"
         >
           {/* Close Button (X) */}
-          <button 
+          <button
             onClick={() => setIsSidebarVisible(false)}
-            className="absolute top-6 right-4 p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all z-30"
+            className="absolute top-0 right-0 w-12 h-12 bg-[#FF4D4D] hover:bg-[#FF3333] text-white flex items-center justify-center transition-all z-30 shadow-lg active:scale-90"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
 
           <div className="w-[280px] lg:w-64 flex flex-col h-full flex-1">

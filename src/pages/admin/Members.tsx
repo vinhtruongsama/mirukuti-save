@@ -2,27 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Search,
-  Eye,
-  UserPlus,
-  FileUp,
-  FilterX,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
-  LayoutGrid,
-  Archive,
-  RotateCcw
-} from 'lucide-react';
+import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive } from 'lucide-react';
 import { toast } from 'sonner';
-
-/**
- * STRATEGIC FONT PAIRING:
- * - Serif (Noto Serif JP): Headings, Editorial Titles, High-Exposure Names
- * - Sans (Noto Sans JP): UI Elements, Labels, Metadata, Buttons, Forms
- */
-
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -69,7 +51,6 @@ export default function Members() {
   // Modal / Drawer states
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
-  const [showDeleted, setShowDeleted] = useState(false); // Task: Trash Bin mode
 
   // --- DATA FETCHING (Supabase) ---
   const {
@@ -78,7 +59,7 @@ export default function Members() {
     isError,
     refetch
   } = useQuery({
-    queryKey: ['admin-members', selectedYear?.id, showDeleted],
+    queryKey: ['admin-members', selectedYear?.id],
     queryFn: async () => {
       if (!selectedYear) return [];
 
@@ -92,7 +73,7 @@ export default function Members() {
           users!inner(*)
         `)
         .eq('academic_year_id', selectedYear.id)
-        .filter('deleted_at', showDeleted ? 'not.is' : 'is', null)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -203,26 +184,15 @@ export default function Members() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('club_memberships')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
+      // Find the user_id for this membership first
+      const mem = members.find(m => m.id === id);
+      if (!mem?.user_id) throw new Error('User not found');
+      
+      const { error } = await supabase.rpc('archive_member', { user_uuid: mem.user_id });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('メンバーを削除しました');
-      queryClient.invalidateQueries({ queryKey: ['admin-members'] });
-    }
-  });
-
-  const restoreMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('club_memberships')
-        .update({ deleted_at: null })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('メンバーを復元しました');
+      toast.success('メンバーをアーカイブしました');
       queryClient.invalidateQueries({ queryKey: ['admin-members'] });
     }
   });
@@ -231,7 +201,7 @@ export default function Members() {
   // Note: Edit and Delete are handled via MemberDetailDrawer
 
   // Grade styling logic (Task 2)
-  const getGradeBadge = (year: number) => {
+  const getGradeBadge = (year: number): { bg: string; text: string; border: string; label: string } => {
     switch (year) {
       case 1: return { bg: 'bg-[#4F5BD5]/10', text: 'text-[#4F5BD5]', border: 'border-[#4F5BD5]/20', label: '1年生' }; // Blue
       case 4: return { bg: 'bg-[#CDA01E]/10', text: 'text-[#CDA01E]', border: 'border-[#CDA01E]/20', label: '4年生' }; // Gold
@@ -242,39 +212,43 @@ export default function Members() {
   return (
     <div className="min-h-full flex flex-col space-y-10 lg:space-y-12">
 
-      {/* 1. PRESTIGIOUS HEADER (Task 3) */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 shrink-0">
+      {/* 1. PRESTIGIOUS HEADER */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 shrink-0 px-2 lg:px-0">
         <div className="space-y-4">
-          <div className="flex items-center gap-6">
-            <div className="w-2.5 h-12 bg-stone-900 rounded-full" />
-            <h1 className="text-[30px] font-black text-stone-900 tracking-tight leading-none uppercase font-serif">
-              {showDeleted ? '削除済みメンバー (ゴミ箱)' : 'メンバー名簿'}
+          <div className="flex items-center gap-4 lg:gap-6">
+            <div className="w-2 lg:w-2.5 h-10 lg:h-12 bg-stone-900 rounded-full" />
+            <h1 className="text-[26px] lg:text-[30px] font-black text-stone-900 tracking-tight leading-none uppercase font-serif">
+              メンバー名簿
             </h1>
           </div>
-
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+        <div className="grid grid-cols-2 lg:flex items-center gap-3 lg:gap-4 w-full lg:w-auto">
           <button
             onClick={() => setIsImportOpen(true)}
-            className="flex-1 lg:flex-none flex items-center justify-center gap-4 px-8 py-5 bg-stone-50 hover:bg-stone-100 text-stone-900 rounded-[2rem] text-[15px] font-black tracking-tight border border-stone-200 transition-all active:scale-95 group shadow-sm"
+            className="flex items-center justify-center gap-3 px-6 py-5 lg:px-8 lg:py-5 bg-stone-50 hover:bg-stone-100 text-stone-900 rounded-[2rem] text-[13px] lg:text-[15px] font-black tracking-tight border border-stone-200 transition-all active:scale-95 group shadow-sm"
           >
-            <FileUp className="w-4 h-4 text-stone-400 group-hover:text-stone-900 transition-colors" /> スマートインポート
-          </button>
-          <button
-            onClick={() => { setSelectedMember({ users: {}, role: 'member', university_year: 1 }); }}
-            className="flex-1 lg:flex-none flex items-center justify-center gap-4 px-10 py-5 bg-[#4F5BD5] hover:brightness-110 text-white rounded-[2rem] text-[15px] font-black tracking-tight transition-all shadow-[0_20px_50px_rgba(79,91,213,0.3)] active:scale-95 group"
-          >
-            <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" /> 新規登録
+            <FileUp className="w-5 h-5 text-stone-400 group-hover:text-stone-900 transition-colors" />
+            <span className="lg:hidden text-[12px] leading-tight">スマート<br />インポート</span>
+            <span className="hidden lg:inline">スマートインポート</span>
           </button>
           
           <button
-            onClick={() => setShowDeleted(!showDeleted)}
-            className={`w-14 h-14 lg:w-16 lg:h-16 flex items-center justify-center rounded-full transition-all border-2 ${showDeleted ? 'bg-red-500 border-red-500 text-white' : 'bg-white border-stone-100 text-stone-300 hover:text-stone-900'}`}
-            title={showDeleted ? "戻る" : "アーカイブ (Archived records)"}
+            onClick={() => { setSelectedMember({ users: {}, role: 'member', university_year: 1 }); }}
+            className="flex items-center justify-center gap-3 px-6 py-5 lg:px-10 lg:py-5 bg-[#4F5BD5] hover:brightness-110 text-white rounded-[2rem] text-[13px] lg:text-[15px] font-black tracking-tight transition-all shadow-[0_20px_50px_rgba(79,91,213,0.3)] active:scale-95 group"
           >
-            {showDeleted ? <RotateCcw size={24} /> : <Archive size={24} />}
+            <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="lg:hidden text-[12px] leading-tight text-left">新規メンバー<br />登録</span>
+            <span className="hidden lg:inline">新規登録</span>
           </button>
+          
+          <Link
+            to="/admin/members/archived"
+            className="col-span-2 lg:col-span-1 hidden sm:flex h-14 lg:w-16 lg:h-16 items-center justify-center rounded-3xl lg:rounded-full transition-all border-2 bg-white border-stone-100 text-stone-300 hover:text-[#D62976] hover:border-[#D62976]/20 shadow-sm group"
+            title="アーカイブ管理 (Archived records)"
+          >
+            <Archive size={20} className="lg:size-[24px] group-hover:scale-110 transition-transform" />
+          </Link>
         </div>
       </header>
 
@@ -365,7 +339,7 @@ export default function Members() {
               <tbody className="divide-y divide-stone-50/60 bg-white/20 font-sans">
                 {paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-10 py-48 text-center text-stone-200 uppercase tracking-[0.5em] font-black">No Data Found</td>
+                    <td colSpan={5} className="px-10 py-48 text-center text-stone-200 uppercase tracking-[0.5em] font-black">データが見つかりません</td>
                   </tr>
                 ) : (
                   <AnimatePresence mode="popLayout">
@@ -408,11 +382,7 @@ export default function Members() {
                           </td>
                           <td className={`px-10 text-right ${isCompact ? 'py-4' : 'py-8'}`}>
                             <div className="flex items-center justify-end gap-3">
-                              {showDeleted ? (
-                                <button onClick={() => restoreMutation.mutate(mem.id)} className="w-10 h-10 flex items-center justify-center bg-white border border-emerald-100 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm" title="復元"><RotateCcw size={18} /></button>
-                              ) : (
-                                <button onClick={() => setSelectedMember(mem)} className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center bg-white border border-stone-100 text-stone-400 hover:text-stone-900 hover:border-stone-900 hover:shadow-2xl rounded-xl lg:rounded-2xl transition-all shadow-sm" title="詳細"><Eye className="w-4 h-4 lg:w-5 lg:h-5" /></button>
-                              )}
+                              <button onClick={() => setSelectedMember(mem)} className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center bg-white border border-stone-100 text-stone-400 hover:text-stone-900 hover:border-stone-900 hover:shadow-2xl rounded-xl lg:rounded-2xl transition-all shadow-sm" title="詳細"><Eye className="w-4 h-4 lg:w-5 lg:h-5" /></button>
                             </div>
                           </td>
                         </motion.tr>
@@ -430,7 +400,7 @@ export default function Members() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-48 gap-4">
               <div className="w-12 h-12 border-4 border-[#4F5BD5]/20 border-t-[#4F5BD5] rounded-full animate-spin" />
-              <span className="text-sm font-black text-stone-300 uppercase tracking-[0.4em]">Loading members...</span>
+              <span className="text-sm font-black text-stone-300 uppercase tracking-[0.4em]">メンバーを読み込み中...</span>
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center justify-center py-20 bg-rose-50 rounded-[2rem] border border-rose-100 p-6 text-center">
@@ -442,7 +412,7 @@ export default function Members() {
           ) : paginatedData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-stone-100">
               <LayoutGrid className="w-12 h-12 text-stone-100 mb-4" />
-              <p className="text-[13px] font-black uppercase text-stone-300 tracking-widest">No entries found</p>
+              <p className="text-[13px] font-black uppercase text-stone-300 tracking-widest">該当するメンバーはいません</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -451,26 +421,31 @@ export default function Members() {
                 return (
                   <motion.div
                     key={mem.id}
-                    className="bg-white rounded-[2.5rem] p-6 border border-stone-100 shadow-xl shadow-stone-200/20 space-y-4 transition-colors"
+                    onClick={() => setSelectedMember(mem)}
+                    className="bg-white rounded-[2.5rem] p-6 border border-stone-100 shadow-xl shadow-stone-200/20 active:bg-stone-50 transition-all group"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <h4 className="text-[14px] font-black text-stone-900 tracking-tight">{mem.users?.full_name}</h4>
-                          <p className="text-[13px] font-bold text-stone-800">{mem.users?.mssv}</p>
-                        </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h4 className="text-[16px] font-black text-stone-900 tracking-tight leading-tight group-hover:text-[#4F5BD5] transition-colors truncate uppercase">{mem.users?.full_name}</h4>
+                        <p className="text-[13px] font-bold text-stone-400 font-mono">{mem.users?.mssv}</p>
                       </div>
-                      <span className={`px-4 py-1.5 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest ${mem.role === 'admin' ? 'bg-rose-50 text-rose-500 border-rose-100' : mem.role === 'executive' ? 'bg-indigo-50 text-indigo-500 border-indigo-100' : 'bg-stone-50 text-stone-400 border-stone-100'}`}>
-                        {mem.role === 'admin' ? '管理者' : mem.role === 'executive' ? '運営' : '一般'}
+                      <span className={`shrink-0 px-4 py-1.5 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest ${
+                        mem.role === 'admin' ? 'bg-[#D62976]/5 text-[#D62976] border-[#D62976]/10' :
+                        mem.role === 'executive' ? 'bg-[#4F5BD5]/5 text-[#4F5BD5] border-[#4F5BD5]/10' :
+                        mem.role === 'alumni' ? 'bg-stone-50 text-stone-400 border-stone-100' :
+                        'bg-[#FEDA75]/5 text-[#CDA01E] border-[#FEDA75]/10'
+                      }`}>
+                        {mem.role === 'admin' ? '管理者' : mem.role === 'executive' ? '運営' : mem.role === 'alumni' ? '卒業生' : '一般'}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-stone-50 pt-4">
-                      <div className={`px-4 py-1.5 rounded-lg border-2 text-[11px] font-black ${g.bg} ${g.text} ${g.border}`}>
+                    <div className="flex items-center justify-between border-t border-stone-50 pt-4 mt-2">
+                       <div className={`px-4 py-1.5 rounded-lg border-2 text-[11px] font-black tracking-tight ${g.bg} ${g.text} ${g.border}`}>
                         {g.label}
                       </div>
-                      <div className="flex items-center justify-end">
-                        <button onClick={() => setSelectedMember(mem)} className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-xl text-stone-400 active:bg-stone-900 active:text-white transition-all"><Eye size={16} /></button>
+                      <div className="flex items-center gap-2 text-stone-300">
+                         <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-stone-900 transition-colors">View Profile</span>
+                         <Eye size={14} className="group-hover:text-[#4F5BD5] transition-colors" />
                       </div>
                     </div>
                   </motion.div>
@@ -485,7 +460,7 @@ export default function Members() {
         {!isLoading && totalPages > 1 && (
           <div className="px-10 py-8 bg-stone-50/50 backdrop-blur-xl border-t border-stone-100 flex items-center justify-between shrink-0">
             <div className="hidden sm:block text-[13px] font-black text-stone-300 uppercase tracking-[0.3em]">
-              Showing <span className="text-stone-900 border-b-2 border-[#4F5BD5] py-0.5">{currentPage}</span> / {totalPages} Pages
+              全 {totalPages} ページ中 <span className="text-stone-900 border-b-2 border-[#4F5BD5] py-0.5">{currentPage}</span> ページを表示
             </div>
             <div className="flex gap-4 w-full sm:w-auto">
               <button

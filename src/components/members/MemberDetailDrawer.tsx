@@ -292,9 +292,15 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                   </button>
                   <button
                     onClick={() => setIsDeleteConfirmOpen(true)}
-                    className="w-11 h-11 bg-white border border-rose-100 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm"
+                    className="group/del flex items-center justify-center gap-2 h-11 px-0 hover:px-4 bg-white border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all duration-300 active:scale-95 shadow-sm overflow-hidden"
+                    title="メンバーをアーカイブ (Archive member)"
                   >
-                    <Archive size={18} />
+                    <div className="w-11 h-11 flex items-center justify-center shrink-0">
+                      <Archive size={18} />
+                    </div>
+                    <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover/del:max-w-[80px] transition-all duration-300 text-[11px] font-black uppercase tracking-[0.2em] opacity-0 group-hover/del:opacity-100">
+                      Archive
+                    </span>
                   </button>
                 </div>
                 <button

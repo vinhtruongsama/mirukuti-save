@@ -22,6 +22,7 @@ import Dashboard from './pages/admin/Dashboard';
 import Members from './pages/admin/Members';
 import ActivitiesAdmin from './pages/admin/ActivitiesAdmin';
 import ActivityRegistrations from './pages/admin/ActivityRegistrations';
+import ArchivedMembers from './pages/admin/ArchivedMembers';
 import ChangePassword from './pages/ChangePassword';
 
 const queryClient = new QueryClient({
@@ -89,6 +90,7 @@ function App() {
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<Dashboard />} />
                   <Route path="/admin/members" element={<Members />} />
+                  <Route path="/admin/members/archived" element={<ArchivedMembers />} />
                   <Route path="/admin/activities" element={<ActivitiesAdmin />} />
                   <Route path="/admin/activities/:id" element={<ActivityRegistrations />} />
                 </Route>

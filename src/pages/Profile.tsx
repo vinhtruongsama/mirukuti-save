@@ -1,19 +1,22 @@
-import React, { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User as UserIcon, 
-  MapPin, 
-  Phone, 
-  MessageSquare, 
-  Edit2, 
-  Loader2, 
-  Camera, 
-  ChevronRight, 
-  ChevronDown, 
-  ChevronUp,
+import {
+  Phone,
+  Edit2,
+  ChevronRight,
   Compass,
   Sparkles,
+  Crown,
+  MapPin,
+  Loader2,
+  X,
 } from 'lucide-react';
+
+const LineIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 10.304c0-5.369-5.383-9.738-12-9.738s-12 4.369-12 9.738c0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.052.303-.242 1.186 1.039.646 1.281-.54 6.912-4.069 9.428-6.967 1.739-1.907 2.572-3.891 2.572-5.791zm-15.656 3.666h-2.182c-.391 0-.709-.317-.709-.708v-5.263c0-.392.318-.709.709-.709.391 0 .708.317.708.709v4.554h1.474c.391 0 .709.317.709.709s-.318.708-.709.708zm4.004-.708c0 .391-.317.708-.708.708h-1.637c-.391 0-.708-.317-.708-.708v-5.263c0-.392.317-.709.708-.709s.708.317.708.709v4.554h.929c.391 0 .708.317.708.709zm1.373.708c0-.391-.318-.708-.709-.708s-.708.317-.708.708v-5.263c0-.392.317-.709.708-.709s.709.317.709.709v5.263zm4.512 0h-2.182c-.391 0-.709-.317-.709-.708v-5.263c0-.392.318-.709.709-.709.391 0 .708.317.708.709v4.554h1.474c.391 0 .709.317.709.709s-.318.708-.709.708zm3.626-.708c0 .391-.317.708-.708.708h-2.182c-.391 0-.708-.317-.708-.708v-5.263c0-.392.317-.709.708-.709h2.182c.391 0 .708.317.708.709s-.317.708-.708.708h-1.474v1.261h1.474c.391 0 .708.317.708.709s-.317.708-.708.708h-1.474v1.54h1.474c.391 0 .708.317.708.709s-.317.708-.708.708z" />
+  </svg>
+);
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
@@ -44,10 +47,11 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const { currentUser } = useAuthStore();
   const { selectedYear } = useAppStore();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [modalOpen, setModalOpen] = useState(false);
-  const [showFullProfile, setShowFullProfile] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+
+
 
   // 1. Fetch Profile Data
   const { data: profileData, isLoading: isProfileLoading } = useQuery({
@@ -114,42 +118,7 @@ export default function Profile() {
     }
   });
 
-  // 3. Avatar Upload
-  const avatarMutation = useMutation({
-    mutationFn: async (file: File) => {
-      if (file.size > 2 * 1024 * 1024) throw new Error('2MB以下の画像を選択してください');
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${currentUser!.id}_${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ avatar_url: publicUrl })
-        .eq('id', currentUser!.id);
-
-      if (updateError) throw updateError;
-    },
-    onSuccess: () => {
-      toast.success('画像を更新しました');
-      queryClient.invalidateQueries({ queryKey: ['profile', currentUser?.id] });
-    },
-    onError: (err: any) => toast.error(err.message)
-  });
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) avatarMutation.mutate(e.target.files[0]);
-  };
 
   // 4. Fetch Activity History
   const { data: historyData, isLoading: isHistoryLoading } = useQuery({
@@ -166,6 +135,21 @@ export default function Profile() {
     }
   });
 
+  // 5. Fetch Attendance Stats (Badge Logic)
+  const { data: attendanceStats } = useQuery({
+    queryKey: ['attendance-stats', currentUser?.id, selectedYear?.id],
+    queryFn: async () => {
+      if (!currentUser || !selectedYear) return { internal_count: 0, external_count: 0 };
+      const { data, error } = await supabase.rpc('get_user_attendance_stats', {
+        user_uuid: currentUser.id,
+        academic_year_uuid: selectedYear.id
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!currentUser && !!selectedYear
+  });
+
   if (isProfileLoading) {
     return (
       <div className="h-[calc(100vh-4.5rem)] flex items-center justify-center bg-[#FAFBFF]">
@@ -178,7 +162,7 @@ export default function Profile() {
 
   return (
     <div className="h-[calc(100vh-4.5rem)] bg-[#FDFDFD] overflow-hidden relative font-sans text-stone-900">
-      
+
       <AnimatePresence>
         {isSidebarVisible && (
           <motion.div
@@ -192,119 +176,104 @@ export default function Profile() {
       </AnimatePresence>
 
       <div className="h-full flex relative overflow-hidden">
-        
+
         <motion.aside
-          animate={{ 
+          animate={{
             width: isSidebarVisible ? (window.innerWidth < 1024 ? '100%' : 420) : 0,
             x: isSidebarVisible ? 0 : -420
           }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className={`bg-white border-r border-stone-100 flex flex-col z-[50] shrink-0 overflow-hidden relative ${
-            window.innerWidth < 1024 ? 'fixed inset-y-0 left-0 max-w-[340px] shadow-2xl' : ''
-          }`}
+          className={`bg-white border-r border-stone-100 flex flex-col z-[50] shrink-0 overflow-hidden relative ${window.innerWidth < 1024 ? 'fixed inset-y-0 left-0 max-w-[340px] shadow-2xl' : ''
+            }`}
         >
-          <button 
+          <button
             onClick={() => setIsSidebarVisible(false)}
-            className="absolute top-6 right-6 p-2 text-stone-300 hover:text-stone-900 transition-colors"
+            className="absolute top-2 right-2 w-10 h-10 bg-rose-500 hover:bg-rose-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-rose-200 transition-all active:scale-95 z-50"
           >
-            <ChevronRight className="w-5 h-5 rotate-180" />
+            <X className="w-5 h-5" strokeWidth={3} />
           </button>
 
           <div className="flex-1 flex flex-col p-10 lg:p-12 overflow-y-auto scrollbar-none">
-            <div className="flex flex-col items-center mb-16 text-center">
-              <div className="relative mb-10 group">
-                <div className="w-32 h-32 rounded-[3.5rem] bg-stone-50 border-[6px] border-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.12)] overflow-hidden relative group-hover:scale-[1.05] transition-all duration-500 transform-gpu">
-                  {profileData.avatar_url ? (
-                    <img src={profileData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-stone-200">
-                      <UserIcon className="w-14 h-14" />
-                    </div>
+            <div className="flex flex-col items-center mb-20 text-center">
+              <div className="space-y-4">
+                <h2 className="text-[30px] font-black tracking-tight leading-tight font-serif flex items-center justify-center">
+                  {profileData.full_name}
+                  {activeMembership?.role === 'admin' && (
+                    <Crown className="w-8 h-8 text-[#CDA01E] fill-[#CDA01E]/10" />
                   )}
-                  <div 
-                    className="absolute inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Camera className="w-6 h-6 text-white" />
-                  </div>
+                </h2>
+                <div className="space-y-1">
+                  <p className="text-[14px] font-black text-stone-600 tracking-[0.5em]">
+                    {profileData.full_name_kana}
+                  </p>
                 </div>
-                <input type="file" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" />
-
-                {activeMembership && (
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-[#4F5BD5] text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-indigo-100 whitespace-nowrap">
-                    {activeMembership.role === 'admin' ? '管理者' :
-                      activeMembership.role === 'executive' ? '幹部' :
-                        activeMembership.role === 'alumni' ? 'OB/OG' : 'メンバー'}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="text-3xl font-black tracking-tight">{profileData.full_name}</h2>
-                <p className="text-[11px] font-bold text-stone-300 uppercase tracking-[0.2em]">{profileData.full_name_kana || 'Name Index'}</p>
               </div>
             </div>
 
             <div className="space-y-12">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-indigo-500">Details</span>
-                <button 
-                  onClick={() => setShowFullProfile(!showFullProfile)}
-                  className="p-1 hover:bg-stone-50 rounded-lg transition-colors"
-                >
-                  {showFullProfile ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
-                </button>
+              {/* Participation Badges */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#4F5BD5]/5 border border-[#4F5BD5]/10 rounded-[2rem] p-6 flex flex-col items-center gap-3 transition-all hover:bg-[#4F5BD5]/10 group">
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-xl shadow-indigo-100 flex items-center justify-center text-[#4F5BD5] group-hover:scale-110 transition-transform">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[24px] font-black leading-none">{attendanceStats?.internal_count || 0}</p>
+                    <p className="text-[14px] font-black text-[#4F5BD5] mt-2">学内活動</p>
+                  </div>
+                </div>
+                <div className="bg-[#FF833D]/5 border border-[#FF833D]/10 rounded-[2rem] p-6 flex flex-col items-center gap-3 transition-all hover:bg-[#FF833D]/10 group">
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-xl shadow-orange-100 flex items-center justify-center text-[#FF833D] group-hover:scale-110 transition-transform">
+                    <Compass className="w-5 h-5" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[24px] font-black leading-none">{attendanceStats?.external_count || 0}</p>
+                    <p className="text-[14px] font-black text-[#FF833D] mt-2">学外活動</p>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-10">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+                  <span className="text-[14px] font-black uppercase tracking-[0.2em] text-[#D62976]">My Information</span>
+                </div>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-10">
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">学籍番号</label>
+                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">学籍番号</label>
                     <p className="text-[14px] font-bold">{profileData.mssv || '—'}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">学年</label>
+                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">学年</label>
                     <p className="text-[14px] font-bold">{activeMembership?.university_year ? `${activeMembership.university_year}年` : '—'}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">性別</label>
+                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">性別</label>
                     <p className="text-[14px] font-bold">
                       {profileData.gender === 'Male' ? '男性' : profileData.gender === 'Female' ? '女性' : 'その他'}
                     </p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">出身地</label>
+                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">出身地</label>
                     <p className="text-[14px] font-bold truncate">{profileData.hometown || '—'}</p>
                   </div>
                 </div>
 
-                <AnimatePresence>
-                  {showFullProfile && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-10"
-                    >
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">大学メール</label>
-                        <p className="text-[13px] font-bold text-indigo-600 truncate">{profileData.university_email || '—'}</p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">連絡先</label>
-                        <div className="space-y-3">
-                          <p className="text-[13px] font-bold flex items-center gap-2"><Phone className="w-3 h-3 text-stone-300" /> {profileData.phone || '—'}</p>
-                          <p className="text-[13px] font-bold flex items-center gap-2 text-emerald-600"><MessageSquare className="w-3 h-3 text-stone-300" /> @{profileData.line_nickname || '—'}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <div className="space-y-1.5">
+                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">大学メール</label>
+                    <p className="text-[13px] font-bold text-indigo-600 truncate">{profileData.university_email || '—'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[13px] font-black text-stone-600 uppercase tracking-widest">連絡先</label>
+                    <div className="space-y-3">
+                      <p className="text-[13px] font-bold flex items-center gap-2"><Phone className="w-3 h-3 text-stone-600" /> {profileData.phone || '—'}</p>
+                      <p className="text-[13px] font-bold flex items-center gap-2 text-[#00B900]"><LineIcon className="w-3 h-3 text-stone-600" /> @{profileData.line_nickname || '—'}</p>
+                    </div>
+                  </div>
               </div>
             </div>
 
             <div className="mt-auto pt-16">
-              <button 
+              <button
                 onClick={() => setModalOpen(true)}
                 className="w-full h-14 bg-stone-900 hover:bg-black text-white rounded-2xl font-black text-[13px] shadow-2xl shadow-stone-200 transition-all active:scale-95 flex items-center justify-center gap-3"
               >
@@ -321,30 +290,33 @@ export default function Profile() {
           <AnimatePresence>
             {!isSidebarVisible && (
               <motion.button
-                initial={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
+                exit={{ opacity: 0, x: -20 }}
                 onClick={() => setIsSidebarVisible(true)}
-                className="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 bg-white border border-stone-100 rounded-2xl flex items-center justify-center shadow-lg text-stone-300 hover:text-indigo-600 transition-all group"
+                className="absolute left-0 top-32 z-50 w-8 h-20 bg-[#D62976] text-white flex items-center justify-start pl-1 shadow-xl shadow-[#D62976]/20 transition-all group active:scale-95 hover:w-10"
+                style={{
+                  clipPath: 'polygon(0 0, 100% 50%, 0 100%)'
+                }}
               >
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </motion.button>
             )}
           </AnimatePresence>
 
-          <header className="px-10 lg:px-16 py-10 flex items-center justify-between border-b border-stone-100 bg-white/40 backdrop-blur-xl shrink-0 z-10">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-rose-500 border border-stone-50">
-                <Compass className="w-6 h-6" />
+          <header className="px-10 lg:px-16 py-10 flex items-center justify-between border-b border-stone-50 bg-white/40 backdrop-blur-xl shrink-0 z-10">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 rounded-[2rem] bg-white shadow-xl shadow-stone-100 flex items-center justify-center text-[#D62976] border border-stone-50">
+                <Sparkles className="w-7 h-7" />
               </div>
               <div className="space-y-0.5">
-                <h3 className="text-2xl font-black tracking-tight">活動ログ</h3>
-                <p className="text-[10px] font-bold text-stone-300 uppercase tracking-[0.25em]">Activities</p>
+                <h3 className="text-[28px] font-black tracking-tight font-serif uppercase">活動履歴</h3>
+                <p className="text-[10px] font-black text-stone-300 uppercase tracking-[0.4em]">Registered Activities</p>
               </div>
             </div>
 
             <div className="flex flex-col items-end">
-              <span className="text-[10px] font-black text-stone-300 uppercase tracking-widest mb-1">Year</span>
+              <span className="text-[10px] font-black text-stone-300 uppercase tracking-widest mb-1">所属年度</span>
               <div className="px-5 py-2 bg-stone-100 rounded-full text-[11px] font-black text-indigo-600">
                 {selectedYear?.name}
               </div>
@@ -367,15 +339,25 @@ export default function Profile() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="group bg-white border border-stone-100/60 p-10 rounded-[2.5rem] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.06)] transition-all duration-700 relative overflow-hidden"
+                      className="group bg-white border border-stone-200 p-10 rounded-[2.5rem] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.06)] transition-all duration-700 relative overflow-hidden"
                     >
-                      <div className={`absolute top-10 right-10 w-3 h-3 rounded-full ${isPresent ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                      <div className="absolute top-10 right-10 flex flex-col items-end gap-2">
+                        {reg.attendance_status === 'present' ? (
+                          <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 text-[11px] font-black rounded-full border border-emerald-200 uppercase tracking-widest shadow-sm">出席</span>
+                        ) : reg.attendance_status === 'excused_absence' ? (
+                          <span className="px-4 py-1.5 bg-blue-50 text-blue-600 text-[11px] font-black rounded-full border border-blue-200 uppercase tracking-widest shadow-sm">公欠</span>
+                        ) : reg.attendance_status === 'unexcused_absence' ? (
+                          <span className="px-4 py-1.5 bg-rose-50 text-rose-600 text-[11px] font-black rounded-full border border-rose-200 uppercase tracking-widest shadow-sm">欠席</span>
+                        ) : (
+                          <span className="px-4 py-1.5 bg-amber-50 text-amber-600 text-[11px] font-black rounded-full border border-amber-200 uppercase tracking-widest shadow-sm">確認待ち</span>
+                        )}
+                      </div>
                       <div className="space-y-6">
                         <div className="space-y-2">
-                          <span className="text-[11px] font-black text-stone-300 tracking-[0.2em]">{format(new Date(activity.date), 'yyyy.MM.dd')}</span>
-                          <h4 className="text-xl font-black text-stone-900 group-hover:text-rose-500 transition-colors uppercase tracking-tight">{activity.title}</h4>
+                          <span className="text-[11px] font-black text-stone-500 tracking-[0.2em]">{format(new Date(activity.date), 'yyyy.MM.dd')}</span>
+                          <h4 className="text-xl font-black text-stone-900 group-hover:text-rose-600 transition-colors uppercase tracking-tight">{activity.title}</h4>
                         </div>
-                        <div className="flex items-center gap-6 text-[12px] font-bold text-stone-400">
+                        <div className="flex items-center gap-6 text-[12px] font-bold text-stone-500">
                           <span className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> {activity.location}</span>
                         </div>
                       </div>
@@ -388,14 +370,8 @@ export default function Profile() {
                 <div className="w-28 h-28 rounded-[3rem] bg-white shadow-2xl flex items-center justify-center mb-10 group hover:scale-110 transition-all duration-1000">
                   <Sparkles className="w-10 h-10 text-rose-500/20 group-hover:text-rose-500 transition-colors duration-1000" />
                 </div>
-                <h4 className="text-2xl font-black tracking-tight mb-4 uppercase">Let's Adventure</h4>
-                <p className="text-sm font-bold text-stone-300 leading-relaxed max-w-[280px]">MilkTeaと一緒に新しいボランティア活動に参加しましょう！</p>
-                <button 
-                  onClick={() => window.location.href = '/activities'}
-                  className="mt-12 px-10 py-5 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-[13px] shadow-2xl active:scale-95 transition-all text-center"
-                >
-                  活動を探しに行く
-                </button>
+                <h4 className="text-2xl font-black tracking-tight mb-5 uppercase">一緒に新しいボランティア活動に参加しましょう！</h4>
+
               </div>
             )}
           </div>
@@ -407,7 +383,7 @@ export default function Profile() {
           <Dialog.Overlay className="fixed inset-0 bg-stone-900/10 backdrop-blur-md z-[100]" />
           <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white border border-stone-50 p-10 lg:p-14 shadow-2xl rounded-[3.5rem] z-[101] max-h-[90vh] overflow-y-auto scrollbar-none">
             <Dialog.Title className="text-3xl font-black tracking-tight mb-12">プロフィール編集</Dialog.Title>
-            
+
             <form onSubmit={handleSubmit(d => updateProfileMutation.mutate(d))} className="space-y-8">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -453,8 +429,8 @@ export default function Profile() {
 
               <div className="pt-10 flex justify-end items-center gap-6">
                 <Dialog.Close className="text-stone-300 font-bold text-sm hover:text-stone-900 transition-colors">キャンセル</Dialog.Close>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={updateProfileMutation.status === 'pending'}
                   className="px-12 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 flex items-center gap-3 transition-all active:scale-95"
                 >

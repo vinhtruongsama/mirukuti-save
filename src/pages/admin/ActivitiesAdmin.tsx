@@ -1,17 +1,21 @@
 import { useState, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, isPast } from 'date-fns';
-import { Search, Plus, Edit2, Trash2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, Users } from 'lucide-react';
+import { Search, Plus, Edit2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, Users, Calendar, Pin, PinOff, Trash2, Check, ChevronDown, PlusCircle } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
+import * as Select from '@radix-ui/react-select';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useDebounce } from '../../hooks/useDebounce';
+import ActivityDeleteConfirmModal from '../../components/admin/ActivityDeleteConfirmModal';
 
 // --- ZOD SCHEMA ---
 const activitySchema = z.object({
@@ -21,12 +25,23 @@ const activitySchema = z.object({
   date: z.string().min(1, '開催日時を入力してください'),
   registration_deadline: z.string().min(1, '申込締切を入力してください'),
   location: z.string().min(1, '開催場所を入力してください'),
-  capacity: z.number().min(1).optional().or(z.nan()),
-  form_link: z.string().url('有効なURLを入力してください').optional().or(z.literal('')),
+  location_type: z.enum(['internal', 'external']),
+  capacity: z.number().min(0, '0以上の数値を入力してください').optional().or(z.nan()),
+  sessions: z.array(z.object({
+    date: z.string().min(1, '日付'),
+    start_time: z.string().min(1, '開始時間'),
+    end_time: z.string().min(1, '終了時間'),
+    capacity: z.number().min(0).optional().or(z.nan()),
+  })).optional(),
   status: z.enum(['open', 'closed', 'draft']),
+  is_pinned: z.boolean().optional(),
 });
 
 type ActivityFormData = z.infer<typeof activitySchema>;
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export default function ActivitiesAdmin() {
   const queryClient = useQueryClient();
@@ -37,6 +52,7 @@ export default function ActivitiesAdmin() {
   const debouncedSearch = useDebounce(searchTerm, 500);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<any>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -45,9 +61,14 @@ export default function ActivitiesAdmin() {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ActivityFormData>({
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<ActivityFormData>({
     resolver: zodResolver(activitySchema),
-    defaultValues: { status: 'open' }
+    defaultValues: { status: 'open', location_type: 'internal', sessions: [], is_pinned: false }
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "sessions"
   });
 
   const watchTitle = useWatch({ control, name: 'title' });
@@ -62,6 +83,8 @@ export default function ActivitiesAdmin() {
         .select('*')
         .eq('academic_year_id', selectedYear.id)
         .is('deleted_at', null)
+        .order('is_pinned', { ascending: false })
+        .order('pinned_at', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -109,11 +132,14 @@ export default function ActivitiesAdmin() {
         date: new Date(data.date).toISOString(),
         registration_deadline: new Date(data.registration_deadline).toISOString(),
         location: data.location,
+        location_type: data.location_type,
         capacity: isNaN(data.capacity as number) ? null : data.capacity,
-        form_link: data.form_link === '' ? null : data.form_link,
         status: data.status,
+        sessions: data.sessions,
         cover_image_url: finalCoverUrl,
-        academic_year_id: selectedYear!.id
+        academic_year_id: selectedYear!.id,
+        is_pinned: data.is_pinned || false,
+        pinned_at: (data.is_pinned && !editingActivity?.is_pinned) ? new Date().toISOString() : editingActivity?.pinned_at
       };
 
       if (editingActivity?.id) {
@@ -127,7 +153,7 @@ export default function ActivitiesAdmin() {
       }
     },
     onSuccess: () => {
-      toast.success(editingActivity ? 'イベントを更新しました' : 'イベントを作成しました');
+      toast.success(editingActivity ? 'イベントを更新しました' : 'テスト用イベントを作成しました');
       queryClient.invalidateQueries({ queryKey: ['admin-activities'] });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       setModalOpen(false);
@@ -135,6 +161,38 @@ export default function ActivitiesAdmin() {
     },
     onError: (err: any) => toast.error(err.message)
   });
+
+  const handleRandomCreate = () => {
+    if (!selectedYear) {
+      toast.error('年度を選択してください');
+      return;
+    }
+
+    const titles = ["Web Workshop", "Gaming Night", "Music Live", "Coding Jam", "Study Group", "Pizza Party", "Photography Walk"];
+    const locations = ["Lab 402", "Hall A", "Central Plaza", "Discord Server", "University Hub", "Room 101", "Outdoor Stage"];
+
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + Math.floor(Math.random() * 20) + 2); // Random day in next 22 days
+
+    const randomData: ActivityFormData = {
+      title: `${titles[Math.floor(Math.random() * titles.length)]} #${Math.floor(Math.random() * 900) + 100}`,
+      description: "【自動生成テスト】ダミーデータです。レイアウト確認や機能テストに使用してください。",
+      date: baseDate.toISOString(),
+      registration_deadline: new Date(baseDate.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      location: locations[Math.floor(Math.random() * locations.length)],
+      location_type: Math.random() > 0.4 ? 'internal' : 'external',
+      status: Math.random() > 0.2 ? 'open' : 'draft',
+      sessions: [
+        {
+          date: baseDate.toISOString().split('T')[0],
+          start_time: "18:00",
+          end_time: "20:00"
+        }
+      ]
+    };
+
+    saveMutation.mutate(randomData);
+  };
 
   // 4. Delete Mutation
   const deleteMutation = useMutation({
@@ -150,10 +208,30 @@ export default function ActivitiesAdmin() {
     onError: (err: any) => toast.error(err.message)
   });
 
+  // 5. Toggle Pin Mutation
+  const togglePinMutation = useMutation({
+    mutationFn: async ({ id, isPinned }: { id: string, isPinned: boolean }) => {
+      const { error } = await supabase
+        .from('activities')
+        .update({
+          is_pinned: isPinned,
+          pinned_at: isPinned ? new Date().toISOString() : null
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      toast.success(variables.isPinned ? 'イベントを固定しました' : '固定を解除しました');
+      queryClient.invalidateQueries({ queryKey: ['admin-activities'] });
+    },
+    onError: (err: any) => toast.error(err.message)
+  });
+
   const resetForm = () => {
     reset({
       title: '', description: '', date: '', registration_deadline: '',
-      location: '', capacity: '' as any, form_link: '', status: 'open'
+      location: '', capacity: '' as any, status: 'open', is_pinned: false,
+      sessions: []
     });
     setEditingActivity(null);
     setCoverFile(null);
@@ -179,9 +257,11 @@ export default function ActivitiesAdmin() {
         date: act.date ? toLocalDT(act.date) : '',
         registration_deadline: act.registration_deadline ? toLocalDT(act.registration_deadline) : '',
         location: act.location,
+        location_type: act.location_type || 'internal',
         capacity: act.capacity || NaN,
-        form_link: act.form_link || '',
-        status: act.status
+        status: act.status,
+        is_pinned: act.is_pinned || false,
+        sessions: act.sessions || []
       });
     }
     setModalOpen(true);
@@ -288,16 +368,33 @@ export default function ActivitiesAdmin() {
             <span className="text-[13px] font-black text-[#D62976] uppercase tracking-widest ml-3 sm:hidden">管理コンソール</span>
           </motion.div>
 
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => openForm()}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white rounded-2xl text-[13px] font-black shadow-[0_10px_20px_rgba(214,41,118,0.15)] transition-all uppercase tracking-widest shrink-0 ml-4"
-          >
-            <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">イベントを追加</span><span className="sm:hidden">追加</span>
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRandomCreate}
+              disabled={saveMutation.isPending}
+              className="flex items-center gap-2 px-4 py-3 bg-white border border-stone-100 text-stone-900 rounded-2xl text-[11px] font-black shadow-sm transition-all uppercase tracking-widest shrink-0 group hover:border-[#4F5BD5]/20"
+              title="TEST: Create random activity"
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-stone-300 group-hover:text-[#4F5BD5]" />
+              <span className="hidden lg:inline">Random Test</span>
+              <span className="lg:hidden">Test</span>
+            </motion.button>
+
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => openForm()}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white rounded-2xl text-[13px] font-black shadow-[0_10px_20px_rgba(214,41,118,0.15)] transition-all uppercase tracking-widest shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">イベントを追加</span><span className="sm:hidden">追加</span>
+            </motion.button>
+          </div>
         </div>
 
         {/* Search Bar Row: Occupying Full Width since Stats are removed */}
@@ -366,25 +463,48 @@ export default function ActivitiesAdmin() {
                     );
                   })()}
 
+                  {/* Pin Badge */}
+                  {act.is_pinned && (
+                    <div className="absolute top-6 right-6 w-10 h-10 bg-[#4F5BD5] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#4F5BD5]/30 z-10 scale-100 group-hover:scale-110 transition-transform">
+                      <Pin className="w-5 h-5 fill-current" />
+                    </div>
+                  )}
+
                   {/* Floating Action Overlay on Hover */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3">
-                    <button onClick={() => openForm(act)} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-gray-900 hover:scale-110 active:scale-90 transition-all shadow-xl">
-                      <Edit2 className="w-5 h-5" />
+                    <button onClick={() => openForm(act)} className="px-6 py-4 bg-white rounded-2xl flex items-center justify-center gap-3 text-gray-900 hover:scale-105 active:scale-95 transition-all shadow-xl font-black text-[14px] uppercase tracking-widest">
+                      <Edit2 className="w-4 h-4" /> 編集する
                     </button>
-                    <button onClick={() => { if (window.confirm('このイベントを削除してもよろしいですか？')) deleteMutation.mutate(act.id); }} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#D62976] hover:scale-110 active:scale-90 transition-all shadow-xl">
-                      <Trash2 className="w-5 h-5" />
+                    <button
+                      onClick={() => togglePinMutation.mutate({ id: act.id, isPinned: !act.is_pinned })}
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-xl active:scale-90 ${act.is_pinned ? 'bg-[#4F5BD5] text-white hover:bg-white hover:text-[#4F5BD5]' : 'bg-white text-gray-900 hover:bg-[#4F5BD5] hover:text-white'
+                        }`}
+                      title={act.is_pinned ? '固定を解除' : 'トップに固定'}
+                    >
+                      {act.is_pinned ? <PinOff className="w-6 h-6" /> : <Pin className="w-6 h-6" />}
                     </button>
                   </div>
                 </div>
 
                 {/* Content Panel */}
-                <div className="p-8 flex-1 flex flex-col relative bg-white">
+                <div className="p-8 pt-12 flex-1 flex flex-col relative bg-white">
+                  {/* Attendance Button (Repositioned to junction) */}
+                  <div className="absolute -top-7 left-8 right-8 z-30">
+                    <Link
+                      to={`/admin/activities/${act.id}`}
+                      className="w-full relative flex items-center justify-center gap-3 px-6 py-4.5 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] shadow-xl shadow-[#4F5BD5]/30 hover:scale-[1.03] active:scale-95 transition-all duration-300"
+                    >
+                      <Activity className="w-4 h-12" />
+                      <span>出欠管理</span>
+                    </Link>
+                  </div>
+
                   <span className="text-[13px] font-black text-gray-300 uppercase tracking-[0.3em] mb-2">
                     {format(new Date(act.date), 'yyyy.MM.dd')}
                   </span>
                   <h3 className="text-xl font-black text-gray-900 mb-6 line-clamp-2 leading-tight group-hover:text-[#4F5BD5] transition-colors">{act.title}</h3>
 
-                  <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="bg-gray-50 rounded-2xl p-4 flex flex-col">
                       <span className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-1">参加者</span>
                       <span className="text-sm font-black text-gray-900">{act.registered_count || 0} / {act.capacity || '∞'}</span>
@@ -395,64 +515,74 @@ export default function ActivitiesAdmin() {
                     </div>
                   </div>
 
-                  <Link
-                    to={`/admin/activities/${act.id}`}
-                    className="mt-auto w-full group/btn relative flex items-center justify-center gap-3 px-6 py-4 bg-gray-900 text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                    <Activity className="w-4 h-4 relative z-10" />
-                    <span className="relative z-10">出欠管理</span>
-                  </Link>
+                  {/* Mobile Quick Actions (Tasks: Edit & Pin moved to bottom for better balance) */}
+                  <div className="mt-auto flex items-center gap-3">
+                    <button
+                      onClick={() => openForm(act)}
+                      className="lg:hidden flex-1 py-4 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center gap-2 text-stone-900 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                    >
+                      <Edit2 size={16} /> 編集
+                    </button>
+
+                    <button
+                      onClick={() => togglePinMutation.mutate({ id: act.id, isPinned: !act.is_pinned })}
+                      className={`lg:hidden w-14 h-14 rounded-2xl flex items-center justify-center active:scale-90 transition-all border-2 shadow-sm ${act.is_pinned ? 'bg-[#4F5BD5] text-white border-[#4F5BD5]' : 'bg-white text-stone-900 border-stone-100'
+                        }`}
+                    >
+                      {act.is_pinned ? <PinOff size={20} /> : <Pin size={20} />}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
+
+
         {/* Create/Edit Modal */}
         <Dialog.Root open={modalOpen} onOpenChange={(open) => { if (!open) resetForm(); setModalOpen(open); }}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 bg-gray-900/40 backdrop-blur-md z-50 overflow-y-auto grid place-items-center py-10" />
-            <Dialog.Content className="fixed left-[50%] top-[50%] z-[60] w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] bg-white border border-gray-100 shadow-[0_40px_100px_rgba(0,0,0,0.1)] sm:rounded-[3rem] p-0 overflow-hidden flex flex-col max-h-[90vh]">
+            <Dialog.Content className="fixed left-[50%] top-[50%] z-[60] w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] bg-white border border-gray-200 shadow-[0_40px_100px_rgba(0,0,0,0.1)] sm:rounded-[3rem] p-0 overflow-hidden flex flex-col max-h-[90vh]">
 
-              <div className="p-10 border-b border-gray-50 bg-gray-50/50 backdrop-blur-xl shrink-0 flex justify-between items-center relative overflow-hidden">
+              <div className="py-6 px-10 border-b border-gray-200 bg-gray-50/50 backdrop-blur-xl shrink-0 flex justify-between items-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#D62976]/5 blur-3xl rounded-full translate-x-10 -translate-y-10" />
                 <div>
                   <Dialog.Title className="text-3xl font-black text-gray-900 tracking-tighter uppercase mb-2">
                     {editingActivity ? '活动内容を編集' : '新規イベント作成'}
                   </Dialog.Title>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-[2px] bg-[#D62976]" />
-                    <p className="text-[13px] font-black text-[#4F5BD5] uppercase tracking-widest">高度な管理インターフェース</p>
-                  </div>
+
                 </div>
-                <Dialog.Close asChild>
-                  <button
-                    type="button"
-                    className="relative z-[100] w-12 h-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-[#D62976] hover:border-[#D62976]/20 transition-all flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 active:scale-95"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </Dialog.Close>
+                <div className="absolute top-5 right-10">
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      className="w-12 h-12 rounded-2xl bg-rose-500 text-white hover:bg-rose-600 transition-all flex items-center justify-center shadow-[0_10px_20px_rgba(244,63,94,0.3)] cursor-pointer hover:scale-105 active:scale-95"
+                    >
+                      <X className="w-6 h-6" strokeWidth={3} />
+                    </button>
+                  </Dialog.Close>
+                </div>
               </div>
 
-              <div className="p-10 overflow-y-auto [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#D62976]/60 transition-all pr-4">
+              <div className="flex-1 px-10 py-2 overflow-y-auto [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#D62976]/60 transition-all">
                 <form id="activity-form" onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-12">
                   {/* Image Part */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1">
                       <div className="w-10 h-10 bg-[#D62976]/10 rounded-2xl flex items-center justify-center text-[#D62976]">
                         <Camera className="w-5 h-5" />
                       </div>
-                      <label className="text-[15px] font-black text-gray-800 uppercase tracking-widest">カバー画像</label>
+                      <label className="text-[15px] font-black text-gray-800 uppercase tracking-widest">画像</label>
                     </div>
 
-                    <div className="relative group">
+                    <div className="grid grid-cols-1 gap-7 w-full">
                       <div
                         onClick={() => !isProcessingImage && coverInputRef.current?.click()}
-                        className={`w-full h-72 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden transition-all relative ${isProcessingImage
+                        className={`w-full h-40 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden transition-all relative ${isProcessingImage
                           ? 'border-[#D62976]/50 bg-[#D62976]/5 cursor-wait'
-                          : 'border-gray-100 hover:border-[#D62976]/50 bg-gray-50/50 cursor-pointer'
+                          : 'border-gray-200 hover:border-[#D62976]/50 bg-gray-50/50 cursor-pointer shadow-inner'
                           }`}
                       >
                         {isProcessingImage && (
@@ -470,26 +600,28 @@ export default function ActivitiesAdmin() {
                             </div>
                           </>
                         ) : (
-                          <div className="text-gray-300 flex flex-col items-center text-center p-8">
-                            <div className="w-20 h-20 bg-white shadow-sm rounded-3xl flex items-center justify-center mb-4 border border-gray-50">
-                              <Camera className="w-8 h-8 text-gray-200" />
+                          <div className="text-gray-300 flex flex-col items-center text-center p-8 gap-4">
+                            <div className="w-24 h-24 bg-white shadow-xl rounded-[2.5rem] flex items-center justify-center border border-gray-100">
+                              <Camera className="w-10 h-10 text-gray-200" />
                             </div>
-                            <span className="text-[13px] font-black text-gray-400 uppercase tracking-widest">クリックしてブランドビジュアルをアップロード</span>
+                            <span className="text-sm font-black text-gray-400 uppercase tracking-[0.3em]">画像をアップロード</span>
                           </div>
                         )}
                       </div>
 
-                      <motion.button
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleRandomImage}
-                        disabled={isProcessingImage}
-                        className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-3 px-10 py-5 bg-white text-gray-900 rounded-full text-[13px] font-black uppercase tracking-widest shadow-[0_20px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-20 hover:text-[#D62976] transition-colors"
-                      >
-                        <Activity className="w-4 h-4 text-[#D62976]" />
-                        画像を自動生成
-                      </motion.button>
+                      <div className="flex justify-center">
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleRandomImage}
+                          disabled={isProcessingImage}
+                          className="flex items-center gap-2 px-14 py-4 bg-white text-gray-900 rounded-full text-sm font-black uppercase tracking-widest shadow-[0_30px_60px_rgba(0,0,0,0.1)] border border-gray-400 hover:text-[#D62976] hover:border-[#D62976]/50 transition-all whitespace-nowrap"
+                        >
+                          <Activity className="w-5 h-5 text-[#D62976]" />
+                          画像を自動生成
+                        </motion.button>
+                      </div>
                     </div>
 
                     <input type="file" accept="image/jpeg, image/png" ref={coverInputRef} onChange={onCoverChange} className="hidden" />
@@ -500,83 +632,300 @@ export default function ActivitiesAdmin() {
                     <div className="space-y-3 sm:col-span-2">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-4 bg-[#4F5BD5] rounded-full" />
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">イベント名 *</label>
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest">イベント名 *</label>
                       </div>
-                      <input {...register('title')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_20px_40px_rgba(79,91,213,0.05)] outline-none transition-all placeholder:text-gray-300 uppercase tracking-widest" placeholder="イベント名を入力..." />
+                      <input {...register('title')} className="w-full bg-gray-50 border border-gray-400 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_20px_40px_rgba(79,91,213,0.05)] outline-none transition-all placeholder:text-gray-300 uppercase tracking-widest" placeholder="イベント名を入力..." />
                       {errors.title && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.title.message}</p>}
                     </div>
 
                     <div className="space-y-3 sm:col-span-2">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-4 bg-gray-200 rounded-full" />
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">詳細説明</label>
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest">詳細説明</label>
                       </div>
-                      <textarea {...register('description')} rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-6 text-sm font-bold focus:bg-white focus:border-gray-200 outline-none transition-all resize-none placeholder:text-gray-300" placeholder="イベントの詳細内容を入力..." />
+                      <textarea {...register('description')} rows={4} className="w-full bg-gray-50 border border-gray-400 text-[#0f172a] rounded-3xl px-8 py-6 text-sm font-bold focus:bg-white focus:border-gray-200 outline-none transition-all resize-none placeholder:text-gray-300" placeholder="イベントの詳細内容を入力..." />
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Clock className="w-4 h-4 text-[#D62976]" />
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">開催日時 *</label>
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest">開催日時 *</label>
                       </div>
-                      <input type="datetime-local" {...register('date')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#D62976]/30 outline-none transition-all" />
+                      <input type="datetime-local" {...register('date')} className="w-full bg-gray-50 border border-gray-300 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#D62976]/30 outline-none transition-all" />
                       {errors.date && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.date.message}</p>}
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Clock className="w-4 h-4 text-[#4F5BD5]" />
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">申込締切 *</label>
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest">申込締切 *</label>
                       </div>
-                      <input type="datetime-local" {...register('registration_deadline')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all" />
+                      <input type="datetime-local" {...register('registration_deadline')} className="w-full bg-gray-50 border border-gray-300 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all" />
                       {errors.registration_deadline && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.registration_deadline.message}</p>}
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Compass className="w-4 h-4 text-[#FEDA75]" />
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">開催場所 *</label>
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest">開催場所 *</label>
                       </div>
-                      <input {...register('location')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white outline-none transition-all placeholder:text-gray-300" placeholder="場所を入力..." />
+                      <input {...register('location')} className="w-full bg-gray-50 border border-gray-300 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white outline-none transition-all placeholder:text-gray-300" placeholder="場所を入力..." />
                       {errors.location && <p className="text-[#D62976] text-[10px] font-black uppercase tracking-widest px-8 mt-2">{errors.location.message}</p>}
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Users className="w-4 h-4 text-gray-400" />
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">定員</label>
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest border-gray-300">定員</label>
                       </div>
-                      <input type="number" {...register('capacity', { valueAsNumber: true })} placeholder="無制限の場合は空欄" className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white outline-none transition-all" />
+                      <input type="number" min="0" {...register('capacity', { valueAsNumber: true })} placeholder="無制限の場合は空欄" className="w-full bg-gray-50 border border-gray-200 text-[#0f172a] rounded-3xl px-8 py-5 text-sm font-bold focus:bg-white outline-none transition-all" />
                     </div>
 
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-8">公開ステータス</label>
-                      <select {...register('status')} className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-3xl px-8 py-5 text-sm font-black uppercase tracking-widest focus:bg-white outline-none transition-all cursor-pointer">
-                        <option value="draft">下書き (非公開)</option>
-                        <option value="open">公開 (募集中)</option>
-                        <option value="closed">締切 (募集終了)</option>
-                      </select>
+                    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-8 pt-6 border-t border-gray-300">
+                      <div className="space-y-3">
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest px-8">タイプ</label>
+                        <div className="flex gap-4 p-1 bg-gray-50 rounded-3xl border border-gray-300">
+                          <label className="flex-1 cursor-pointer relative">
+                            <input type="radio" value="internal" {...register('location_type')} className="peer opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10" />
+                            <div className="w-full py-2 text-center rounded-xl text-[18px] font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:text-[#4F5BD5] peer-checked:shadow-sm text-gray-400 hover:text-gray-600">学内</div>
+                          </label>
+                          <label className="flex-1 cursor-pointer relative">
+                            <input type="radio" value="external" {...register('location_type')} className="peer opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10" />
+                            <div className="w-full py-2 text-center rounded-xl text-[18px] font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:text-[#D62976] peer-checked:shadow-sm text-gray-400 hover:text-gray-600">学外</div>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="text-[14px] font-black text-gray-800 uppercase tracking-widest px-8">公開ステータス</label>
+                        <Select.Root value={useWatch({ control, name: 'status' })} onValueChange={(val) => setValue('status', val as any)}>
+                          <Select.Trigger
+                            className={cn(
+                              "w-full flex items-center justify-between gap-2 px-8 py-5 rounded-3xl border-2 transition-all outline-none font-black text-sm uppercase tracking-widest",
+                              useWatch({ control, name: 'status' }) === 'open' ? 'border-emerald-100 bg-emerald-50/30 text-emerald-600' :
+                                useWatch({ control, name: 'status' }) === 'closed' ? 'border-rose-100 bg-rose-50/30 text-rose-600' :
+                                  'border-stone-100 bg-stone-50/50 text-stone-500'
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-2.5 h-2.5 rounded-full border-2 border-current",
+                                useWatch({ control, name: 'status' }) === 'open' ? 'text-emerald-500' :
+                                  useWatch({ control, name: 'status' }) === 'closed' ? 'text-rose-500' :
+                                    'text-stone-400'
+                              )} />
+                              <Select.Value>
+                                {useWatch({ control, name: 'status' }) === 'open' ? '公開 (募集中)' :
+                                  useWatch({ control, name: 'status' }) === 'closed' ? '締切 (募集終了)' :
+                                    '下書き (非公開)'}
+                              </Select.Value>
+                            </div>
+                            <Select.Icon>
+                              <ChevronDown className="w-4 h-4 opacity-50" />
+                            </Select.Icon>
+                          </Select.Trigger>
+
+                          <Select.Portal>
+                            <Select.Content className="z-[105] overflow-hidden rounded-[2rem] bg-white border border-stone-100 shadow-2xl animate-in fade-in zoom-in-95 duration-200 min-w-[280px]">
+                              <Select.Viewport className="p-2">
+                                {[
+                                  { value: 'draft', label: '下書き (Bản nháp)', color: 'stone', desc: '管理者のみ確認可能' },
+                                  { value: 'open', label: '公開 (Mở đăng ký)', color: 'emerald', desc: 'メンバー全員が閲覧・申込可能' },
+                                  { value: 'closed', label: '締切 (Đóng đăng ký)', color: 'rose', desc: '閲覧のみ可能' }
+                                ].map((opt) => (
+                                  <Select.Item
+                                    key={opt.value}
+                                    value={opt.value}
+                                    className="relative flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-black outline-none cursor-pointer group transition-all focus:bg-stone-50 data-[state=checked]:bg-stone-50"
+                                  >
+                                    <div className={cn(
+                                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border-2 transition-colors",
+                                      opt.color === 'description' ? 'border-emerald-100 bg-emerald-50 text-emerald-500' :
+                                        opt.value === 'open' ? 'border-emerald-100 bg-emerald-50 text-emerald-500' :
+                                          opt.value === 'closed' ? 'border-rose-100 bg-rose-50 text-rose-500' :
+                                            'border-stone-100 bg-stone-50 text-stone-400'
+                                    )}>
+                                      <div className="w-2.5 h-2.5 rounded-full border-2 border-current shadow-sm" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <Select.ItemText className="text-[13px] uppercase tracking-widest leading-none mb-1 text-gray-900">{opt.label}</Select.ItemText>
+                                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{opt.desc}</span>
+                                    </div>
+                                    <Select.ItemIndicator className="ml-auto">
+                                      <Check className={cn(
+                                        "w-5 h-5",
+                                        opt.value === 'open' ? 'text-emerald-500' :
+                                          opt.value === 'closed' ? 'text-rose-500' :
+                                            'text-stone-900'
+                                      )} />
+                                    </Select.ItemIndicator>
+                                  </Select.Item>
+                                ))}
+                              </Select.Viewport>
+                            </Select.Content>
+                          </Select.Portal>
+                        </Select.Root>
+                      </div>
+
+                      <div className="space-y-3 sm:col-span-2 p-6 bg-[#4F5BD5]/5 rounded-[2rem] border border-[#4F5BD5]/10 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${useWatch({ control, name: 'is_pinned' }) ? 'bg-[#4F5BD5] text-white shadow-lg' : 'bg-white text-[#4F5BD5] border border-[#4F5BD5]/20'}`}>
+                            <Pin className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <p className="text-[14px] font-black text-[#4F5BD5] uppercase tracking-widest leading-none mb-1">トップに固定 (Pin Activity)</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">この活動をリストの最上部に表示します</p>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" {...register('is_pinned')} className="sr-only peer" />
+                          <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#4F5BD5]"></div>
+                        </label>
+                      </div>
                     </div>
+
+                    <div className="sm:col-span-2 pt-10 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-[#4F5BD5]/10 rounded-2xl flex items-center justify-center text-[#4F5BD5]">
+                            <CalendarDays className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="text-[15px] font-black text-gray-800 uppercase tracking-widest leading-none mb-1">スケジュール</h3>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => append({ date: '', start_time: '', end_time: '', capacity: undefined })}
+                          className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all shadow-lg hover:shadow-[#4F5BD5]/20"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          セッションを追加
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {fields.map((field, index) => (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            key={field.id}
+                            className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow relative group"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => remove(index)}
+                              className="absolute -top-4 -right-4 w-9 h-9 bg-rose-50 border-2 border-rose-200 shadow-lg rounded-full flex items-center justify-center text-[#D62976] hover:bg-[#D62976] hover:text-white hover:border-[#D62976] transition-all z-20 group/delete"
+                              title="セッションを削除"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">日付</label>
+                                <div className="relative">
+                                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                                  <input
+                                    type="date"
+                                    {...register(`sessions.${index}.date` as const)}
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">開始</label>
+                                <div className="relative">
+                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                                  <input
+                                    type="time"
+                                    {...register(`sessions.${index}.start_time` as const)}
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white outline-none transition-all"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">終了</label>
+                                <div className="relative">
+                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                                  <input
+                                    type="time"
+                                    {...register(`sessions.${index}.end_time` as const)}
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white outline-none transition-all"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">定員 (限定)</label>
+                                <div className="relative">
+                                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="無制限"
+                                    {...register(`sessions.${index}.capacity` as const, { valueAsNumber: true })}
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:bg-white outline-none transition-all"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+
+                      </div>
+                    </div>
+
+
+
+                    <div className="sm:col-span-2 pt-5 py-5 flex flex-col sm:flex-row justify-end gap-3 sm:gap-6 items-center border-t border-gray-300">
+                      {/* Save Button - Top on Mobile, Right on Desktop */}
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="submit"
+                        disabled={saveMutation.isPending}
+                        className="w-full sm:w-auto order-1 sm:order-3 px-10 py-4 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white text-[14px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg hover:shadow-[#D62976]/20 flex items-center justify-center gap-2 min-w-[180px]"
+                      >
+                        {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
+                      </motion.button>
+
+                      {/* Cancel Button - Middle on Mobile, Middle on Desktop */}
+                      <Dialog.Close asChild>
+                        <button type="button" className="w-full sm:w-auto order-2 sm:order-2 px-3 py-3.5 hover:bg-white hover:shadow-sm text-gray-800 hover:text-gray-900 text-[14px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all">
+                          キャンセル
+                        </button>
+                      </Dialog.Close>
+
+                      <div className="hidden sm:block flex-1 order-none" />
+
+                      {/* Delete Button - Bottom on Mobile, Left on Desktop */}
+                      {editingActivity && (
+                        <button
+                          type="button"
+                          onClick={() => setIsDeleteConfirmOpen(true)}
+                          className="w-full sm:w-auto order-3 sm:order-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-rose-50 border border-rose-200 text-[#D62976] hover:bg-[#D62976] hover:text-white rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all active:scale-95"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          削除する
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Activity Deletion Confirm Modal - Localized inside Portal for proper layering */}
+                    <ActivityDeleteConfirmModal
+                      isOpen={isDeleteConfirmOpen}
+                      onClose={() => setIsDeleteConfirmOpen(false)}
+                      onConfirm={() => {
+                        if (editingActivity?.id) {
+                          deleteMutation.mutate(editingActivity.id);
+                          setModalOpen(false);
+                        }
+                      }}
+                      title={useWatch({ control, name: 'title' }) || editingActivity?.title || 'この活動'}
+                    />
                   </div>
                 </form>
               </div>
-
-              <div className="p-10 border-t border-gray-50 bg-gray-50/50 backdrop-blur-xl shrink-0 flex justify-end gap-6">
-                <Dialog.Close asChild>
-                  <button type="button" className="px-10 py-5 hover:bg-white hover:shadow-sm text-gray-500 hover:text-gray-900 text-xs font-black uppercase tracking-widest rounded-3xl transition-all">キャンセル</button>
-                </Dialog.Close>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  form="activity-form"
-                  disabled={saveMutation.isPending}
-                  className="px-12 py-5 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white text-[13px] font-black uppercase tracking-[0.2em] rounded-3xl transition-all shadow-[0_20px_40px_rgba(214,41,118,0.2)] flex items-center justify-center gap-3 min-w-[220px]"
-                >
-                  {saveMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : '承認して保存'}
-                </motion.button>
-              </div>
-
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>

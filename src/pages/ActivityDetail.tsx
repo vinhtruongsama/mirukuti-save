@@ -1,11 +1,19 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import { format, isPast } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
-import { MapPin, Calendar, Clock, Users, ArrowLeft, ExternalLink, AlertCircle } from 'lucide-react';
+import { MapPin, Calendar, Clock, Users, ArrowLeft, Info, CalendarDays, AlertCircle, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export default function ActivityDetail() {
   const { id } = useParams();
@@ -52,8 +60,24 @@ export default function ActivityDetail() {
     enabled: !!id && !!currentUser,
   });
 
+  const [agreed, setAgreed] = useState(false);
+  const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
+
+  const toggleSession = (idx: number) => {
+    setSelectedSessions((prev: number[]) => 
+      prev.includes(idx) ? prev.filter((i: number) => i !== idx) : [...prev, idx]
+    );
+  };
+
   const registerMutation = useMutation({
     mutationFn: async () => {
+      if (activity.sessions?.length > 0 && selectedSessions.length === 0) {
+        throw new Error('参加するセッションを1つ以上選択してください。');
+      }
+      if (!agreed) {
+        throw new Error('内容を確認し、同意チェックを入れてください。');
+      }
+
       // 1. Verify capacity immediately before inserting to prevent slight race condition
       const { count } = await supabase
         .from('registrations')
@@ -69,7 +93,8 @@ export default function ActivityDetail() {
         .insert({
           activity_id: id,
           user_id: currentUser!.id,
-          attendance_status: 'pending'
+          attendance_status: 'pending',
+          selected_sessions: selectedSessions
         });
 
       if (error) throw error;
@@ -173,11 +198,92 @@ export default function ActivityDetail() {
       <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-12">
         {/* Main Content */}
         <div className="md:col-span-2 space-y-8">
-          <div className="prose prose-invert prose-stone max-w-none">
+          <div className="prose prose-invert prose-stone max-w-none mb-12">
+            <h3 className="text-xl font-serif text-brand-stone-50 mb-6 flex items-center gap-3">
+              <Info className="w-6 h-6 text-brand-emerald-500" />
+              活動内容
+            </h3>
             <p className="text-lg text-brand-stone-300 leading-relaxed whitespace-pre-wrap">
               {activity.description || '詳細情報はありません。'}
             </p>
           </div>
+
+          {/* Schedule Section */}
+          {activity.sessions && Array.isArray(activity.sessions) && activity.sessions.length > 0 && (
+            <div className="mt-12 pt-12 border-t border-brand-stone-800">
+              <h3 className="text-2xl font-serif text-brand-stone-50 mb-8 flex items-center gap-4">
+                <CalendarDays className="w-7 h-7 text-brand-emerald-500" />
+                スケジュール
+              </h3>
+              <div className="space-y-4">
+                {activity.sessions.map((session: any, idx: number) => (
+                  <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="group bg-brand-stone-900/50 border border-brand-stone-800/50 hover:border-brand-emerald-500/30 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="w-12 h-12 rounded-xl bg-brand-stone-800/50 flex flex-col items-center justify-center border border-brand-stone-700/50 group-hover:bg-brand-emerald-500/10 group-hover:border-brand-emerald-500/20 transition-colors">
+                        <span className="text-[10px] font-black text-brand-stone-500 uppercase leading-none mb-1">Vol.</span>
+                        <span className="text-lg font-serif text-brand-stone-100 leading-none">{idx + 1}</span>
+                      </div>
+                      <div>
+                        <p className="text-brand-stone-100 font-black text-xs uppercase tracking-[0.2em] mb-1">
+                          {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
+                        </p>
+                        <p className="text-lg font-serif text-brand-stone-400 group-hover:text-brand-stone-100 transition-colors">
+                          Session Event
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full sm:w-auto p-4 sm:p-0 bg-brand-stone-800/30 sm:bg-transparent rounded-xl flex items-center justify-between sm:justify-end gap-6">
+                      <div className="text-right">
+                        <p className="text-[10px] font-black text-brand-stone-500 uppercase tracking-widest mb-1">Duration</p>
+                        <p className="text-xl font-serif text-brand-stone-50">{session.start_time} - {session.end_time}</p>
+                      </div>
+                      <div className="pl-6 border-l border-brand-stone-800 flex items-center gap-4">
+                        <div className="text-right hidden xs:block">
+                          <p className="text-[10px] font-black text-brand-emerald-500 uppercase tracking-widest mb-1">Status</p>
+                          <p className="text-sm font-serif text-brand-stone-400">{selectedSessions.includes(idx) ? '参加予定' : '未選択'}</p>
+                        </div>
+                        <button
+                          onClick={() => toggleSession(idx)}
+                          className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-90",
+                            selectedSessions.includes(idx) 
+                              ? "bg-brand-emerald-500 text-white shadow-lg shadow-brand-emerald-500/20" 
+                              : "bg-brand-stone-800 border border-brand-stone-700 text-brand-stone-500 hover:border-brand-stone-500"
+                          )}
+                        >
+                          {selectedSessions.includes(idx) ? <CheckCircle2 className="w-6 h-6" /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-20" />}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Agreement Section */}
+          {!myRegistration && activity.sessions?.length > 0 && (
+            <div className="mt-8 p-6 bg-brand-stone-900/30 border border-brand-stone-800 rounded-2xl flex items-center gap-4">
+              <button 
+                onClick={() => setAgreed(!agreed)}
+                className={cn(
+                  "w-6 h-6 rounded-md flex items-center justify-center transition-all",
+                  agreed ? "bg-brand-emerald-500 text-white" : "bg-brand-stone-800 border border-brand-stone-700"
+                )}
+              >
+                {agreed && <CheckCircle2 className="w-4 h-4" />}
+              </button>
+              <p className="text-sm text-brand-stone-400">
+                活動内容およびスケジュールをすべて読み、理解した上で参加を申し込みます。
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Sidebar Info & Action */}
@@ -243,23 +349,17 @@ export default function ActivityDetail() {
               </Link>
             ) : myRegistration ? (
               <div className="space-y-3">
+                <div className="p-4 bg-brand-emerald-500/10 border border-brand-emerald-500/20 rounded-sm mb-4">
+                  <p className="text-xs font-black text-brand-emerald-500 uppercase tracking-widest mb-1">申込完了</p>
+                  <p className="text-xs text-brand-stone-400">この活動への申し込みは完了しています。</p>
+                </div>
                 <button 
                   onClick={() => cancelMutation.mutate()}
                   disabled={cancelMutation.isPending}
                   className="w-full bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/30 font-medium py-3.5 rounded-sm transition-colors flex justify-center items-center"
                 >
-                  {cancelMutation.isPending ? '処理中...' : '申し込みをキャンセル'}
+                  {cancelMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : '申し込みをキャンセルする'}
                 </button>
-                {activity.form_link && (
-                  <a 
-                    href={activity.form_link} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 bg-brand-emerald-600 hover:bg-brand-emerald-500 text-white font-medium py-3.5 rounded-sm transition-colors"
-                  >
-                    必要事項の入力 <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
               </div>
             ) : activity.isClosed ? (
               <button 
@@ -271,10 +371,19 @@ export default function ActivityDetail() {
             ) : (
               <button 
                 onClick={() => registerMutation.mutate()}
-                disabled={registerMutation.isPending}
-                className="w-full bg-brand-emerald-600 hover:bg-brand-emerald-500 text-white font-medium py-3.5 rounded-sm transition-colors shadow-lg shadow-brand-emerald-900/20 flex justify-center items-center"
+                disabled={registerMutation.isPending || !agreed || (activity.sessions?.length > 0 && selectedSessions.length === 0)}
+                className={cn(
+                  "w-full py-4 rounded-sm font-black text-[12px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3",
+                  agreed && (!activity.sessions?.length || selectedSessions.length > 0)
+                    ? "bg-brand-stone-800 text-brand-stone-50 hover:bg-brand-stone-700 shadow-xl"
+                    : "bg-brand-stone-800/50 text-brand-stone-500 cursor-not-allowed"
+                )}
               >
-                {registerMutation.isPending ? '処理中...' : '今すぐ申し込む'}
+                {registerMutation.isPending ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>参加を申し込む <ChevronRight className="w-4 h-4" /></>
+                )}
               </button>
             )}
           </div>
