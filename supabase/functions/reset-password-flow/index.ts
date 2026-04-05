@@ -30,17 +30,26 @@ Deno.serve(async (req) => {
 
     // Task 1: Verification
     // Check if email and user_id match in the public.users table (or profiles)
+    // We check against university_email as requested, or the regular email if that was provided.
+    // The requirement says "gửi lại mật khẩu tới địa chỉ email ( university email)"
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
-      .select('id, email')
-      .eq('id', user_id)
-      .eq('email', email)
+      .select('id, university_email')
+      .eq('mssv', user_id) // Look up by Student ID (mssv)
       .single()
 
-    if (userError || !user) {
+    // Validate that the provided email matches the university email
+    if (userError || !user || user.university_email !== email) {
       return new Response(
-        JSON.stringify({ error: 'Thông tin không chính xác' }),
+        JSON.stringify({ error: 'Thông tin không chính xác hoặc Email trường không khớp' }),
         { status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!user.university_email) {
+      return new Response(
+        JSON.stringify({ error: 'Tài khoản này chưa được cấu hình Đại học Email (University Email).' }),
+        { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -53,7 +62,7 @@ Deno.serve(async (req) => {
     }
 
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      user_id,
+      user.id, // Use the real UUID found in database
       { 
         password: tempPassword,
         user_metadata: { is_temporary_password: true }
@@ -78,7 +87,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'CLB Quản lý <onboarding@resend.dev>', // Should be a verified domain in production
-        to: [email],
+        to: [user.university_email],
         subject: 'Mật khẩu tạm thời cho tài khoản CLB',
         html: `
           <div style="font-family: sans-serif; line-height: 1.5; color: #333;">

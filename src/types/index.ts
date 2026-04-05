@@ -24,9 +24,9 @@ export interface ClubMembership {
   id: string;
   user_id: string;
   academic_year_id: string;
-  role: 'admin' | 'executive' | 'member' | 'alumni';
+  role: 'president' | 'vice_president' | 'treasurer' | 'executive' | 'member' | 'alumni';
   department?: string | null;
   class_name?: string | null;
-  university_year?: 1 | 2 | 3 | 4;
+  university_year?: 0 | 1 | 2 | 3 | 4;
   is_active: boolean;
 }

@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 
 export const AppLayout = () => {
   const { fetchAcademicYears } = useAppStore();
-  const { currentRole, currentUser, signOut } = useAuthStore();
+  const { currentRole, currentUser, session, signOut } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,7 +25,9 @@ export const AppLayout = () => {
     { path: '/', label: 'ホーム', icon: Home },
     { path: '/activities', label: 'ボランティア活動', icon: Activity },
     ...(currentUser ? [{ path: '/profile', label: 'マイページ', icon: User }] : []),
-    ...(currentRole === 'admin' ? [{ path: '/admin', label: '管理コンソール', icon: ShieldCheck }] : []),
+    ...(currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole) 
+      ? [{ path: '/admin', label: '管理コンソール', icon: ShieldCheck }] 
+      : []),
   ];
 
   return (
@@ -96,7 +98,7 @@ export const AppLayout = () => {
 
             {/* Right Section: Auth Buttons */}
             <div className="flex-1 flex items-center justify-end gap-3 h-full">
-              {currentUser ? (
+              {session ? (
                 <button
                   onClick={handleLogout}
                   className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white border border-brand-stone-200 text-brand-stone-400 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition-all duration-300 shadow-sm group"

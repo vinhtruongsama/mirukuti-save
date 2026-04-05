@@ -91,7 +91,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     set({ isLoading: true });
-    await supabase.auth.signOut();
-    set({ session: null, currentUser: null, memberships: [], currentRole: null, isTemporaryPassword: false, isLoading: false });
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      set({ 
+        session: null, 
+        currentUser: null, 
+        memberships: [], 
+        currentRole: null, 
+        isTemporaryPassword: false, 
+        isLoading: false 
+      });
+    }
   }
 }));

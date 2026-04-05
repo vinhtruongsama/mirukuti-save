@@ -1,9 +1,13 @@
+// 1. React & Core
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// 2. Internal Stores & Utilities
 import { supabase } from './lib/supabase';
 import { useAuthStore } from './store/useAuthStore';
+import { useAppStore } from './store/useAppStore';
 
 // Layout & Route Guards
 import { AppLayout } from './components/layout/AppLayout';
@@ -38,14 +42,18 @@ const queryClient = new QueryClient({
 
 function App() {
   const { setAuth } = useAuthStore();
+  const { fetchAcademicYears } = useAppStore();
 
   useEffect(() => {
-    // Check active session on initial boot
+    // 1. Initial global app context
+    fetchAcademicYears();
+
+    // 2. Initial Auth session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setAuth(session);
     });
 
-    // Listen to Auth state changes
+    // 3. Auth Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuth(session);
     });
@@ -87,7 +95,7 @@ function App() {
 
             {/* Admin & Executive Fullscreen Layout */}
             <Route element={<RequireAuth />}>
-              <Route element={<RequireRole allowedRoles={['admin', 'executive']} />}>
+              <Route element={<RequireRole allowedRoles={['president', 'vice_president', 'treasurer', 'executive']} />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<Dashboard />} />
                   <Route path="/admin/members" element={<Members />} />

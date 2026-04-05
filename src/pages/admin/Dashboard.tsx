@@ -49,7 +49,10 @@ export default function Dashboard() {
           'profile_update': { label: 'が個人情報を更新しました', icon: Users, color: 'text-[#4F5BD5]', type: 'profile' },
           'registration_new': { label: 'が新しく活動に登録しました', icon: CalendarDays, color: 'text-emerald-500', type: 'registration' },
           'registration_update': { label: 'が活動申込を更新しました', icon: CheckCircle2, color: 'text-amber-500', type: 'update' },
-          'registration_delete': { label: 'が活動をキャンセルしました', icon: XCircle, color: 'text-rose-500', type: 'cancellation' }
+          'registration_delete': { label: 'が活動をキャンセルしました', icon: XCircle, color: 'text-rose-500', type: 'cancellation' },
+          'member_archive': { label: 'をアーカイブしました', icon: XCircle, color: 'text-rose-600', type: 'archive' },
+          'member_unarchive': { label: 'を復元しました', icon: CheckCircle2, color: 'text-emerald-600', type: 'unarchive' },
+          'role_update': { label: 'の役職を更新しました', icon: BarChart3, color: 'text-indigo-600', type: 'role' }
         };
 
         const config = logMap[log.action_type] || { label: 'が行われました', icon: AlertCircle, color: 'text-brand-stone-400', type: 'system' };
@@ -61,6 +64,18 @@ export default function Dashboard() {
           if (oldSessions !== newSessions) {
             changeSummary = ` (Sessions: ${oldSessions} → ${newSessions})`;
           }
+        } else if (log.action_type === 'role_update' && log.details?.old && log.details?.new) {
+          const roleMap: Record<string, string> = {
+            'president': '部長',
+            'vice_president': '副部長',
+            'treasurer': '会計',
+            'executive': '幹部',
+            'member': '部員',
+            'alumni': '卒業生'
+          };
+          const oldRole = roleMap[log.details.old.role] || log.details.old.role;
+          const newRole = roleMap[log.details.new.role] || log.details.new.role;
+          changeSummary = ` (${oldRole} → ${newRole})`;
         }
 
         return {

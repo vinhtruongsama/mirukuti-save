@@ -30,17 +30,13 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsSubmitting(true);
     try {
-      const { data: response, error } = await supabase.functions.invoke('reset-password-flow', {
-        body: { 
-          email: data.email, 
-          user_id: data.user_id 
-        }
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: window.location.origin + '/change-password',
       });
 
       if (error) throw error;
-      if (response?.error) throw new Error(response.error);
 
-      toast.success('メールを確認して臨時パスワードを受け取ってください。');
+      toast.success('パスワード再設定用のメールを送信しました。メール内のリンクを確認してください。');
       reset();
       onClose();
     } catch (error: any) {

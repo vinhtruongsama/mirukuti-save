@@ -54,6 +54,30 @@ export default function ArchivedMembers() {
     onError: (err: any) => toast.error(`Error: ${err.message}`)
   });
 
+  const hardDeleteMutation = useMutation({
+    mutationFn: async (userUuid: string) => {
+      if (!window.confirm('このメンバーを完全に削除してもよろしいですか？この操作は取り消せません。')) {
+        throw new Error('キャンセルされました');
+      }
+      
+      // Permanently delete from club_memberships (and the DB constraint will cascade or we just delete both)
+      const { error: memError } = await supabase.from('club_memberships').delete().eq('user_id', userUuid);
+      if (memError) throw memError;
+
+      const { error: userError } = await supabase.from('users').delete().eq('id', userUuid);
+      if (userError) throw userError;
+    },
+    onSuccess: () => {
+      toast.success('メンバーを完全に削除しました');
+      queryClient.invalidateQueries({ queryKey: ['archived-members'] });
+    },
+    onError: (err: any) => {
+      if (err.message !== 'キャンセルされました') {
+        toast.error(`Error: ${err.message}`);
+      }
+    }
+  });
+
   return (
     <div className="min-h-full space-y-12 pb-20">
       {/* Editorial Header */}
@@ -130,12 +154,22 @@ export default function ArchivedMembers() {
                     </span>
                   </td>
                   <td className="px-10 py-8 text-right">
-                    <button 
-                      onClick={() => restoreMutation.mutate(mem.user_id)}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all active:scale-95 shadow-lg shadow-stone-200"
-                    >
-                      <RotateCcw className="w-3 h-3" /> 復元
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button 
+                        onClick={() => restoreMutation.mutate(mem.user_id)}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all active:scale-95 shadow-lg shadow-stone-200"
+                        title="リストに復元する"
+                      >
+                        <RotateCcw className="w-3 h-3" /> 復元
+                      </button>
+                      <button 
+                        onClick={() => hardDeleteMutation.mutate(mem.user_id)}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm"
+                        title="完全に削除する"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </motion.tr>
               ))

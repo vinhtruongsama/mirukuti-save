@@ -52,7 +52,7 @@ export default function Home() {
                 transition={{ delay: 0.3 }}
                 className="flex flex-col gap-2.5 w-full xl:-mt-10"
               >
-                {session && currentRole === 'admin' && (
+                {session && currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole) && (
                   <Link 
                     to="/admin" 
                     className="w-full px-8 py-3.5 bg-gradient-to-r from-[#FEDA75] to-[#FFD700] text-[#0A0F1D] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-stone-900/10 flex items-center justify-center no-underline border border-white/40 group/admin"

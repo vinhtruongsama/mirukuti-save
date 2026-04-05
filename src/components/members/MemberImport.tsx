@@ -127,7 +127,7 @@ const MemberImport: React.FC<{
   const parseFile = async (file: File) => {
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const arrayBuffer = e.target?.result as ArrayBuffer;
         
@@ -149,13 +149,25 @@ const MemberImport: React.FC<{
           return;
         }
 
-        setData(normalizeData(jsonData));
+        let normalized = normalizeData(jsonData);
+
+        // Fetch deleted users to prevent re-importing over them silently
+        const { data: deletedUsers } = await supabase.from('users').select('mssv').not('deleted_at', 'is', null);
+        const deletedMssvs = new Set(deletedUsers?.map(u => u.mssv) || []);
+
+        normalized = normalized.map(norm => {
+          if (norm._valid && norm.student_id && deletedMssvs.has(norm.student_id)) {
+            norm._valid = false;
+            norm._error = "このメンバーはアーカイブ（ゴミ箱）にあります。復元してください。";
+          }
+          return norm;
+        });
+
+        setData(normalized);
         toast.success(`${jsonData.length}件を読み込みました`);
       } catch (err) {
         toast.error('ファイルエラー: ' + (err as Error).message);
-    } finally {
-      // Done
-    }
+      }
     };
 
     reader.readAsArrayBuffer(file);
