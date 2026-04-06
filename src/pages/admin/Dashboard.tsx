@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { 
-  Users, 
-  CalendarDays, 
-  BarChart3, 
+import {
+  Users,
+  CalendarDays,
+  BarChart3,
   CheckCircle2,
   XCircle,
   AlertCircle,
@@ -103,7 +103,6 @@ export default function Dashboard() {
         <div className="relative">
           <div className="absolute -left-5 top-0 w-1.5 h-full bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
           <h1 className="text-4xl font-black text-brand-stone-900 tracking-tighter">アクティビティ履歴</h1>
-          <p className="text-brand-stone-400 text-sm font-bold mt-2 uppercase tracking-widest italic opacity-60">System Audit Core</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -114,12 +113,12 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="group bg-white hover:bg-brand-stone-900 px-8 py-4 rounded-[2rem] border border-brand-stone-100 shadow-sm transition-all duration-500 flex items-center gap-5 hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-stone-200/50">
+              <div className="group bg-white hover:bg-brand-stone-900  py-4 rounded-[2rem] border border-brand-stone-100 shadow-sm transition-all duration-500 flex items-center gap-5 hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-stone-200/50">
                 <div className="w-10 h-10 rounded-xl bg-[#4F5BD5]/5 group-hover:bg-white/10 flex items-center justify-center transition-colors">
                   <Users className="w-5 h-5 text-[#4F5BD5] group-hover:text-white" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black group-hover:text-white/50 text-brand-stone-300 uppercase tracking-widest mb-0.5">Total Members</p>
+                  <p className="text-[14px] font-black group-hover:text-white/50 text-brand-stone-700 uppercase tracking-widest mb-0.5">部員総数</p>
                   <p className="text-2xl font-black text-brand-stone-900 group-hover:text-white leading-none">{stats?.members}</p>
                 </div>
               </div>
@@ -129,7 +128,7 @@ export default function Dashboard() {
                   <CalendarDays className="w-5 h-5 text-emerald-500 group-hover:text-white" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black group-hover:text-white/50 text-brand-stone-300 uppercase tracking-widest mb-0.5">Total Activities</p>
+                  <p className="text-[14px] font-black group-hover:text-white/50 text-brand-stone-700 uppercase tracking-widest mb-0.5">活動総数</p>
                   <p className="text-2xl font-black text-brand-stone-900 group-hover:text-white leading-none">{stats?.activities}</p>
                 </div>
               </div>
@@ -159,8 +158,8 @@ export default function Dashboard() {
               const groups: Record<string, any[]> = {};
               activityFeed.forEach(item => {
                 if (!item.timestamp) return;
-                const dateKey = item.timestamp.toLocaleDateString('ja-JP', { 
-                  year: 'numeric', month: 'long', day: 'numeric' 
+                const dateKey = item.timestamp.toLocaleDateString('ja-JP', {
+                  year: 'numeric', month: 'long', day: 'numeric'
                 });
                 if (!groups[dateKey]) groups[dateKey] = [];
                 groups[dateKey].push(item);
@@ -173,12 +172,12 @@ export default function Dashboard() {
                     <h2 className="text-lg font-black text-brand-stone-900 tracking-tighter">{date}</h2>
                     <div className="h-px flex-1 bg-gradient-to-r from-brand-stone-100 to-transparent" />
                   </div>
-                  
+
                   {/* Activity List with Connecting Line */}
                   <div className="relative space-y-0">
                     {/* Vertical Timeline Thread */}
                     <div className="absolute left-[22px] top-4 bottom-4 w-px bg-brand-stone-100 hidden sm:block" />
-                    
+
                     {items.map((item, idx) => (
                       <div key={item.id} className="relative group flex items-start gap-4 sm:gap-8 p-4 sm:p-5 rounded-[1.5rem] hover:bg-brand-stone-50/50 transition-all duration-300">
                         {/* Desktop: Time Column (Hidden on Mobile) */}
@@ -192,7 +191,7 @@ export default function Dashboard() {
                         <div className="relative flex-1 flex items-start gap-4">
                           {/* Status Icon with Relative Line Center */}
                           <div className="relative z-10 shrink-0">
-                             <div className={`w-11 h-11 rounded-[0.9rem] bg-white border border-brand-stone-100 shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 ${item.color}`}>
+                            <div className={`w-11 h-11 rounded-[0.9rem] bg-white border border-brand-stone-100 shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 ${item.color}`}>
                               <item.icon className="w-5 h-5" />
                             </div>
                             {/* Mobile Timeline Thread */}
@@ -214,11 +213,11 @@ export default function Dashboard() {
                               </div>
                               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                                 <p className="text-[13px] font-medium text-brand-stone-500 leading-snug">
-                                  {item.action.replace('が', '')} 
+                                  {item.action.replace('が', '')}
                                   <span className="text-brand-stone-300 mx-1 sm:mx-2 hidden sm:inline">/</span>
                                   <span className="font-black text-brand-stone-900 block sm:inline mt-1 sm:mt-0">
-                                     <span className="sm:hidden text-brand-stone-300 mr-1 opacity-50">→</span>
-                                     {item.target}
+                                    <span className="sm:hidden text-brand-stone-300 mr-1 opacity-50">→</span>
+                                    {item.target}
                                   </span>
                                   {item.summary && (
                                     <span className="inline-block bg-rose-50 text-[#D62976] px-2 py-0.5 rounded-lg text-[10px] font-black ml-0 sm:ml-2 mt-2 sm:mt-0">

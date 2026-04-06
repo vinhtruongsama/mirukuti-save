@@ -70,8 +70,8 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
         phone: member.users?.phone || '',
         line_nickname: member.users?.line_nickname || '',
         role: (member.role === 'admin' ? 'president' : member.role) || 'member',
-        university_year: member.users?.university_year || 0,
-        password: '', // Luôn reset password rỗng
+        university_year: member.users?.university_year || 1,
+        password: '',
       });
       if (!member.id) {
         setIsEditing(true);
@@ -92,11 +92,14 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
   };
 
   const getGradeStyle = (year: number) => {
-    if (year === 0) return 'bg-stone-100 text-stone-500';
-    switch (year) {
-      case 1: return 'bg-[#4F5BD5] text-white'; // Fresh blue
-      case 4: return 'bg-[#CDA01E] text-white'; // Gold/Bronze for seniors
-      default: return 'bg-stone-200 text-stone-700';
+    const validYear = (year === 0 || year) ? year : 1;
+    switch (validYear) {
+      case 0: return 'bg-stone-50 text-stone-400';
+      case 1: return 'bg-[#06C755]/10 text-[#06C755]'; // LINE Green
+      case 2: return 'bg-[#4F5BD5]/10 text-[#4F5BD5]'; // Blue
+      case 3: return 'bg-rose-500/10 text-rose-500'; // Red
+      case 4: return 'bg-purple-500/10 text-purple-500'; // Purple
+      default: return 'bg-stone-50 text-stone-500';
     }
   };
 
@@ -104,7 +107,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
     { label: '氏名', value: member.users?.full_name, sub: member.users?.full_name_kana, icon: User },
     { label: '学籍番号', value: member.users?.mssv, icon: Hash },
     { label: '役割', value: roleLabels[member.role]?.label || '不明', icon: ShieldCheck, badge: true },
-    { label: '学年', value: member.users?.university_year === 0 ? '卒業生' : (member.users?.university_year ? `${member.users?.university_year}年生` : '無'), icon: GraduationCap, yearBadge: true },
+    { label: '学年', value: (member.users?.university_year === 0) ? '卒業生' : `${member.users?.university_year || 1}年生`, icon: GraduationCap, yearBadge: true },
     { label: '連絡用メール', value: member.users?.email || '無', icon: Mail, copy: true },
     { label: '大学メール', value: member.users?.university_email || '無', icon: GraduationCap },
     { label: '電話番号', value: member.users?.phone || '無', icon: Phone },
@@ -171,8 +174,8 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                     </div>
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">役割 (Role) {!isPresident && <span className="text-[10px] text-rose-500 font-black ml-1">(部長のみ変更可能)</span>}</span>
-                      <select 
-                        {...register('role')} 
+                      <select
+                        {...register('role')}
                         disabled={!isPresident}
                         className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#D62976]/20 text-black disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -200,15 +203,14 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                         <span className="text-[13px] font-bold text-stone-500 pl-1">
                           初期パスワード <span className="text-rose-500">*</span>
                         </span>
-                        <input 
-                          {...register('password', { 
-                            required: ['president', 'vice_president', 'treasurer', 'executive'].includes(selectedRole) ? '初期パスワードを入力してください' : false 
-                          })} 
-                          type="text" 
-                          placeholder="管理者ログイン用に設定" 
-                          className={`w-full h-14 bg-amber-50/50 rounded-2xl font-black px-6 outline-none border transition-all text-amber-900 placeholder:text-amber-700/30 ${
-                            errors.password ? 'border-rose-400 bg-rose-50/30' : 'border-amber-200/50 focus:border-amber-400 focus:bg-amber-50'
-                          }`} 
+                        <input
+                          {...register('password', {
+                            required: ['president', 'vice_president', 'treasurer', 'executive'].includes(selectedRole) ? '初期パスワードを入力してください' : false
+                          })}
+                          type="text"
+                          placeholder="管理者ログイン用に設定"
+                          className={`w-full h-14 bg-amber-50/50 rounded-2xl font-black px-6 outline-none border transition-all text-amber-900 placeholder:text-amber-700/30 ${errors.password ? 'border-rose-400 bg-rose-50/30' : 'border-amber-200/50 focus:border-amber-400 focus:bg-amber-50'
+                            }`}
                         />
                         {errors.password && (
                           <span className="text-[10px] text-rose-500 font-bold block pl-1 mt-1">
@@ -275,7 +277,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                                 {item.value}
                               </span>
                             ) : item.yearBadge ? (
-                              <span className={cn("px-4 py-1.5 rounded-full text-[13px] font-black tracking-wider", getGradeStyle(member.university_year))}>
+                              <span className={cn("px-4 py-1.5 rounded-full text-[13px] font-black tracking-wider", getGradeStyle((member.users?.university_year === 0 || member.users?.university_year) ? member.users.university_year : 1))}>
                                 {item.value}
                               </span>
                             ) : (

@@ -35,8 +35,8 @@ export default function ArchivedMembers() {
   const filteredMembers = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
     if (!q) return archivedMembers;
-    return archivedMembers.filter(m => 
-      m.users?.full_name?.toLowerCase().includes(q) || 
+    return archivedMembers.filter(m =>
+      m.users?.full_name?.toLowerCase().includes(q) ||
       m.users?.mssv?.toLowerCase().includes(q)
     );
   }, [archivedMembers, searchTerm]);
@@ -59,7 +59,7 @@ export default function ArchivedMembers() {
       if (!window.confirm('このメンバーを完全に削除してもよろしいですか？この操作は取り消せません。')) {
         throw new Error('キャンセルされました');
       }
-      
+
       // Permanently delete from club_memberships (and the DB constraint will cascade or we just delete both)
       const { error: memError } = await supabase.from('club_memberships').delete().eq('user_id', userUuid);
       if (memError) throw memError;
@@ -83,18 +83,15 @@ export default function ArchivedMembers() {
       {/* Editorial Header */}
       <header className="flex items-center justify-between">
         <div className="space-y-4">
-          <Link 
+          <Link
             to="/admin/members"
             className="flex items-center gap-2 text-stone-400 hover:text-stone-900 transition-colors group text-sm font-black uppercase tracking-widest"
           >
             <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> メンバー名簿へ戻る
           </Link>
-          <h1 className="text-[42px] font-black text-stone-900 font-mincho leading-tight">
-            アーカイブ記録
+          <h1 className="text-[38px] font-black text-stone-900 font-mincho leading-tight">
+            削除された部員
           </h1>
-          <p className="text-stone-400 font-serif max-w-xl leading-relaxed">
-            過去に削除またはアーカイブされたメンバーの記録です。ここから必要に応じて復元を行うことができます。
-          </p>
         </div>
       </header>
 
@@ -115,9 +112,9 @@ export default function ArchivedMembers() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-stone-50/50">
-              <th className="px-10 py-6 text-[11px] font-black text-stone-400 uppercase tracking-[0.2em] border-b border-stone-100">氏名 / 識別情報</th>
-              <th className="px-10 py-6 text-[11px] font-black text-stone-400 uppercase tracking-[0.2em] border-b border-stone-100">アーカイブ日</th>
-              <th className="px-10 py-6 text-right text-[11px] font-black text-stone-400 uppercase tracking-[0.2em] border-b border-stone-100">操作</th>
+              <th className="px-10 py-6 text-[16px] font-black text-stone-900 uppercase tracking-[0.2em] border-b border-stone-100">氏名 / 識別情報</th>
+              <th className="px-10 py-6 text-[16px] font-black text-stone-900 uppercase tracking-[0.2em] border-b border-stone-100">削除日</th>
+              <th className="px-10 py-6 text-right text-[16px] font-black text-stone-900 uppercase tracking-[0.2em] border-b border-stone-100">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-50">
@@ -131,12 +128,12 @@ export default function ArchivedMembers() {
               <tr>
                 <td colSpan={3} className="px-10 py-32 text-center">
                   <Trash2 className="w-12 h-12 text-stone-100 mx-auto mb-4" />
-                  <p className="text-stone-300 font-serif italic">アーカイブに一致する記録はありません</p>
+                  <p className="text-stone-300 font-serif italic">記録はありません</p>
                 </td>
               </tr>
             ) : (
               filteredMembers.map((mem) => (
-                <motion.tr 
+                <motion.tr
                   key={mem.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -155,14 +152,14 @@ export default function ArchivedMembers() {
                   </td>
                   <td className="px-10 py-8 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      <button 
+                      <button
                         onClick={() => restoreMutation.mutate(mem.user_id)}
                         className="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all active:scale-95 shadow-lg shadow-stone-200"
                         title="リストに復元する"
                       >
                         <RotateCcw className="w-3 h-3" /> 復元
                       </button>
-                      <button 
+                      <button
                         onClick={() => hardDeleteMutation.mutate(mem.user_id)}
                         className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm"
                         title="完全に削除する"
