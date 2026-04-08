@@ -127,7 +127,7 @@ export default function Profile() {
           label === 'LINE' ? "text-[#06C755]" : "text-stone-900",
           isVertical ? "pl-9 text-[15px] opacity-80" : "" // Thêm padding để cân đối với icon
         )}>
-          {value && value !== 'null' ? value : '無'}
+          {(value && value.toString().trim() !== '' && value !== 'null') ? value : '無'}
         </span>
       </div>
     </div>

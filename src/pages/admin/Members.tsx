@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -27,7 +27,7 @@ const memberSchema = z.object({
   full_name_kana: z.string().optional(),
   gender: z.string().optional().nullable(),
   phone: z.string().optional(),
-  university_email: z.string().email('無効な大学メールです').optional().or(z.literal('')),
+  university_email: z.string().min(1, '大学メールを入力してください').email('無効な大学メールです'),
   line_nickname: z.string().optional(),
   hometown: z.string().optional(),
   role: z.enum(['president', 'vice_president', 'treasurer', 'executive', 'member', 'alumni']),
@@ -195,6 +195,7 @@ export default function Members() {
           full_name: data.full_name,
           full_name_kana: data.full_name_kana,
           gender: data.gender,
+          email: data.email && data.email.trim() !== '' ? data.email.trim() : null,
           mssv: data.mssv,
           phone: data.phone,
           university_email: data.university_email,
@@ -332,9 +333,9 @@ export default function Members() {
             <>
               <button
                 onClick={() => setIsImportOpen(true)}
-                className="h-12 lg:h-14 flex-1 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-stone-600 rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-stone-50 active:scale-95 flex items-center justify-center gap-2"
+                className="h-12 lg:h-14 flex-2 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-stone-600 rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-stone-50 active:scale-95 flex items-center justify-center gap-2"
               >
-                <FileUp size={16} className="text-stone-400" />
+                <FileUp size={16} className="text-stone-500" />
                 <span>インポート</span>
               </button>
 
@@ -343,7 +344,7 @@ export default function Members() {
                 className="h-12 lg:h-14 flex-1 sm:flex-none px-6 lg:px-10 bg-[#4F5BD5] text-white rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-lg shadow-[#4F5BD5]/20 hover:bg-[#3d4bb5] transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 <UserPlus size={18} />
-                <span>新規登録</span>
+                <span>登録</span>
               </button>
             </>
           )}
@@ -353,7 +354,7 @@ export default function Members() {
             className="h-12 lg:h-14 flex-1 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-stone-600 rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-stone-50 active:scale-95 flex items-center justify-center gap-2 group"
             title="アーカイブ管理"
           >
-            <Archive size={16} className="text-stone-300 group-hover:text-rose-500 transition-colors" />
+            <Archive size={16} className="text-stone-900 group-hover:text-rose-500 transition-colors" />
             <span>解除された部員</span>
           </Link>
         </div>
@@ -375,7 +376,7 @@ export default function Members() {
               </div>
               <div>
                 <p className="text-[14px] lg:text-[16px] font-black text-stone-900 tracking-tight leading-tight mb-0.5">
-                  マイページの開示設定 : <span className={settings?.allow_profile_edit ? "text-emerald-600" : "text-rose-500"}>{settings?.allow_profile_edit ? '高' : '低'}</span>
+                  マイページの開示 : <span className={settings?.allow_profile_edit ? "text-emerald-600" : "text-rose-500"}>{settings?.allow_profile_edit ? 'ON' : 'OFF'}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <span className={cn("text-[13px] font-bold uppercase tracking-widest", settings?.allow_profile_edit ? "text-emerald-500" : "text-rose-400")}>
@@ -504,16 +505,12 @@ export default function Members() {
                       <td colSpan={5} className="px-10 py-48 text-center text-stone-400 uppercase tracking-[0.5em] font-black">データが見つかりません</td>
                     </tr>
                   ) : (
-                    <AnimatePresence mode="popLayout">
+                    <>
                       {paginatedData.map((mem) => {
                         const gradeStyle = getGradeBadge(mem.users?.university_year);
                         return (
-                          <motion.tr
+                          <tr
                             key={mem.id}
-                            layout
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
                             className="group hover:bg-stone-50/60 transition-all duration-300"
                           >
                             <td className={`px-10 ${isCompact ? 'py-4' : 'py-8'}`}>
@@ -533,7 +530,6 @@ export default function Members() {
                             </td>
                             <td className={`px-8 ${isCompact ? 'py-4 text-[14px]' : 'py-8 text-[16px]'}`}>
                               <div className="font-extrabold text-stone-800 mb-1 flex items-center gap-2">{mem.users?.mssv || '無'}</div>
-                              {!isCompact && <div className="text-[14px] font-bold text-stone-600 tracking-tight opacity-70">{mem.users?.email || '無'}</div>}
                             </td>
                             <td className={`px-8 ${isCompact ? 'py-4' : 'py-8'}`}>
                               <span className={`px-4 py-1.5 rounded-lg border-2 text-[10px] lg:text-[11px] font-black uppercase tracking-widest transition-all ${mem.role === 'president' ? 'bg-[#D62976]/5 text-[#D62976] border-[#D62976]/10' :
@@ -560,10 +556,10 @@ export default function Members() {
                                 <button onClick={() => setSelectedMember(mem)} className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center bg-white border border-stone-100 text-stone-400 hover:text-stone-900 hover:border-stone-900 hover:shadow-2xl rounded-xl lg:rounded-2xl transition-all shadow-sm" title="詳細"><Eye className="w-4 h-4 lg:w-5 lg:h-5" /></button>
                               </div>
                             </td>
-                          </motion.tr>
+                          </tr>
                         );
                       })}
-                    </AnimatePresence>
+                    </>
                   )}
                 </tbody>
               </table>
@@ -594,7 +590,7 @@ export default function Members() {
                 {paginatedData.map(mem => {
                   const gradeBadge = getGradeBadge(mem.users?.university_year);
                   return (
-                    <motion.div
+                    <div
                       key={mem.id}
                       onClick={() => setSelectedMember(mem)}
                       className="relative bg-white rounded-[2.5rem] p-5 border border-stone-100 shadow-xl shadow-stone-200/10 active:scale-[0.98] transition-all group overflow-hidden"
@@ -632,7 +628,7 @@ export default function Members() {
                       <div className="absolute right-4 bottom-4 opacity-10 group-active:opacity-30">
                         <Eye size={12} />
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -640,40 +636,38 @@ export default function Members() {
           </div>
 
 
-          {/* ARTFUL PAGINATION (Task 1) */}
+          {/* PREMIUM PAGINATION SYSTEM */}
           {!isLoading && totalPages > 1 && (
-            <div className="px-10 py-8 bg-stone-50/50 backdrop-blur-xl border-t border-stone-100 flex items-center justify-between shrink-0">
-              <div className="hidden sm:block text-[13px] font-black text-stone-300 uppercase tracking-[0.3em]">
-                全 {totalPages} ページ中 <span className="text-stone-900 border-b-2 border-[#4F5BD5] py-0.5">{currentPage}</span> ページを表示
+            <div className="px-6 lg:px-10 py-8 lg:py-10 bg-white border-t border-stone-50 flex flex-col sm:flex-row items-center justify-between gap-6 lg:gap-8 shrink-0">
+              <div className="text-[12px] lg:text-[14px] font-black text-stone-400 uppercase tracking-[0.2em] flex items-center justify-center sm:justify-start gap-3 lg:gap-4 w-full sm:w-auto text-center">
+                <span className="hidden xs:block w-8 h-px bg-stone-100" />
+                <span>Page <span className="text-[#4F5BD5] border-b-2 border-indigo-100">{currentPage}</span> of <span className="text-stone-900">{totalPages}</span></span>
               </div>
-              <div className="flex gap-4 w-full sm:w-auto">
+
+              <div className="flex items-center justify-center sm:justify-end gap-5 w-full sm:w-auto">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="flex-1 sm:flex-none w-14 h-14 flex items-center justify-center bg-white border border-stone-200 rounded-[1.2rem] disabled:opacity-20 disabled:scale-95 disabled:cursor-not-allowed hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all shadow-lg active:scale-90"
+                  className="w-16 lg:w-14 h-16 lg:h-14 flex items-center justify-center bg-brand-stone-900 text-white rounded-2xl shadow-xl shadow-stone-200/50 active:scale-90 disabled:opacity-20 disabled:scale-95 disabled:cursor-not-allowed transition-all"
+                  title="Previous"
                 >
-                  <ChevronLeft className="w-6 h-6" />
+                  <ChevronLeft size={22} strokeWidth={3} />
                 </button>
+
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="flex-1 sm:flex-none w-14 h-14 flex items-center justify-center bg-white border border-stone-200 rounded-[1.2rem] disabled:opacity-20 disabled:scale-95 disabled:cursor-not-allowed hover:bg-[#4F5BD5] hover:text-white hover:border-[#4F5BD5] transition-all shadow-lg active:scale-90"
+                  className="w-16 lg:w-14 h-16 lg:h-14 flex items-center justify-center bg-brand-stone-900 text-white rounded-2xl shadow-xl shadow-stone-200/50 active:scale-90 disabled:opacity-20 disabled:scale-95 disabled:cursor-not-allowed transition-all"
+                  title="Next"
                 >
-                  <ChevronRight className="w-6 h-6" />
+                  <ChevronRight size={22} strokeWidth={3} />
                 </button>
               </div>
             </div>
           )}
         </section>
 
-        <div className="lg:hidden fixed bottom-8 right-8 z-[100]">
-          <button
-            onClick={() => { setSelectedMember({ users: {}, role: 'member', university_year: 1 }); }}
-            className="w-16 h-16 bg-[#4F5BD5] text-white rounded-full shadow-[0_20px_50px_rgba(79,91,213,0.5)] flex items-center justify-center active:scale-90 transition-all"
-          >
-            <UserPlus size={28} />
-          </button>
-        </div>
+
 
         {/* --- SLIDE OVER PANEL & MODALS --- */}
         <MemberDetailDrawer
@@ -697,15 +691,13 @@ export default function Members() {
               return;
             }
 
-            console.log('Saving member:', { isNew, targetUserId, targetMembershipId, data });
-
             try {
               await saveMutation.mutateAsync({
                 ...data,
                 user_id: targetUserId,
                 membership_id: targetMembershipId,
                 university_year: Number(data.university_year),
-                email: data.email || selectedMember.users?.email
+                email: data.email
               });
               setSelectedMember(null);
             } catch (err: any) {

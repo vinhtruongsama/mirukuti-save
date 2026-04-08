@@ -11,13 +11,20 @@ import { useDebounce } from '../../hooks/useDebounce';
 
 // Helper Map for Status
 const STATUS_JA = {
-  'pending': '確認待ち',
+  'applied': '確認待ち',
   'present': '出席',
   'unexcused_absence': '欠席'
 };
 
+const STATUS_JA_EXT = {
+  'applied': 'Đã đăng ký',
+  'pending': 'Đã đăng ký',
+  'present': 'Đã tham gia',
+  'unexcused_absence': 'Vắng mặt'
+};
+
 const STATUS_COLOR_THEME = {
-  'pending': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', active: 'bg-amber-500 text-white border-amber-500' },
+  'applied': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', active: 'bg-amber-500 text-white border-amber-500' },
   'present': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', active: 'bg-emerald-500 text-white border-emerald-500' },
   'unexcused_absence': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', active: 'bg-rose-500 text-white border-rose-500' }
 };
@@ -25,7 +32,7 @@ const STATUS_COLOR_THEME = {
 // -------------------------------------------------------------
 // CHILD COMPONENT: Simple Registration Item
 // -------------------------------------------------------------
-function RegistrationItem({ reg, activityId }: { reg: any, activityId: string }) {
+function RegistrationItem({ reg, activityId, currentSessionIdx }: { reg: any, activityId: string, currentSessionIdx: number | null }) {
   const queryClient = useQueryClient();
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState(reg.admin_note || '');
@@ -63,21 +70,47 @@ function RegistrationItem({ reg, activityId }: { reg: any, activityId: string })
     }
   }, [debouncedNote]);
 
-  // Status Mutation
+  // Find existing session status if available
+  const sessionStatus = reg.attendance_records?.find((ar: any) => ar.session_index === currentSessionIdx)?.status;
+  const displayStatus = currentSessionIdx !== null ? (sessionStatus || 'applied') : reg.attendance_status;
+
+  // Status Mutation (Now specialized for session-level)
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
-      const { error } = await supabase
-        .from('registrations')
-        .update({ attendance_status: newStatus })
-        .eq('id', reg.id);
-      if (error) throw error;
+      console.log('Updating status to:', newStatus, 'for session:', currentSessionIdx);
+      if (currentSessionIdx !== null) {
+        // Upsert into attendance_records
+        const { error } = await supabase
+          .from('attendance_records')
+          .upsert({
+            registration_id: reg.id,
+            session_index: currentSessionIdx,
+            status: newStatus
+          }, { onConflict: 'registration_id,session_index' });
+        if (error) throw error;
+      } else {
+        // Fallback to legacy behavior for "All Updates" view
+        const { error } = await supabase
+          .from('registrations')
+          .update({ attendance_status: newStatus })
+          .eq('id', reg.id);
+        if (error) throw error;
+      }
     },
     onMutate: async (newStatus) => {
       await queryClient.cancelQueries({ queryKey: ['admin-registrations', activityId] });
       const previousRegs = queryClient.getQueryData(['admin-registrations', activityId]);
       queryClient.setQueryData(['admin-registrations', activityId], (old: any) => {
         if (!old) return old;
-        return old.map((r: any) => r.id === reg.id ? { ...r, attendance_status: newStatus } : r);
+        return old.map((r: any) => {
+          if (r.id !== reg.id) return r;
+          if (currentSessionIdx !== null) {
+            const existingRecords = r.attendance_records || [];
+            const otherRecords = existingRecords.filter((ar: any) => ar.session_index !== currentSessionIdx);
+            return { ...r, attendance_records: [...otherRecords, { session_index: currentSessionIdx, status: newStatus }] };
+          }
+          return { ...r, attendance_status: newStatus };
+        });
       });
       return { previousRegs };
     },
@@ -108,9 +141,10 @@ function RegistrationItem({ reg, activityId }: { reg: any, activityId: string })
               )}
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">
+              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
                 Applied: {format(new Date(reg.registered_at), 'MM/dd')}
               </span>
+              <div className="h-1 w-1 bg-gray-200 rounded-full" />
               <button
                 onClick={() => setShowNote(!showNote)}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${reg.admin_note ? 'bg-rose-50 text-rose-500 border border-rose-100' : 'text-gray-400 hover:text-gray-900'
@@ -128,17 +162,16 @@ function RegistrationItem({ reg, activityId }: { reg: any, activityId: string })
           {[
             { id: 'present', label: '出席', color: 'present', icon: CheckCircle2 },
             { id: 'unexcused_absence', label: '欠席', color: 'unexcused_absence', icon: UserX },
-            { id: 'pending', label: '確認待ち', color: 'pending', icon: Sparkles },
+            { id: 'applied', label: '確認待ち', color: 'applied', icon: Sparkles },
           ].map((item) => {
             const theme = STATUS_COLOR_THEME[item.color as keyof typeof STATUS_COLOR_THEME];
-            const isActive = reg.attendance_status === item.id;
+            const isActive = displayStatus === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => updateStatusMutation.mutate(item.id)}
-                className={`flex-1 lg:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-1 sm:px-3 py-3 rounded-xl border-2 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 ${
-                  isActive ? theme.active : `bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-700 shadow-sm`
-                }`}
+                className={`flex-1 lg:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-1 sm:px-3 py-3 rounded-xl border-2 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 ${isActive ? theme.active : `bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-700 shadow-sm`
+                  }`}
               >
                 <item.icon className="w-3.5 h-3.5 sm:w-4 h-4" />
                 <span className="truncate">{item.label}</span>
@@ -184,6 +217,7 @@ export default function ActivityRegistrations() {
   const { id: activityId } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedSessionIdx, setSelectedSessionIdx] = useState<number | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 400);
 
   const { data: activity, isLoading: actLoading } = useQuery({
@@ -199,15 +233,25 @@ export default function ActivityRegistrations() {
   const { data: registrations, isLoading: regLoading } = useQuery({
     queryKey: ['admin-registrations', activityId],
     queryFn: async () => {
+      console.log('Fetching registrations for activityId:', activityId);
       const { data, error } = await supabase
         .from('registrations')
         .select(`
-          id, attendance_status, admin_note, registered_at,
-          users (id, mssv, full_name, email, phone, line_id, hometown)
+          id, attendance_status, admin_note, registered_at, selected_sessions,
+          users:user_id (id, mssv, full_name, email, phone),
+          attendance_records (session_index, status)
         `)
         .eq('activity_id', activityId)
-        .order('registered_at', { ascending: true });
-      if (error) throw error;
+        .order('registered_at', { ascending: true })
+        .not('user_id', 'is', null);
+
+      if (error) {
+        console.error('Supabase fetch error details:', error);
+        throw error;
+      }
+
+      console.log('Successfully fetched registrations count:', data?.length || 0);
+      console.log('Raw data sample:', data?.[0]);
       return data;
     },
     enabled: !!activityId
@@ -223,68 +267,101 @@ export default function ActivityRegistrations() {
     if (!registrations) return [];
     let result = registrations;
 
-    // Filter by Date
+    // Filter by Date (Only if a specific date pill is clicked)
     if (selectedDate) {
-      result = result.filter((r: any) => 
-        format(new Date(r.registered_at), 'yyyy-MM-dd') === selectedDate
-      );
+      result = result.filter((r: any) => {
+        try {
+          return format(new Date(r.registered_at), 'yyyy-MM-dd') === selectedDate;
+        } catch {
+          return false;
+        }
+      });
     }
 
-    // Filter by Search
+    // Filter by Session Index (Only if a specific Vol. pill is clicked)
+    if (selectedSessionIdx !== null) {
+      result = result.filter((r: any) => {
+        // If sessions field is missing, it's effectively registered for everything
+        if (!r.selected_sessions) return true;
+        // Check if the current session index exists in the member's selected_sessions array
+        return Array.isArray(r.selected_sessions) && r.selected_sessions.includes(selectedSessionIdx);
+      });
+    }
+
+    // Filter by Search (Case insensitive searching of name and student ID)
     if (debouncedSearch.trim()) {
       const lower = debouncedSearch.toLowerCase();
       result = result.filter((r: any) =>
-        r.users.full_name.toLowerCase().includes(lower) ||
-        (r.users.mssv && r.users.mssv.toLowerCase().includes(lower))
+        (r.users?.full_name?.toLowerCase().includes(lower)) ||
+        (r.users?.mssv?.toLowerCase().includes(lower))
       );
     }
 
+    // Final filter: Only show registrations where the associated user exists
+    result = result.filter((r: any) => r.users && r.users.full_name);
+
     return result;
-  }, [registrations, debouncedSearch, selectedDate]);
+  }, [registrations, debouncedSearch, selectedDate, selectedSessionIdx]);
 
   const exportToExcel = () => {
     if (!registrations || !activity) return;
     try {
       const ws = XLSX.utils.aoa_to_sheet([]);
-      
+
       // Meta Information & Headers
+      const sessionInfo = selectedSessionIdx !== null
+        ? ` (Vol.${selectedSessionIdx + 1} - ${activity.sessions[selectedSessionIdx].start_time})`
+        : ' (全ての日程)';
+
       const headers = [
-        ['ACTIVITY ATTENDANCE REPORT'],
-        [`Event: ${activity.title}`],
-        [`Exported At: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+        [`活動名：${activity.title}${sessionInfo}`],
+        [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
         [''],
-        ['NO', 'STUDENT ID', 'FULL NAME', 'ATTENDANCE STATUS', 'ADMIN NOTE']
+        ['No', '氏名', '学籍番号', '出欠', '備考']
       ];
 
       XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
 
       // Member Data
-      const rowData = registrations.map((r: any, idx) => [
-        idx + 1,
-        r.users.mssv || 'N/A',
-        r.users.full_name || 'N/A',
-        STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || 'Unknown',
-        r.admin_note || ''
-      ]);
+      const rowData = filteredRegs.map((r: any, idx) => {
+        // Determine status for this specific session or overall
+        let statusText = '確認中';
+        if (selectedSessionIdx !== null) {
+          const sStatus = r.attendance_records?.find((ar: any) => ar.session_index === selectedSessionIdx)?.status;
+          if (sStatus) statusText = STATUS_JA[sStatus as keyof typeof STATUS_JA] || '確認中';
+        } else {
+          statusText = STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中';
+        }
+
+        return [
+          idx + 1,
+          r.users?.full_name || 'N/A',
+          r.users?.mssv || 'N/A',
+          statusText,
+          r.admin_note || ''
+        ];
+      });
 
       XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A6' });
 
       // Column Widths for better readability
       ws['!cols'] = [
-        { wch: 6 },  // NO
-        { wch: 15 }, // STUDENT ID
-        { wch: 30 }, // FULL NAME
-        { wch: 20 }, // ATTENDANCE STATUS
-        { wch: 40 }  // ADMIN NOTE
+        { wch: 6 },  // No
+        { wch: 30 }, // 氏名
+        { wch: 15 }, // 学籍番号
+        { wch: 20 }, // 出欠
+        { wch: 40 }  // その他
       ];
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Attendance List');
 
-      // Filename construction
-      const safeTitle = activity.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 30);
-      const timestamp = format(new Date(), 'yyyyMMdd_HHmm');
-      XLSX.writeFile(wb, `${safeTitle}_Attendance_${timestamp}.xlsx`);
+      // Filename construction: [ActivityTitle]の出欠（年月日）
+      const safeTitle = activity.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 50);
+      const datePart = format(new Date(), 'yyyyMMdd');
+      const sessionFilePart = selectedSessionIdx !== null ? `_Vol${selectedSessionIdx + 1}` : '';
+      
+      XLSX.writeFile(wb, `${safeTitle}の出欠（${datePart}）${sessionFilePart}.xlsx`);
 
       toast.success('Excel Report Exported Successfully');
     } catch (err: any) {
@@ -314,7 +391,7 @@ export default function ActivityRegistrations() {
           <span>一覧に戻る</span>
         </Link>
 
-        <button 
+        <button
           onClick={exportToExcel}
           className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gray-900 hover:bg-[#4F5BD5] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
         >
@@ -354,29 +431,55 @@ export default function ActivityRegistrations() {
         {/* Date Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
-            onClick={() => setSelectedDate(null)}
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${
-              selectedDate === null
+            onClick={() => {
+              setSelectedDate(null);
+              setSelectedSessionIdx(null);
+            }}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedDate === null && selectedSessionIdx === null
                 ? 'bg-gray-900 border-gray-900 text-white shadow-lg'
                 : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
-            }`}
+              }`}
           >
             All Updates
           </button>
           {registrationDates.map((dateString) => (
             <button
               key={dateString}
-              onClick={() => setSelectedDate(dateString)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${
-                selectedDate === dateString
+              onClick={() => {
+                setSelectedDate(dateString);
+                setSelectedSessionIdx(null);
+              }}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedDate === dateString
                   ? 'bg-[#4F5BD5] border-[#4F5BD5] text-white shadow-lg shadow-[#4F5BD5]/20'
                   : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
-              }`}
+                }`}
             >
-              {format(new Date(dateString), 'MM/dd')}
+              Update: {format(new Date(dateString), 'MM/dd')}
             </button>
           ))}
         </div>
+
+        {/* Session Filter Pills */}
+        {activity?.sessions?.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="h-8 w-[2px] bg-gray-100 mx-2 shrink-0" />
+            {activity.sessions.map((session: any, idx: number) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setSelectedSessionIdx(idx);
+                  setSelectedDate(null);
+                }}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === idx
+                    ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20'
+                    : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                  }`}
+              >
+                Vol.{idx + 1} ({session.start_time})
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Registration List */}
@@ -388,7 +491,7 @@ export default function ActivityRegistrations() {
           </div>
         ) : (
           filteredRegs.map((reg) => (
-            <RegistrationItem key={reg.id} reg={reg} activityId={activityId!} />
+            <RegistrationItem key={reg.id} reg={reg} activityId={activityId!} currentSessionIdx={selectedSessionIdx} />
           ))
         )}
       </div>

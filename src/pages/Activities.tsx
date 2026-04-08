@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, MapPin, Users, Info, ArrowRight, X, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Calendar, MapPin, Users, Info, ArrowRight, X, Clock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -21,12 +21,18 @@ export default function Activities() {
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
+  const [showScheduleWarning, setShowScheduleWarning] = useState(false);
 
   const toggleSession = (idx: number) => {
     setSelectedSessions(prev =>
       prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
     );
   };
+
+  // Reset warning when user starts selecting
+  useEffect(() => {
+    if (selectedSessions.length > 0) setShowScheduleWarning(false);
+  }, [selectedSessions]);
 
   const queryClient = useQueryClient();
   const { data: activities = [], isLoading } = useQuery({
@@ -219,12 +225,8 @@ export default function Activities() {
               <p className="text-[11px] font-black uppercase text-stone-400 tracking-[0.2em] animate-pulse">Loading data...</p>
             </div>
           ) : currentActivities.length > 0 ? (
-            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-32">
               {currentActivities.map((activity, index) => {
-                const progress = activity.capacity
-                  ? Math.min((activity.registered / activity.capacity) * 100, 100)
-                  : 100;
-
                 const isOpen = activity.computedStatus === 'OPEN';
 
                 return (
@@ -249,56 +251,47 @@ export default function Activities() {
                       />
                       <div className="absolute top-4 left-4 flex flex-col gap-2">
                         {isOpen ? (
-                          <span className="px-4 py-2 bg-emerald-500 text-white text-[12px] font-black uppercase tracking-[0.2em] rounded-full shadow-[0_4px_15px_rgba(16,185,129,0.3)]">
+                          <span className="px-4 py-2 bg-emerald-500 text-white text-[15px] font-black uppercase tracking-[0.2em] rounded-full shadow-[0_4px_15px_rgba(16,185,129,0.3)]">
                             募集中
                           </span>
                         ) : (
-                          <span className="px-4 py-2 bg-white/95 backdrop-blur-md text-brand-stone-500 text-[12px] font-black uppercase tracking-[0.25em] rounded-full shadow-sm">
-                            募集終了
+                          <span className="px-4 py-2 bg-white/95 backdrop-blur-md text-brand-stone-500 text-[15px] font-black uppercase tracking-[0.25em] rounded-full shadow-sm">
+                            終了
                           </span>
                         )}
-                      </div>
-                      <div className="absolute top-4 right-4">
-                        <span className="px-4 py-2 bg-stone-900/90 backdrop-blur-md text-[#FEDA75] text-[12px] font-black uppercase tracking-widest rounded-full shadow-[0_8px_25px_rgba(0,0,0,0.2)] border border-white/10">
-                          {activity.yearName}
-                        </span>
                       </div>
                     </div>
 
                     <div className="p-6 flex flex-col flex-1">
-                      <div className="flex items-center gap-2 text-[#4F5BD5] font-black text-[11px] mb-2 uppercase tracking-wider">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span>{activity.date ? format(new Date(activity.date), 'yyyy/MM/dd', { locale: jaLocale }) : '---'}</span>
-                      </div>
-                      <h3 className="text-xl md:text-2xl font-black text-stone-900 leading-[1.25] line-clamp-2 mb-4 group-hover:text-[#D62976] transition-colors duration-500 h-[3.2rem]">
+                      <h3 className="text-lg font-black text-stone-900 leading-tight line-clamp-2 mb-2 group-hover:text-[#D62976] transition-colors duration-500 h-[3rem]">
                         {activity.displayText}
                       </h3>
-                      <div className="space-y-3 pt-3 border-t border-stone-100 mb-5 mt-auto">
-                        <div className="flex items-start gap-2 text-stone-500 text-sm">
-                          <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                          <span className="line-clamp-1">{activity.displayLocation}</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-stone-500 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 shrink-0" />
-                              <span>
-                                {activity.capacity
-                                  ? `${activity.registered}/${activity.capacity}名`
-                                  : `${activity.registered}名`}
-                              </span>
-                            </div>
-                            {activity.capacity && (
-                              <span className="font-medium text-stone-900 text-[9px] bg-stone-100 px-2 py-0.5 rounded-md uppercase tracking-tighter">
-                                {Math.round(progress)}%
-                              </span>
-                            )}
-                          </div>
-                          {activity.capacity && (
-                            <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-                              <div className={`h-full transition-all duration-1000 ${progress >= 100 ? 'bg-[#D62976]' : 'bg-gradient-to-r from-[#4F5BD5] to-[#D62976]'}`} style={{ width: `${progress}%` }} />
-                            </div>
+
+                      <div className="mb-4 pt-4 border-t border-stone-50">
+                        <div className="flex flex-wrap items-center gap-3">
+                          {activity.location_type === 'external' ? (
+                            <span className="px-3 py-1 bg-amber-900 text-[#FEDA75] text-[12px] font-black uppercase tracking-widest rounded-full shadow-sm border border-amber-800 shrink-0">
+                              学外
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-brand-stone-900 text-[#FEDA75] text-[12px] font-black uppercase tracking-widest rounded-full shadow-sm border border-brand-stone-800 shrink-0">
+                              学内
+                            </span>
                           )}
+
+                          <div className="px-3 py-1.5 bg-indigo-50/50 rounded-xl flex items-center gap-2 border border-indigo-100/30 shrink-0">
+                            <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                            <span className="text-[12px] font-black text-indigo-900 tracking-tight">
+                              {activity.date ? format(new Date(activity.date), 'M/d (E)', { locale: jaLocale }) : '---'}
+                            </span>
+                          </div>
+
+                          <div className="px-3 py-1.5 bg-emerald-50/50 rounded-xl flex items-center gap-2 border border-emerald-100/30 ml-auto shrink-0">
+                            <Users className="w-3.5 h-3.5 text-emerald-500" />
+                            <span className="text-[12px] font-black text-emerald-900 tracking-tight">
+                              {activity.capacity ? `${activity.registered} / ${activity.capacity}` : `${activity.registered}`}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <button
@@ -343,10 +336,7 @@ export default function Activities() {
                 {/* Header Pills */}
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
                   <span className="px-3 py-1 bg-stone-900 text-[#FEDA75] text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full shadow-lg">
-                    {selectedActivity.yearName}
-                  </span>
-                  <span className="px-3 py-1 bg-[#4F5BD5]/5 text-[#4F5BD5] text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full border border-[#4F5BD5]/10">
-                    {selectedActivity.date ? format(new Date(selectedActivity.date), 'EEEE, MM/dd', { locale: jaLocale }) : '---'}
+                    {selectedActivity.location_type === 'external' ? '学外活動' : '学内活動'}
                   </span>
                   {selectedActivity.computedStatus === 'OPEN' ? (
                     <span className="px-4 py-1.5 bg-emerald-500 text-white text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] rounded-full shadow-[0_4px_12px_rgba(16,185,129,0.2)]">募集中</span>
@@ -355,7 +345,7 @@ export default function Activities() {
                   )}
                 </div>
 
-                <Dialog.Title className="text-2xl md:text-5xl font-black text-stone-900 leading-tight">
+                <Dialog.Title className="text-2xl md:text-5xl font-black text-stone-900 leading-tight break-words">
                   {selectedActivity.displayText}
                 </Dialog.Title>
 
@@ -370,8 +360,8 @@ export default function Activities() {
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">開催日時</span>
-                        <span className="text-sm font-black text-brand-stone-900 truncate">
-                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'HH:mm') : '---'}
+                        <span className="text-sm font-black text-brand-stone-900">
+                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'M月d日 (E) HH:mm', { locale: jaLocale }) : '---'}
                         </span>
                       </div>
                     </div>
@@ -394,7 +384,7 @@ export default function Activities() {
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">募集終了</span>
-                        <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'MM/dd HH:mm', { locale: jaLocale })}</span>
+                        <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'M月d日 (E)', { locale: jaLocale })}</span>
                       </div>
                     </div>
                   </div>
@@ -424,7 +414,7 @@ export default function Activities() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
                         <div className={selectedActivity.displayNote ? "md:col-span-2" : "md:col-span-3"}>
-                          <div className="bg-stone-50/50 rounded-[2.5rem] p-8 md:p-12 border border-stone-100/50 w-full shadow-sm">
+                          <div className="bg-stone-50/50 rounded-[2.5rem] p-8 md:p-12 border-2 border-stone-600 w-full shadow-sm">
                             <p className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-600 bg-clip-text text-transparent text-sm md:text-base font-medium leading-relaxed whitespace-pre-line w-full">
                               {selectedActivity.displayDesc}
                             </p>
@@ -467,39 +457,27 @@ export default function Activities() {
                                 <div
                                   key={idx}
                                   onClick={() => canToggle && toggleSession(idx)}
-                                  className={`group p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                                  className={`group p-5 rounded-[1.5rem] border-2 transition-all duration-500 flex items-center gap-6 ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
                                     } ${isSelected
-                                      ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm'
-                                      : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
+                                      ? 'bg-white text-brand-emerald-500 border-brand-emerald-500 shadow-xl shadow-brand-emerald-500/10'
+                                      : 'bg-stone-50/50 border-stone-500 hover:border-brand-stone-600'
                                     }`}
                                 >
-                                  <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${isSelected
-                                      ? 'bg-brand-emerald-500 text-white border-brand-emerald-400'
-                                      : 'bg-white text-stone-400 border-stone-200'
-                                      }`}>
-                                      <span className="text-xs font-black">Vol.{idx + 1}</span>
-                                    </div>
-                                    <div>
-                                      <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
-                                        {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
-                                      </p>
-                                      <p className="text-sm font-bold text-brand-stone-900">
-                                        {session.start_time} - {session.end_time}
-                                      </p>
-                                    </div>
+                                  {/* Checkbox Replacement for Vol.X */}
+                                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all shrink-0 ${isSelected
+                                    ? 'bg-brand-emerald-500 text-white border-brand-emerald-500'
+                                    : 'bg-white text-stone-200 border-stone-100'
+                                    }`}>
+                                    <CheckCircle2 className={`w-6 h-6 transition-transform ${isSelected ? 'scale-100' : 'scale-0'}`} />
                                   </div>
 
-                                  <div className="flex items-center gap-4">
-                                    <span className={`text-[14px] font-black uppercase tracking-widest ${isSelected ? 'text-brand-emerald-600' : 'text-stone-400'}`}>
-                                      {isSelected ? '参加予定' : '未選択'}
-                                    </span>
-                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected
-                                      ? 'bg-brand-emerald-500 border-brand-emerald-500 text-white'
-                                      : 'bg-white border-stone-200'
-                                      }`}>
-                                      {isSelected && <motion.svg initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></motion.svg>}
-                                    </div>
+                                  <div className="flex-1">
+                                    <p className={`text-[13px] font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600/60' : 'text-stone-400'}`}>
+                                      {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
+                                    </p>
+                                    <p className={`text-lg font-black ${isSelected ? 'text-brand-emerald-700' : 'text-brand-stone-900'}`}>
+                                      {session.start_time} - {session.end_time}
+                                    </p>
                                   </div>
                                 </div>
                               );
@@ -555,40 +533,61 @@ export default function Activities() {
                             ) : (
                               <div className="w-full flex flex-col items-center gap-8">
                                 {currentUser && selectedActivity.computedStatus === 'OPEN' && (
-                                  <div
-                                    onClick={() => setIsConfirmed(!isConfirmed)}
-                                    className={`group/confirm flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer w-full max-w-lg ${isConfirmed
-                                      ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm shadow-brand-emerald-500/5'
-                                      : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
-                                      }`}
-                                  >
-                                    <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 shrink-0 ${isConfirmed
-                                      ? 'bg-brand-emerald-500 border-brand-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                                      : 'bg-white border-stone-200 group-hover/confirm:border-brand-stone-300'
-                                      }`}>
-                                      {isConfirmed && (
-                                        <motion.svg
-                                          initial={{ scale: 0, opacity: 0 }}
-                                          animate={{ scale: 1, opacity: 1 }}
-                                          className="w-3.5 h-3.5 text-white"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                          strokeWidth={4}
+                                  <>
+                                    {/* Mandatory Schedule Warning & Instructions - Shown only when validation fails */}
+                                    <AnimatePresence>
+                                      {showScheduleWarning && (
+                                        <motion.div
+                                          initial={{ opacity: 0, height: 0 }}
+                                          animate={{ opacity: 1, height: 'auto' }}
+                                          exit={{ opacity: 0, height: 0 }}
+                                          className="overflow-hidden w-full max-w-lg"
                                         >
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                        </motion.svg>
+                                          <div className="flex flex-col gap-4 w-full">
+
+                                            <p className="text-center text-[12px] font-black text-rose-500 animate-pulse tracking-widest uppercase">
+                                              ↑スケジュールをクリックして選択してください↑
+                                            </p>
+                                          </div>
+                                        </motion.div>
                                       )}
+                                    </AnimatePresence>
+
+                                    <div
+                                      onClick={() => setIsConfirmed(!isConfirmed)}
+                                      className={`group/confirm flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer w-full max-w-lg ${isConfirmed
+                                        ? 'bg-brand-emerald-50/30 border-brand-emerald-200 shadow-sm shadow-brand-emerald-500/5'
+                                        : 'bg-stone-50/50 border-stone-100 hover:border-brand-stone-200'
+                                        }`}
+                                    >
+                                      <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 shrink-0 ${isConfirmed
+                                        ? 'bg-brand-emerald-500 border-brand-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                                        : 'bg-white border-stone-200 group-hover/confirm:border-brand-stone-300'
+                                        }`}>
+                                        {isConfirmed && (
+                                          <motion.svg
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            className="w-3.5 h-3.5 text-white"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            strokeWidth={4}
+                                          >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                          </motion.svg>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className={`text-[13px] md:text-sm font-black transition-colors duration-300 ${isConfirmed ? 'text-brand-emerald-700' : 'text-stone-600'}`}>
+                                          内容を全て確認しました。
+                                        </span>
+                                        <p className="text-[10px] md:text-[11px] text-stone-400 font-medium leading-relaxed mt-0.5">
+                                          活動内容および注意事項をすべて読み、理解した上で参加を申し込みます。
+                                        </p>
+                                      </div>
                                     </div>
-                                    <div className="flex flex-col">
-                                      <span className={`text-[13px] md:text-sm font-black transition-colors duration-300 ${isConfirmed ? 'text-brand-emerald-700' : 'text-stone-600'}`}>
-                                        内容を確認しました
-                                      </span>
-                                      <p className="text-[10px] md:text-[11px] text-stone-400 font-medium leading-relaxed mt-0.5">
-                                        活動内容および注意事項をすべて読み、理解した上で参加を申し込みます。
-                                      </p>
-                                    </div>
-                                  </div>
+                                  </>
                                 )}
 
                                 <button
@@ -599,6 +598,13 @@ export default function Activities() {
                                     }
                                     if (!isConfirmed && selectedActivity.computedStatus === 'OPEN') return;
 
+                                    // Mandatory Schedule Check
+                                    if (selectedActivity.sessions?.length > 0 && selectedSessions.length === 0) {
+                                      setShowScheduleWarning(true);
+                                      return;
+                                    }
+
+                                    setShowScheduleWarning(false);
                                     toggleRegistrationMutation.mutate({
                                       activityId: selectedActivity.id,
                                       isRegistered: false
@@ -607,8 +613,7 @@ export default function Activities() {
                                   disabled={
                                     selectedActivity.computedStatus !== 'OPEN' ||
                                     !!isPending ||
-                                    (!!currentUser && !isConfirmed) ||
-                                    (selectedActivity.sessions?.length > 0 && selectedSessions.length === 0)
+                                    (!!currentUser && !isConfirmed)
                                   }
                                   className={`w-full sm:w-auto rounded-xl transition-all duration-500 flex items-center justify-center gap-3 font-black px-12 py-5 text-sm shadow-xl relative overflow-hidden group
                                     ${isPending ? 'opacity-70 cursor-wait' : ''}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Home, Loader2 } from 'lucide-react';
@@ -33,48 +33,54 @@ export default function Login() {
   } = useAuthStore();
   const { academicYears, fetchAcademicYears } = useAppStore();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/profile';
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   });
 
-  // If already logged in, redirect
+  // If already logged in, redirect to Home
   if (session) {
-    return <Navigate to={from} replace />;
+    return <Navigate to="/" replace />;
   }
 
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     setLoginError(null);
     try {
-      // Safety check for years
-      const currentYear = useAppStore.getState().selectedYear;
-      if (!currentYear && academicYears.length > 0) {
-        // Auto-select first if none selected
-        useAppStore.getState().setSelectedYear(academicYears[0]);
-      }
-
+      // 1. Dùng MSSV để tìm Member trong Database trước
+      const studentId = data.studentId.trim();
       const { data: userRecord, error: lookupError } = await supabase
         .from('users')
         .select('*, club_memberships(*)')
-        .eq('mssv', data.studentId.trim())
+        .eq('mssv', studentId)
         .is('deleted_at', null)
         .maybeSingle();
 
       if (lookupError) throw lookupError;
       
+      // Trường hợp không tìm thấy MSSV trong CLB
       if (!userRecord) {
-        throw new Error('部員として登録されていないようです。活動に参加するために、まず入部してください！');
+        throw new Error('学籍番号が正しくありません。部員登録がお済みでない場合は、部長までお問い合わせください。');
       }
 
-      const targetYearId = currentYear?.id || (academicYears[0]?.id);
-      const membership = (userRecord.club_memberships || []).find((m: any) => m.academic_year_id === targetYearId && !m.deleted_at);
+      // 2. Kích hoạt tài khoản Đăng nhập (Auth) tự động nếu chưa có
+      // Điều này đảm bảo những người trong Database (mới import) có thể đăng nhập ngay lập tức
+      const { data: isProvisioned, error: provisionError } = await supabase.rpc('admin_ensure_member_auth', { 
+        p_mssv: studentId 
+      });
+
+      if (provisionError) {
+        console.error('Provisioning failed:', provisionError);
+        throw new Error('ログイン準備中にエラーが発生しました。しばらくしてから再度お試しください。');
+      }
+
+      // 3. Kiểm tra vai trò của họ trong 학년 (năm học hiện tại)
+      const currentYear = useAppStore.getState().selectedYear || academicYears[0];
+      const membership = (userRecord.club_memberships || []).find((m: any) => m.academic_year_id === currentYear?.id && !m.deleted_at);
       const userRole = membership?.role;
       const isLeaderRole = ['president', 'vice_president', 'treasurer', 'executive'].includes(userRole || '');
 
+      // Logic chuyển đổi chế độ Admin/Student
       if (!isAdminMode) {
         if (isLeaderRole) {
           throw new Error('管理者権限をお持ちの方は「管理ログイン」に切り替えて、専用パスワードでログインしてください。');
@@ -88,42 +94,31 @@ export default function Login() {
         throw new Error('このアカウントには管理権限がありません。「学生ログイン」をご利用ください。');
       }
 
-      let loginEmail = userRecord.email;
-      let loginPassword = isAdminMode ? (data.password || '') : data.studentId.trim();
+      // 4. Lấy thông tin University Email làm khóa đăng nhập chính
+      const { data: updatedRecord } = await supabase.from('users').select('university_email').eq('id', userRecord.id).single();
+      const loginEmail = updatedRecord?.university_email || userRecord.university_email;
+      const loginPassword = isAdminMode ? (data.password || '') : studentId;
 
-      let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // 5. Thực hiện đăng nhập thực sự với Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
 
-      if (authError && !isAdminMode && (authError.message.includes('Invalid login credentials') || authError.message.includes('invalid_credentials'))) {
-        const { data: rescued } = await supabase.rpc('admin_ensure_member_auth', { 
-          p_mssv: data.studentId.trim() 
-        });
-        
-        if (rescued) {
-          const retry = await supabase.auth.signInWithPassword({
-            email: loginEmail,
-            password: data.studentId.trim(),
-          });
-          authData = retry.data;
-          authError = retry.error;
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          throw new Error(isAdminMode ? 'パスワードが正しくありません。' : 'ログインに失敗しました。再試行してください。');
         }
+        throw authError;
       }
 
-      if (authError) throw authError;
       if (!authData.session) throw new Error('セッションの作成に失敗しました。');
 
       if (academicYears.length === 0) await fetchAcademicYears();
       await setAuth(authData.session);
 
       toast.success(isAdminMode ? '管理者としてログインしました' : 'ログインしました。');
-
-      if (from === '/profile' && isLeaderRole) {
-        navigate('/admin/dashboard', { replace: true });
-      } else {
-        navigate(from, { replace: true });
-      }
+      navigate('/', { replace: true });
 
     } catch (error: any) {
       console.error('Login Error:', error);

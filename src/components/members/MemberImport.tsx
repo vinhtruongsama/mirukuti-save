@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Loader2,
   X,
-  Download,
   AlertTriangle,
   FileCheck2
 } from 'lucide-react';
@@ -329,26 +328,33 @@ const MemberImport: React.FC<{
             className="flex flex-col gap-6"
           >
             {/* Action Bar */}
-            <div className="flex items-center justify-between bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-2xl shadow-slate-200/40 border border-slate-50">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+            <div className="flex flex-col sm:flex-row items-center justify-between bg-white/80 backdrop-blur-xl p-5 lg:p-6 rounded-[2.5rem] shadow-2xl shadow-slate-200/40 border border-slate-50 gap-6">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 shrink-0">
                   <FileCheck2 className="w-7 h-7" />
                 </div>
-                <div>
-                  <h4 className="text-xl font-black text-slate-800 tracking-tight">インポートプレビュー ({data.length}行)</h4>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verify and confirm your sync operation</p>
+                <div className="min-w-0">
+                  <h4 className="text-xl lg:text-2xl font-black text-slate-800 tracking-tight leading-none mb-1">インポート</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[14px] font-black rounded-md">{data.length}行</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-4">
-                <button onClick={() => setData([])} className="px-10 py-4 text-slate-400 font-black text-[12px] uppercase tracking-widest hover:text-slate-600 transition-colors">キャンセル</button>
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <button
+                  onClick={() => setData([])}
+                  className="flex-1 sm:flex-none h-14 px-6 text-slate-400 font-black text-[12px] uppercase tracking-widest hover:text-rose-500 transition-colors"
+                >
+                  キャンセル
+                </button>
                 <button
                   onClick={syncToDatabase}
                   disabled={isUploading || hasErrors}
-                  className={`flex items-center gap-3 px-10 py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 ${hasErrors ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-brand-stone-900 text-white hover:bg-black'
+                  className={`flex-1 sm:flex-none h-14 flex items-center justify-center gap-3 px-10 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 ${hasErrors ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-brand-stone-900 text-white hover:bg-black'
                     }`}
                 >
-                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  DBへアップロード
+                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  <span>DBへアップロード</span>
                 </button>
               </div>
             </div>
@@ -461,8 +467,8 @@ const MemberImport: React.FC<{
             >
               <div className="flex justify-between items-center mb-6 lg:mb-10">
                 <h2 className="text-2xl lg:text-4xl font-black text-stone-900 tracking-tight">インポート</h2>
-                <button 
-                  onClick={onClose} 
+                <button
+                  onClick={onClose}
                   className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center bg-rose-50 text-rose-500 rounded-xl lg:rounded-2xl hover:bg-rose-100 transition-colors active:scale-95"
                   title="閉じる"
                 >

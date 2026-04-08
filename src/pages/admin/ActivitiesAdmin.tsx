@@ -27,12 +27,12 @@ const activitySchema = z.object({
   cancellation_deadline: z.string().optional(),
   location: z.string().min(1, '開催場所を入力してください'),
   location_type: z.enum(['internal', 'external']),
-  capacity: z.number().min(0, '0以上の数値を入力してください').optional().or(z.nan()),
+  capacity: z.number().min(0, '0以上の数値を入力してください').optional().nullable().or(z.nan()),
   sessions: z.array(z.object({
     date: z.string().min(1, '日付'),
     start_time: z.string().min(1, '開始時間'),
     end_time: z.string().min(1, '終了時間'),
-    capacity: z.number().min(0).optional().or(z.nan()),
+    capacity: z.number().min(0).optional().nullable().or(z.nan()),
   })).optional(),
   status: z.enum(['open', 'closed', 'draft']),
   is_pinned: z.boolean().optional(),
@@ -233,7 +233,7 @@ export default function ActivitiesAdmin() {
     reset({
       title: '', description: '', date: '', registration_deadline: '',
       cancellation_deadline: '',
-      location: '', capacity: '' as any, status: 'open', is_pinned: false,
+      location: '', capacity: NaN as any, status: 'open', is_pinned: false,
       sessions: []
     });
     setEditingActivity(null);
@@ -262,7 +262,7 @@ export default function ActivitiesAdmin() {
         cancellation_deadline: act.cancellation_deadline ? toLocalDT(act.cancellation_deadline) : '',
         location: act.location,
         location_type: act.location_type || 'internal',
-        capacity: act.capacity || NaN,
+        capacity: act.capacity === null ? NaN : act.capacity,
         status: act.status,
         is_pinned: act.is_pinned || false,
         sessions: act.sessions || []
@@ -381,7 +381,7 @@ export default function ActivitiesAdmin() {
               whileTap={{ scale: 0.95 }}
               onClick={handleRandomCreate}
               disabled={saveMutation.isPending}
-              className="flex items-center gap-2 px-4 py-3 bg-white border border-stone-100 text-stone-900 rounded-2xl text-[11px] font-black shadow-sm transition-all uppercase tracking-widest shrink-0 group hover:border-[#4F5BD5]/20"
+              className="flex items-center gap-1 px-4 py-3 bg-white border border-stone-100 text-stone-900 rounded-2xl text-[11px] font-black shadow-sm transition-all uppercase tracking-widest shrink-0 group hover:border-[#4F5BD5]/20"
               title="TEST: Create random activity"
             >
               <PlusCircle className="w-3.5 h-3.5 text-stone-300 group-hover:text-[#4F5BD5]" />
@@ -397,7 +397,7 @@ export default function ActivitiesAdmin() {
               onClick={() => openForm()}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white rounded-2xl text-[13px] font-black shadow-[0_10px_20px_rgba(214,41,118,0.15)] transition-all uppercase tracking-widest shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">イベントを追加</span><span className="sm:hidden">追加</span>
+              <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">イベント</span><span className="sm:hidden">追加</span>
             </motion.button>
           </div>
         </div>
@@ -891,7 +891,7 @@ export default function ActivitiesAdmin() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => append({ date: '', start_time: '', end_time: '', capacity: undefined })}
+                          onClick={() => append({ date: '', start_time: '', end_time: '', capacity: NaN })}
                           className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all shadow-lg hover:shadow-[#4F5BD5]/20"
                         >
                           <Plus className="w-3.5 h-3.5" />

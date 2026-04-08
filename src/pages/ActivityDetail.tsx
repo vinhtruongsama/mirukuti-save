@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isPast } from 'date-fns';
@@ -89,7 +89,7 @@ export default function ActivityDetail() {
       const { error } = await supabase.from('registrations').insert({
         activity_id: id,
         user_id: currentUser!.id,
-        attendance_status: 'pending',
+        attendance_status: 'applied',
         selected_sessions: selectedSessions
       });
 
@@ -137,6 +137,23 @@ export default function ActivityDetail() {
     );
   }
 
+  const [showScheduleWarning, setShowScheduleWarning] = useState(false);
+
+  const handleRegister = () => {
+    if (activity.sessions?.length > 0 && selectedSessions.length === 0) {
+      setShowScheduleWarning(true);
+      return;
+    }
+    setShowScheduleWarning(false);
+    registerMutation.mutate();
+    toast.info('申し込みを処理中...');
+  };
+
+  // Reset warning when user starts selecting
+  useEffect(() => {
+    if (selectedSessions.length > 0) setShowScheduleWarning(false);
+  }, [selectedSessions]);
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] relative overflow-hidden py-10 sm:py-20 px-4 sm:px-6">
       <div className="fixed inset-0 pointer-events-none">
@@ -160,10 +177,7 @@ export default function ActivityDetail() {
         <div className="p-8 sm:p-14">
           <div className="flex flex-wrap items-center gap-3 mb-8">
             <span className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-gray-900/20">
-              {activity.academic_years?.name || '2026-2027'}
-            </span>
-            <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[11px] font-black uppercase tracking-[0.2em] border border-indigo-100">
-              {format(new Date(activity.date), "EEEE, MM/dd", { locale: jaLocale })}
+              {activity.location_type === 'external' ? '学外活動' : '学内活動'}
             </span>
             <span className={cn(
               "px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-[0.2em] shadow-sm",
@@ -175,7 +189,7 @@ export default function ActivityDetail() {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-7xl font-serif text-gray-900 leading-[1.1] tracking-tighter mb-12">
+          <h1 className="text-4xl sm:text-7xl font-serif text-gray-900 leading-[1.1] tracking-tighter mb-12 break-words">
             {activity.title}
           </h1>
 
@@ -186,7 +200,7 @@ export default function ActivityDetail() {
               </div>
               <div>
                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">開催日時</p>
-                <p className="text-2xl font-serif text-gray-900">{format(new Date(activity.date), "HH:mm")}</p>
+                <p className="text-xl sm:text-2xl font-serif text-gray-900">{format(new Date(activity.date), "M月d日 (E) HH:mm", { locale: jaLocale })}</p>
               </div>
             </div>
 
@@ -206,9 +220,9 @@ export default function ActivityDetail() {
               </div>
               <div>
                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">募集終了</p>
-                <p className="text-2xl font-serif text-gray-900">
+                <p className="text-xl sm:text-2xl font-serif text-gray-900">
                   <span className={cn(isPast(new Date(activity.registration_deadline)) && "line-through opacity-30")}>
-                    {format(new Date(activity.registration_deadline), "MM/dd HH:mm")}
+                    {format(new Date(activity.registration_deadline), "M月d日 (E)", { locale: jaLocale })}
                   </span>
                 </p>
               </div>
@@ -242,13 +256,11 @@ export default function ActivityDetail() {
           )}
 
           <div className="mb-20">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-1 h-6 bg-indigo-500 rounded-full" />
-              <h3 className="text-xl font-black text-gray-900 uppercase tracking-[0.2em]">活動内容</h3>
+            <div className="p-8 md:p-12 border-2 border-stone-600 rounded-[2.5rem] bg-gray-50/50 shadow-sm">
+              <p className="text-xl text-gray-500 leading-[1.8] font-medium whitespace-pre-wrap max-w-3xl">
+                {activity.description || '活動の詳細情報はありません。'}
+              </p>
             </div>
-            <p className="text-xl text-gray-500 leading-[1.8] font-medium whitespace-pre-wrap max-w-3xl">
-              {activity.description || '活動の詳細情報はありません。'}
-            </p>
           </div>
 
           {activity.sessions && activity.sessions.length > 0 && (
@@ -264,25 +276,28 @@ export default function ActivityDetail() {
                     onClick={() => toggleSession(idx)}
                     disabled={!!myRegistration}
                     className={cn(
-                      "p-8 rounded-[2rem] border transition-all duration-500 text-left relative overflow-hidden group",
+                      "p-6 rounded-[2rem] border-2 transition-all duration-500 text-left relative overflow-hidden group flex items-center gap-6",
                       activeSessions.includes(idx)
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-200"
-                        : "bg-white border-gray-200 text-gray-900 hover:border-indigo-400 hover:shadow-lg",
+                        ? "bg-white text-indigo-600 border-indigo-600 shadow-xl shadow-indigo-200/20"
+                        : "bg-white border-gray-400 text-gray-900 hover:border-indigo-400 hover:shadow-lg",
                       myRegistration && "opacity-80 cursor-default"
                     )}
                   >
+                    {/* Checkbox Replacement for Vol.X */}
                     <div className={cn(
-                      "absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full translate-x-10 -translate-y-10 transition-opacity",
-                      activeSessions.includes(idx) ? "bg-white/10 opacity-100" : "bg-indigo-500/5 opacity-0 group-hover:opacity-100"
-                    )} />
-                    <div className="relative z-10">
-                      <p className={cn("text-[11px] font-black uppercase tracking-widest mb-3", activeSessions.includes(idx) ? "text-indigo-200" : "text-gray-400")}>
-                        Session {idx + 1}
-                      </p>
-                      <p className="text-2xl font-black uppercase tracking-tight mb-1">
+                      "w-10 h-10 rounded-lg flex items-center justify-center border-2 transition-all shrink-0",
+                      activeSessions.includes(idx)
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "bg-white text-transparent border-stone-400"
+                    )}>
+                      <CheckCircle2 className={cn("w-5 h-5 transition-transform", activeSessions.includes(idx) ? "scale-100" : "scale-0")} />
+                    </div>
+
+                    <div className="relative z-10 flex-1">
+                      <p className="text-xl font-black uppercase tracking-tight mb-0.5">
                         {format(new Date(session.date), "MM/dd (EEE)", { locale: jaLocale })}
                       </p>
-                      <p className={cn("text-lg font-medium", activeSessions.includes(idx) ? "text-indigo-100" : "text-gray-500")}>
+                      <p className={cn("text-base font-medium", activeSessions.includes(idx) ? "text-indigo-600/60" : "text-gray-500")}>
                         {session.start_time} - {session.end_time}
                       </p>
                     </div>
@@ -293,20 +308,67 @@ export default function ActivityDetail() {
           )}
 
           <div className="pt-14 border-t border-gray-100 flex flex-col items-center gap-10">
-            {!myRegistration && !activity.isClosed && (
-              <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setAgreed(!agreed)}>
-                <div className={cn(
-                  "w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all",
-                  agreed ? "bg-indigo-600 border-indigo-600 text-white scale-110" : "border-gray-200 group-hover:border-indigo-400"
-                )}>
-                  {agreed && <CheckCircle2 className="w-5 h-5" />}
+            {!myRegistration && !activity.isClosed && session && (
+              <div className="w-full max-w-md space-y-6">
+                <AnimatePresence>
+                  {showScheduleWarning && (
+                    <motion.div
+                      key="schedule-warning"
+                      initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                      exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                      className="overflow-hidden w-full"
+                    >
+                      <div className="flex flex-col gap-5 py-4 w-full">
+                        <div className="p-6 bg-rose-50 border border-rose-200 rounded-[2rem] flex items-start gap-4 shadow-xl shadow-rose-900/5">
+                          <AlertCircle className="w-6 h-6 text-rose-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[13px] font-black text-rose-600 uppercase tracking-widest leading-tight mb-2">スケジュール未選択</p>
+                            <p className="text-[11px] font-bold text-rose-700/70 leading-relaxed uppercase tracking-widest">
+                              参加する時間帯を最低1つ選択してください。<br />
+                              スケジュールが選ばれていないため、申し込みを完了できません。
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-center text-[10px] font-black text-rose-500 animate-pulse tracking-[0.3em] uppercase">
+                          ↑ スケジュールをタップして選択してください ↑
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Consent Checkbox */}
+                <div className="flex items-center justify-center pt-2">
+                  <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setAgreed(!agreed)}>
+                    <div className={cn(
+                      "w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all",
+                      agreed ? "bg-indigo-600 border-indigo-600 text-white scale-110" : "border-gray-200 group-hover:border-indigo-400"
+                    )}>
+                      {agreed && <CheckCircle2 className="w-5 h-5" />}
+                    </div>
+                    <p className="text-sm font-black text-gray-500 uppercase tracking-widest">内容を全て確認し、同意しました</p>
+                  </div>
                 </div>
-                <p className="text-sm font-black text-gray-500 uppercase tracking-widest">内容を確認し、参加を希望します</p>
+
+                {/* Apply Button */}
+                <button
+                  onClick={handleRegister}
+                  disabled={registerMutation.isPending || !agreed}
+                  className={cn(
+                    "w-full py-6 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.3em] flex items-center justify-center transition-all shadow-2xl",
+                    agreed
+                      ? "bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white hover:scale-[1.02] active:scale-95 shadow-indigo-500/20"
+                      : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                  )}
+                >
+                  {registerMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Apply Now <ChevronRight className="w-5 h-5 ml-2" /></>}
+                </button>
               </div>
             )}
 
-            <div className="w-full max-w-md">
-              {!session ? (
+            {!session && !activity.isClosed && (
+              <div className="w-full max-w-md">
                 <Link
                   to="/login"
                   state={{ from: `/activities/${id}` }}
@@ -314,48 +376,67 @@ export default function ActivityDetail() {
                 >
                   Login to Apply
                 </Link>
-              ) : myRegistration ? (
-                <div className="space-y-6 flex flex-col items-center">
-                  <div className="px-10 py-4 bg-emerald-50 text-emerald-600 rounded-full text-[13px] font-black uppercase tracking-[0.2em] border border-emerald-100 flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5" /> 申し込みが完了しています
+              </div>
+            )}
+
+            {myRegistration && (
+              <div className="w-full max-w-md flex flex-col items-center gap-12">
+                {/* Applied Status Badge */}
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="w-full py-8 bg-emerald-50 text-emerald-600 rounded-[2.5rem] border-2 border-emerald-100 flex flex-col items-center justify-center gap-4 shadow-xl shadow-emerald-500/5 group"
+                >
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                   </div>
+                  <div className="text-center">
+                    <p className="text-[11px] font-black uppercase tracking-[0.3em] mb-1 opacity-60">Status</p>
+                    <p className="text-2xl font-black uppercase tracking-widest">申し込み済み</p>
+                  </div>
+                </motion.div>
+
+                {/* Cancel Action (Secondary) */}
+                <div className="flex flex-col items-center gap-4 w-full">
                   <button
                     onClick={() => cancelMutation.mutate()}
                     disabled={cancelMutation.isPending || (activity.cancellation_deadline && isPast(new Date(activity.cancellation_deadline)))}
                     className={cn(
-                      "w-full py-6 rounded-[2rem] text-[13px] font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all border group",
+                      "group flex items-center gap-2 px-8 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all",
                       (activity.cancellation_deadline && isPast(new Date(activity.cancellation_deadline)))
-                        ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
-                        : "bg-white border-gray-200 text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 shadow-sm"
+                        ? "text-stone-300 cursor-not-allowed"
+                        : "text-stone-400 hover:text-rose-500 hover:bg-rose-50"
                     )}
                   >
-                    {cancelMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : '申し込みをキャンセルする'}
+                    {cancelMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <X className="w-4 h-4" />
+                        <span>申し込みをキャンセルする</span>
+                      </>
+                    )}
                   </button>
+
                   {activity.cancellation_deadline && isPast(new Date(activity.cancellation_deadline)) && (
-                    <p className="text-[11px] text-rose-500/70 font-black uppercase tracking-widest italic animate-pulse">
-                      ※ 取消期限を過ぎているため、キャンセルできません
-                    </p>
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="px-6 py-2 bg-rose-50 text-rose-500 text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <AlertCircle size={12} />
+                      取消期限を過ぎているため、操作できません
+                    </motion.p>
                   )}
                 </div>
-              ) : activity.isClosed ? (
-                <div className="w-full py-6 bg-gray-100 text-gray-400 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.3em] flex items-center justify-center cursor-not-allowed">
-                  Registration Closed
-                </div>
-              ) : (
-                <button
-                  onClick={() => registerMutation.mutate()}
-                  disabled={registerMutation.isPending || !agreed || (activity.sessions?.length > 0 && selectedSessions.length === 0)}
-                  className={cn(
-                    "w-full py-6 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.3em] flex items-center justify-center transition-all shadow-2xl",
-                    agreed && (!activity.sessions?.length || selectedSessions.length > 0)
-                      ? "bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white hover:scale-[1.02] active:scale-95 shadow-indigo-500/20"
-                      : "bg-gray-100 text-gray-300 cursor-not-allowed"
-                  )}
-                >
-                  {registerMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Apply Now <ChevronRight className="w-5 h-5 ml-2" /></>}
-                </button>
-              )}
-            </div>
+              </div>
+            )}
+
+            {activity.isClosed && !myRegistration && (
+              <div className="w-full max-w-md py-6 bg-gray-100 text-gray-400 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.3em] flex items-center justify-center cursor-not-allowed">
+                Registration Closed
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

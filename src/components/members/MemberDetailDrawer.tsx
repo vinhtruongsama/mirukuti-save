@@ -25,7 +25,7 @@ const memberSchema = z.object({
   full_name_kana: z.string().optional(),
   mssv: z.string().min(1, '学籍番号を入力してください'),
   email: z.string().optional().or(z.literal('')),
-  university_email: z.string().optional().or(z.literal('')),
+  university_email: z.string().min(1, '大学メールを入力してください').email('無効なメールアドレスです'),
   phone: z.string().optional(),
   line_nickname: z.string().optional(),
   role: z.enum(['president', 'vice_president', 'treasurer', 'executive', 'member', 'alumni']),
@@ -108,10 +108,10 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
     { label: '学籍番号', value: member.users?.mssv, icon: Hash },
     { label: '役割', value: roleLabels[member.role]?.label || '不明', icon: ShieldCheck, badge: true },
     { label: '学年', value: (member.users?.university_year === 0) ? '卒業生' : `${member.users?.university_year || 1}年生`, icon: GraduationCap, yearBadge: true },
-    { label: '連絡用メール', value: member.users?.email || '無', icon: Mail, copy: true },
-    { label: '大学メール', value: member.users?.university_email || '無', icon: GraduationCap },
-    { label: '電話番号', value: member.users?.phone || '無', icon: Phone },
-    { label: 'LINE', value: member.users?.line_nickname ? `@${member.users?.line_nickname}` : '無', icon: MessagesSquare }
+    { label: '連絡用メール', value: member.users?.email?.trim() || '無', icon: Mail, copy: true },
+    { label: '大学メール', value: member.users?.university_email?.trim() || '無', icon: GraduationCap },
+    { label: '電話番号', value: member.users?.phone?.trim() || '無', icon: Phone },
+    { label: 'LINE', value: member.users?.line_nickname?.trim() ? `@${member.users.line_nickname.trim()}` : '無', icon: MessagesSquare }
   ];
 
   const onHandleSave = async (data: any) => {
@@ -143,7 +143,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
           </button>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto px-8 pt-12 pb-6 space-y-8 custom-scrollbar will-change-scroll">
+          <div className="flex-1 overflow-y-auto px-5 sm:px-8 pt-10 sm:pt-12 pb-6 space-y-6 sm:space-y-8 custom-scrollbar will-change-scroll">
 
             {isEditing ? (
               <form id="member-edit-form" onSubmit={handleSubmit(async (data) => { await onHandleSave(data); setIsEditing(false); })} className="space-y-12 py-4">
@@ -152,13 +152,13 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                   <label className="text-[12px] font-black uppercase text-[#4F5BD5] tracking-[0.3em]">Basic Profile</label>
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-2">
-                      <span className="text-[13px] font-bold text-stone-500 pl-1">氏名 (Full Name) *</span>
-                      <input {...register('full_name')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black" />
+                      <span className="text-[13px] font-bold text-stone-500 pl-1">氏名 (Full Name) <span className="text-rose-500">*</span></span>
+                      <input id="full_name" {...register('full_name')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black" />
                       {errors.full_name && <p className="text-red-500 text-[10px] font-black ml-2">{errors.full_name.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">フリガナ (Kana)</span>
-                      <input {...register('full_name_kana')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black" />
+                      <input id="full_name_kana" {...register('full_name_kana')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black" />
                     </div>
                   </div>
                 </div>
@@ -168,13 +168,14 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                   <label className="text-[12px] font-black uppercase text-[#D62976] tracking-[0.3em]">Club Configuration</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <span className="text-[13px] font-bold text-stone-500 pl-1">学籍番号 (Student ID) *</span>
-                      <input {...register('mssv')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#D62976]/20 focus:bg-white transition-all text-black" />
+                      <span className="text-[13px] font-bold text-stone-500 pl-1">学籍番号 (Student ID) <span className="text-rose-500">*</span></span>
+                      <input id="mssv" {...register('mssv')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#D62976]/20 focus:bg-white transition-all text-black" />
                       {errors.mssv && <p className="text-red-500 text-[10px] font-black ml-2">{errors.mssv.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">役割 (Role) {!isPresident && <span className="text-[10px] text-rose-500 font-black ml-1">(部長のみ変更可能)</span>}</span>
                       <select
+                        id="role"
                         {...register('role')}
                         disabled={!isPresident}
                         className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#D62976]/20 text-black disabled:opacity-50 disabled:cursor-not-allowed"
@@ -189,7 +190,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                     </div>
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">学年 (Grade)</span>
-                      <select {...register('university_year', { valueAsNumber: true })} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#D62976]/20 text-black">
+                      <select id="university_year" {...register('university_year', { valueAsNumber: true })} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#D62976]/20 text-black">
                         <option value={1}>1年生</option>
                         <option value={2}>2年生</option>
                         <option value={3}>3年生</option>
@@ -204,6 +205,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                           初期パスワード <span className="text-rose-500">*</span>
                         </span>
                         <input
+                          id="password"
                           {...register('password', {
                             required: ['president', 'vice_president', 'treasurer', 'executive'].includes(selectedRole) ? '初期パスワードを入力してください' : false
                           })}
@@ -233,22 +235,22 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">連絡用メール (Contact Email)</span>
-                      <input {...register('email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                      <input id="email" {...register('email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
                       {errors.email && <p className="text-red-500 text-[10px] font-black ml-2">{errors.email.message}</p>}
                     </div>
                     <div className="space-y-2">
-                      <span className="text-[13px] font-bold text-stone-500 pl-1">大学メール (University Email)</span>
-                      <input {...register('university_email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                      <span className="text-[13px] font-bold text-stone-500 pl-1">大学メール (University Email) <span className="text-rose-500">*</span></span>
+                      <input id="university_email" {...register('university_email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
                       {errors.university_email && <p className="text-red-500 text-[10px] font-black ml-2">{errors.university_email.message}</p>}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <span className="text-[13px] font-bold text-stone-500 pl-1">電話番号 (Phone)</span>
-                        <input {...register('phone')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                        <input id="phone" {...register('phone')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
                       </div>
                       <div className="space-y-2">
                         <span className="text-[13px] font-bold text-stone-500 pl-1">LINE名</span>
-                        <input {...register('line_nickname')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                        <input id="line_nickname" {...register('line_nickname')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
                       </div>
                     </div>
                   </div>
@@ -257,18 +259,18 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
             ) : (
               <>
                 {/* Profile Details Grid */}
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 gap-4">
                   {detailConfig.map((item) => (
                     <div
                       key={item.label}
                       className="group"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center shrink-0 text-stone-300 group-hover:text-[#4F5BD5] transition-colors">
-                          <item.icon size={18} />
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-stone-50 flex items-center justify-center shrink-0 text-stone-300 group-hover:text-[#4F5BD5] transition-colors mt-0.5">
+                          <item.icon size={14} className="sm:w-[18px] sm:h-[18px]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <label className="text-[14px] font-bold text-black mb-1 block font-sans">
+                          <label className="text-[12px] sm:text-[14px] font-bold text-black mb-0.5 block font-sans">
                             {item.label}
                           </label>
                           <div className="flex items-center gap-3">

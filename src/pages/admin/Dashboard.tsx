@@ -6,12 +6,24 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  UserPlus,
+  Shield,
+  Trash2,
+  Calendar
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { useAuthStore } from '../../store/useAuthStore';
 import { supabase } from '../../lib/supabase';
 
 export default function Dashboard() {
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [clearType, setClearType] = useState<'all' | '30days' | '7days'>('30days');
+  const queryClient = useQueryClient();
+
   // 1. Fetch Stats
   const { data: stats, isLoading: isStatsLoading } = useQuery({
     queryKey: ['admin-stats'],
@@ -35,12 +47,17 @@ export default function Dashboard() {
         .from('admin_audit_logs')
         .select(`
           *,
-          users:user_id (full_name, avatar_url, email)
+          users:user_id (full_name, email),
+          actor:actor_id (
+            full_name,
+            club_memberships (role)
+          )
         `)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
+      const { currentUser } = useAuthStore.getState();
 
       return (data || []).map((log: any) => {
         const user = Array.isArray(log.users) ? log.users[0] : log.users;
@@ -52,7 +69,9 @@ export default function Dashboard() {
           'registration_delete': { label: 'が活動をキャンセルしました', icon: XCircle, color: 'text-rose-500', type: 'cancellation' },
           'member_archive': { label: 'をアーカイブしました', icon: XCircle, color: 'text-rose-600', type: 'archive' },
           'member_unarchive': { label: 'を復元しました', icon: CheckCircle2, color: 'text-emerald-600', type: 'unarchive' },
-          'role_update': { label: 'の役職を更新しました', icon: BarChart3, color: 'text-indigo-600', type: 'role' }
+          'role_update': { label: 'の役職を更新しました', icon: BarChart3, color: 'text-indigo-600', type: 'role' },
+          'member_new': { label: 'が新しく入部しました', icon: UserPlus, color: 'text-[#4F5BD5]', type: 'new_member' },
+          'membership_update': { label: 'の会員情報を更新しました', icon: Shield, color: 'text-stone-500', type: 'membership' }
         };
 
         const config = logMap[log.action_type] || { label: 'が行われました', icon: AlertCircle, color: 'text-brand-stone-400', type: 'system' };
@@ -78,11 +97,28 @@ export default function Dashboard() {
           changeSummary = ` (${oldRole} → ${newRole})`;
         }
 
+        const actor = Array.isArray(log.actor) ? log.actor[0] : log.actor;
+        const actorRole = actor?.club_memberships?.[0]?.role;
+        
+        const roleMap: Record<string, string> = {
+          'president': '部長',
+          'vice_president': '副部長',
+          'treasurer': '会計',
+          'executive': '幹部',
+          'member': '部員',
+          'alumni': '卒業生'
+        };
+        const roleLabel = actorRole ? (roleMap[actorRole] || actorRole) : '';
+        
+        const isActorSelf = log.actor_id === currentUser?.id;
+        const actorDisplayName = isActorSelf ? '自分' : (actor?.full_name || 'System');
+        const actorFullName = (isActorSelf || !roleLabel) ? actorDisplayName : `${roleLabel} ${actorDisplayName}`;
+
         return {
           id: log.id,
           user: user?.full_name || 'Unknown User',
+          actor: actorFullName,
           email: user?.email,
-          avatar: user?.avatar_url,
           action: config.label,
           summary: changeSummary,
           target: log.content_name || 'System',
@@ -105,7 +141,7 @@ export default function Dashboard() {
           <h1 className="text-4xl font-black text-brand-stone-900 tracking-tighter">アクティビティ履歴</h1>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
           {isStatsLoading ? (
             <div className="flex items-center gap-4 bg-white px-8 py-4 rounded-[2rem] border border-brand-stone-100 animate-pulse">
               <div className="w-8 h-8 rounded-full bg-brand-stone-50" />
@@ -113,7 +149,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="group bg-white hover:bg-brand-stone-900  py-4 rounded-[2rem] border border-brand-stone-100 shadow-sm transition-all duration-500 flex items-center gap-5 hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-stone-200/50">
+              <div className="group bg-white hover:bg-brand-stone-900  py-4 px-6 rounded-[2rem] border border-brand-stone-100 shadow-sm transition-all duration-500 flex items-center gap-5 hover:scale-[1.05] hover:shadow-xl hover:shadow-brand-stone-200/50">
                 <div className="w-10 h-10 rounded-xl bg-[#4F5BD5]/5 group-hover:bg-white/10 flex items-center justify-center transition-colors">
                   <Users className="w-5 h-5 text-[#4F5BD5] group-hover:text-white" />
                 </div>
@@ -144,6 +180,20 @@ export default function Dashboard() {
         transition={{ delay: 0.2 }}
         className="w-full bg-white border border-brand-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-brand-stone-200/10"
       >
+        <div className="flex items-center justify-between gap-4 mb-12">
+          <div>
+            <h2 className="text-3xl font-black text-stone-900 tracking-tighter">活動の履歴</h2>
+            <p className="text-stone-400 font-medium mt-1">最近行われた管理操作のログ</p>
+          </div>
+          <button
+            onClick={() => setShowClearModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm hover:bg-rose-100 transition-all active:scale-95"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>履歴を削除</span>
+          </button>
+        </div>
+
         {isActivityLoading ? (
           <div className="w-full flex flex-col items-center justify-center gap-4 py-20">
             <Loader2 className="w-10 h-10 text-[#4F5BD5] animate-spin opacity-20" />
@@ -167,36 +217,34 @@ export default function Dashboard() {
 
               return Object.entries(groups).map(([date, items]) => (
                 <div key={date} className="relative space-y-4">
-                  {/* Sticky Date Header with Lowered Z-Index to avoid overlap */}
-                  <div className="sticky top-0 sm:top-4 z-10 py-4 bg-white/95 backdrop-blur-sm -mx-4 px-4 flex items-center gap-4">
-                    <h2 className="text-lg font-black text-brand-stone-900 tracking-tighter">{date}</h2>
-                    <div className="h-px flex-1 bg-gradient-to-r from-brand-stone-100 to-transparent" />
+                  {/* Normal Date Header (No longer sticky to avoid overlapping) */}
+                  <div className="py-4 px-2 mb-4 border-b border-stone-100">
+                    <h3 className="text-[20px] font-black text-stone-900 font-serif tracking-tighter">
+                      {date}
+                    </h3>
                   </div>
 
-                  {/* Activity List with Connecting Line */}
                   <div className="relative space-y-0">
-                    {/* Vertical Timeline Thread */}
-                    <div className="absolute left-[22px] top-4 bottom-4 w-px bg-brand-stone-100 hidden sm:block" />
+                    <div className="absolute left-[22px] top-4 bottom-4 w-px bg-stone-100 hidden sm:block" />
 
                     {items.map((item, idx) => (
-                      <div key={item.id} className="relative group flex items-start gap-4 sm:gap-8 p-4 sm:p-5 rounded-[1.5rem] hover:bg-brand-stone-50/50 transition-all duration-300">
-                        {/* Desktop: Time Column (Hidden on Mobile) */}
+                      <div key={item.id} className="relative group flex items-start gap-4 sm:gap-8 p-4 sm:p-5 rounded-[1.5rem] hover:bg-stone-50/50 transition-all duration-300">
+                        {/* Desktop: Time Column */}
                         <div className="hidden sm:block w-20 pt-1.5 text-right shrink-0">
-                          <span className="text-[11px] font-black text-brand-stone-700 tracking-widest tabular-nums uppercase">
+                          <span className="text-[11px] font-black text-stone-400 tracking-widest tabular-nums uppercase">
                             {item.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
 
                         {/* Activity Content Container */}
                         <div className="relative flex-1 flex items-start gap-4">
-                          {/* Status Icon with Relative Line Center */}
+                          {/* Status Icon */}
                           <div className="relative z-10 shrink-0">
-                            <div className={`w-11 h-11 rounded-[0.9rem] bg-white border border-brand-stone-100 shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 ${item.color}`}>
+                            <div className={`w-11 h-11 rounded-[0.9rem] bg-white border border-stone-100 shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 ${item.color}`}>
                               <item.icon className="w-5 h-5" />
                             </div>
-                            {/* Mobile Timeline Thread */}
                             {idx !== items.length - 1 && (
-                              <div className="absolute top-12 left-1/2 -translate-x-1/2 w-px h-8 bg-brand-stone-100 sm:hidden" />
+                              <div className="absolute top-12 left-1/2 -translate-x-1/2 w-px h-8 bg-stone-100 sm:hidden" />
                             )}
                           </div>
 
@@ -206,25 +254,23 @@ export default function Dashboard() {
                                 <span className="text-[14px] font-black text-[#4F5BD5] truncate">
                                   {item.user}
                                 </span>
-                                {/* Mobile: Time (Visible on Mobile Only) */}
-                                <span className="sm:hidden text-[10px] font-bold text-brand-stone-700 tabular-nums">
+                                <span className="sm:hidden text-[10px] font-bold text-stone-400 tabular-nums">
                                   {item.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                <p className="text-[13px] font-medium text-brand-stone-500 leading-snug">
-                                  {item.action.replace('が', '')}
-                                  <span className="text-brand-stone-300 mx-1 sm:mx-2 hidden sm:inline">/</span>
-                                  <span className="font-black text-brand-stone-900 block sm:inline mt-1 sm:mt-0">
-                                    <span className="sm:hidden text-brand-stone-300 mr-1 opacity-50">→</span>
-                                    {item.target}
-                                  </span>
-                                  {item.summary && (
-                                    <span className="inline-block bg-rose-50 text-[#D62976] px-2 py-0.5 rounded-lg text-[10px] font-black ml-0 sm:ml-2 mt-2 sm:mt-0">
-                                      {item.summary}
-                                    </span>
-                                  )}
-                                </p>
+                              
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-stone-500 leading-snug">
+                                <span>{item.action}</span>
+                                <span className="text-stone-300">/</span>
+                                <span className="text-stone-900 bg-stone-100 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-tight">
+                                  by {item.actor}
+                                </span>
+                                {item.summary && (
+                                  <>
+                                    <span className="text-stone-300">/</span>
+                                    <span className="text-indigo-600 font-black">{item.summary}</span>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -238,6 +284,110 @@ export default function Dashboard() {
           </div>
         )}
       </motion.div>
+
+      {/* Clear Logs Modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
+            onClick={() => setShowClearModal(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full max-w-lg bg-white rounded-[2.5rem] p-10 overflow-hidden shadow-2xl"
+          >
+            <div className="absolute top-0 right-0 p-6">
+              <button 
+                onClick={() => setShowClearModal(false)}
+                className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-full hover:bg-stone-100 transition-all"
+              >
+                <XCircle className="w-5 h-5 text-stone-400" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center">
+                <Trash2 className="w-10 h-10 text-rose-500" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-black text-stone-900 tracking-tight">履歴をクリア</h3>
+                <p className="text-stone-500 mt-2">どの履歴を削除しますか？<br/>この操作は取り消せません。</p>
+              </div>
+
+              <div className="w-full grid grid-cols-1 gap-3">
+                {[
+                  { id: '7days', title: '7日以上前の全ログ', desc: '最近の操作のみ残します' },
+                  { id: '30days', title: '30日以上前の全ログ', desc: '過去1ヶ月分を残します' },
+                  { id: 'all', title: 'すべてのログを削除', desc: 'すべての履歴が消去されます' }
+                ].map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setClearType(option.id as any)}
+                    className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${
+                      clearType === option.id 
+                        ? 'border-indigo-600 bg-indigo-50/30' 
+                        : 'border-stone-100 hover:border-stone-200'
+                    }`}
+                  >
+                    <div className={`p-3 rounded-xl ${clearType === option.id ? 'bg-indigo-600' : 'bg-stone-100'}`}>
+                      <Calendar className={`w-5 h-5 ${clearType === option.id ? 'text-white' : 'text-stone-400'}`} />
+                    </div>
+                    <div>
+                      <h4 className={`font-black text-[15px] ${clearType === option.id ? 'text-indigo-900' : 'text-stone-900'}`}>{option.title}</h4>
+                      <p className="text-xs text-stone-400 font-medium">{option.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="w-full flex items-center gap-3 pt-4">
+                <button
+                  onClick={() => setShowClearModal(false)}
+                  className="flex-1 py-4 bg-stone-100 text-stone-900 rounded-2xl font-black text-sm hover:bg-stone-200 transition-all"
+                >
+                  キャンセル
+                </button>
+                <button
+                  disabled={isClearing}
+                  onClick={async () => {
+                    setIsClearing(true);
+                    try {
+                      const cutoff = new Date();
+                      if (clearType === '7days') cutoff.setDate(cutoff.getDate() - 7);
+                      else if (clearType === '30days') cutoff.setDate(cutoff.getDate() - 30);
+                      
+                      let query = supabase.from('admin_audit_logs').delete();
+                      
+                      if (clearType === 'all') {
+                        // Blanket delete needs a filter in PostgREST
+                        query = query.neq('id', '00000000-0000-0000-0000-000000000000');
+                      } else {
+                        query = query.lt('created_at', cutoff.toISOString());
+                      }
+                      
+                      const { error } = await query;
+                      if (error) {
+                        toast.error('ログの削除に失敗しました: ' + error.message);
+                      } else {
+                        toast.success('履歴をクリアしました');
+                        queryClient.invalidateQueries({ queryKey: ['admin-audit-logs'] });
+                        setShowClearModal(false);
+                      }
+                    } finally {
+                      setIsClearing(false);
+                    }
+                  }}
+                  className="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-black text-sm hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 disabled:opacity-50"
+                >
+                  {isClearing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : '削除を実行'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

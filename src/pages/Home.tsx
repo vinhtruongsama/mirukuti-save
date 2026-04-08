@@ -21,8 +21,8 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full h-full flex items-start lg:items-center justify-center p-[6%] lg:p-[10%] pt-20 lg:pt-0">
-          <div className="w-full max-w-[1400px] flex flex-col xl:grid xl:grid-cols-[1.5fr_1fr] gap-10 xl:gap-16 items-center">
+        <div className="relative z-10 w-full h-full flex items-start lg:items-center justify-center p-[6%] lg:p-[10%] pt-14 lg:pt-0">
+          <div className="w-full max-w-[1400px] flex flex-col xl:grid xl:grid-cols-[1.5fr_1fr] gap-6 xl:gap-16 items-center">
             
             {/* Mascot + Action Group (Now at Top on Mobile/Tablet) */}
             <div className="flex flex-col items-center xl:items-end justify-center w-full max-w-sm xl:max-w-none order-1 xl:order-2">
@@ -36,7 +36,7 @@ export default function Home() {
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
-                className="relative w-36 h-36 sm:w-48 sm:h-48 xl:w-[320px] xl:h-[320px] mb-6 xl:mb-4"
+                className="relative w-36 h-36 sm:w-48 sm:h-48 xl:w-[320px] xl:h-[320px] mb-4 xl:mb-4"
               >
                 <img
                   src="/logo-sitdown.png"
@@ -50,34 +50,35 @@ export default function Home() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex flex-col gap-2.5 w-full xl:-mt-10"
+                className="flex flex-col gap-3 w-full xl:-mt-10"
               >
+                <Link 
+                  to="/activities" 
+                  className="w-full px-8 py-4 bg-white hover:bg-stone-50 text-[#D62976] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/5 flex items-center justify-center no-underline border border-[#D62976]/10"
+                >
+                  活動を見る
+                </Link>
+
+                <Link 
+                  to={session ? "/profile" : "/login"} 
+                  className="w-full px-8 py-4 bg-[#4F5BD5] hover:bg-[#3D4AB5] text-white font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#4F5BD5]/20 flex items-center justify-center no-underline border border-white/20"
+                >
+                  {session ? "マイページ" : "今すぐ登録"}
+                </Link>
+
                 {session && currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole) && (
                   <Link 
                     to="/admin" 
-                    className="w-full px-8 py-3.5 bg-gradient-to-r from-[#FEDA75] to-[#FFD700] text-[#0A0F1D] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-stone-900/10 flex items-center justify-center no-underline border border-white/40 group/admin"
+                    className="w-full px-8 py-4 bg-gradient-to-r from-[#FEDA75] to-[#FFD700] text-[#0A0F1D] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-stone-900/10 flex items-center justify-center no-underline border border-white/40 group/admin"
                   >
                     <span className="group-hover/admin:tracking-widest transition-all duration-500">全て管理</span>
                   </Link>
                 )}
-
-                <Link 
-                  to={session ? "/profile" : "/login"} 
-                  className="w-full px-8 py-3.5 bg-[#4F5BD5] hover:bg-[#3D4AB5] text-white font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#4F5BD5]/20 flex items-center justify-center no-underline border border-white/20"
-                >
-                  {session ? "マイページ" : "今すぐ登録"}
-                </Link>
-                <Link 
-                  to="/activities" 
-                  className="w-full px-8 py-3.5 bg-white hover:bg-stone-50 text-[#D62976] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/5 flex items-center justify-center no-underline border border-[#D62976]/10"
-                >
-                  活動を見る
-                </Link>
               </motion.div>
             </div>
 
             {/* Cinematic Typography (Bottom on Mobile/Tablet) */}
-            <div className="flex flex-col gap-6 text-center xl:text-left items-center xl:items-start w-full order-2 xl:order-1">
+            <div className="flex flex-col gap-4 text-center xl:text-left items-center xl:items-start w-full order-2 xl:order-1">
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}

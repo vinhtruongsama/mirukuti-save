@@ -42,8 +42,12 @@ export default function ArchivedMembers() {
   }, [archivedMembers, searchTerm]);
 
   const restoreMutation = useMutation({
-    mutationFn: async (userUuid: string) => {
-      const { error } = await supabase.rpc('restore_member', { user_uuid: userUuid });
+    mutationFn: async ({ userUuid, yearId }: { userUuid: string; yearId: string }) => {
+      const { error } = await supabase.rpc('restore_member', { 
+        user_uuid: userUuid,
+        year_uuid: yearId,
+        p_role: 'member'
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -56,19 +60,26 @@ export default function ArchivedMembers() {
 
   const hardDeleteMutation = useMutation({
     mutationFn: async (userUuid: string) => {
-      if (!window.confirm('このメンバーを完全に削除してもよろしいですか？この操作は取り消せません。')) {
+      if (!window.confirm('このメンバーを完全に削除してもよろしいですか？\n\n・ログインアクセスも完全に削除されます\n・この操作は取り消せません')) {
         throw new Error('キャンセルされました');
       }
 
-      // Permanently delete from club_memberships (and the DB constraint will cascade or we just delete both)
+      // Step 1: Delete auth account (removes login access permanently)
+      const { error: authError } = await supabase.rpc('admin_delete_auth_user', {
+        p_user_uuid: userUuid
+      });
+      if (authError) console.warn('Auth delete warning:', authError.message);
+
+      // Step 2: Delete from club_memberships
       const { error: memError } = await supabase.from('club_memberships').delete().eq('user_id', userUuid);
       if (memError) throw memError;
 
+      // Step 3: Delete from public.users
       const { error: userError } = await supabase.from('users').delete().eq('id', userUuid);
       if (userError) throw userError;
     },
     onSuccess: () => {
-      toast.success('メンバーを完全に削除しました');
+      toast.success('メンバーを完全に削除しました（ログインアカウントも削除済み）');
       queryClient.invalidateQueries({ queryKey: ['archived-members'] });
     },
     onError: (err: any) => {
@@ -153,7 +164,7 @@ export default function ArchivedMembers() {
                   <td className="px-10 py-8 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <button
-                        onClick={() => restoreMutation.mutate(mem.user_id)}
+                        onClick={() => restoreMutation.mutate({ userUuid: mem.user_id, yearId: selectedYear?.id || '' })}
                         className="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all active:scale-95 shadow-lg shadow-stone-200"
                         title="リストに復元する"
                       >
