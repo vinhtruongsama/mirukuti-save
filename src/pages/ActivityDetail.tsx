@@ -5,7 +5,7 @@ import { format, isPast } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
 import { MapPin, Clock, Users, AlertCircle, CheckCircle2, ChevronRight, Loader2, Edit2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
 import { cn } from '../lib/utils';

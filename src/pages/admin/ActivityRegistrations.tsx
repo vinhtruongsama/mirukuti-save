@@ -16,12 +16,6 @@ const STATUS_JA = {
   'unexcused_absence': '欠席'
 };
 
-const STATUS_JA_EXT = {
-  'applied': 'Đã đăng ký',
-  'pending': 'Đã đăng ký',
-  'present': 'Đã tham gia',
-  'unexcused_absence': 'Vắng mặt'
-};
 
 const STATUS_COLOR_THEME = {
   'applied': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', active: 'bg-amber-500 text-white border-amber-500' },

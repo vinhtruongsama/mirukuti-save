@@ -65,7 +65,7 @@ export default function Login() {
 
       // 2. Kích hoạt tài khoản Đăng nhập (Auth) tự động nếu chưa có
       // Điều này đảm bảo những người trong Database (mới import) có thể đăng nhập ngay lập tức
-      const { data: isProvisioned, error: provisionError } = await supabase.rpc('admin_ensure_member_auth', { 
+      const { error: provisionError } = await supabase.rpc('admin_ensure_member_auth', { 
         p_mssv: studentId 
       });
 
