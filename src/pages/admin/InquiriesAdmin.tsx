@@ -16,7 +16,13 @@ export default function InquiriesAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inquiries')
-        .select('*')
+        .select(`
+          *,
+          user:users (
+            university_email,
+            line_nickname
+          )
+        `)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -53,15 +59,24 @@ export default function InquiriesAdmin() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const handleCopy = (e: React.MouseEvent, text: string, label: string) => {
+    e.stopPropagation();
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast.success(`${label}をコピーしました: ${text}`, {
+      icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+    });
+  };
+
   const unreadCount = inquiries?.filter((i) => !i.is_read).length || 0;
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-6 sm:space-y-10 pb-20">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 px-4 sm:px-0">
         <div className="relative">
-          <div className="absolute -left-5 top-0 w-1.5 h-full bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
-          <h1 className="text-4xl font-black text-stone-900 tracking-tighter">問い合わせ管理</h1>
+          <div className="absolute -left-4 sm: -left-5 top-0 w-1.5 h-full bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
+          <h1 className="text-xl sm:text-4xl font-black text-stone-900 tracking-tighter uppercase leading-none">問い合わせ管理</h1>
         </div>
 
         {unreadCount > 0 && (
@@ -79,7 +94,7 @@ export default function InquiriesAdmin() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white border border-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-stone-200/10"
+        className="bg-white border border-stone-100 rounded-[1.2rem] sm:rounded-[2.5rem] p-3 sm:p-8 md:p-12 shadow-xl shadow-stone-200/5 sm:shadow-stone-200/10"
       >
         {isLoading ? (
           <div className="flex justify-center py-20">
@@ -101,35 +116,34 @@ export default function InquiriesAdmin() {
                 onClick={() => {
                   if (!inquiry.is_read) markReadMutation.mutate(inquiry.id);
                 }}
-                className={`relative group p-6 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer ${inquiry.is_read
+                className={`relative group p-4 sm:p-6 rounded-[1.2rem] sm:rounded-[2rem] border-2 transition-all duration-300 cursor-pointer ${inquiry.is_read
                   ? 'border-stone-100 bg-stone-50/50 hover:bg-white hover:border-stone-200'
-                  : 'border-[#4F5BD5]/20 bg-[#4F5BD5]/5 hover:bg-white hover:border-[#4F5BD5]/30'
+                  : 'border-rose-200 bg-rose-50/50 hover:bg-white hover:border-rose-300'
                   }`}
               >
                 {/* Unread badge */}
                 {!inquiry.is_read && (
-                  <div className="absolute top-5 right-5 w-2.5 h-2.5 bg-[#4F5BD5] rounded-full animate-pulse" />
+                  <div className="absolute top-4 right-4 sm:top-5 sm:right-5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-rose-500 rounded-full animate-pulse" />
                 )}
 
                 <div className="flex items-start gap-4">
                   {/* Avatar icon */}
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${inquiry.is_read ? 'bg-stone-100' : 'bg-[#4F5BD5]/15'
-                    }`}>
-                    <User className={`w-5 h-5 ${inquiry.is_read ? 'text-stone-400' : 'text-[#4F5BD5]'}`} />
+                  <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-2xl flex items-center justify-center shrink-0 bg-stone-50`}>
+                    <User className={`w-4 h-4 sm:w-5 sm:h-5 text-stone-600`} />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     {/* Name + time */}
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <span className="font-black text-[15px] text-stone-900 truncate">
+                      <span className={`font-black text-[15px] truncate text-stone-700`}>
                         {inquiry.full_name}
                       </span>
                       {inquiry.is_read ? (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-stone-300 uppercase tracking-widest">
+                        <span className="flex items-center gap-1 text-[12px] sm:text-[14px] font-black text-emerald-500 uppercase tracking-widest">
                           <CheckCircle2 className="w-3 h-3" /> 既読
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-[#4F5BD5] uppercase tracking-widest">
+                        <span className="flex items-center gap-1 text-[12px] sm:text-[14px] font-black text-rose-500 uppercase tracking-widest">
                           <Clock className="w-3 h-3" /> 未読
                         </span>
                       )}
@@ -140,16 +154,49 @@ export default function InquiriesAdmin() {
                       {inquiry.message}
                     </p>
 
-                    {/* Contact Info if available */}
-                    {inquiry.contact_email && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-stone-200 rounded-xl w-fit shadow-sm">
-                        <Mail className="w-3.5 h-3.5 text-[#4F5BD5]" />
-                        <span className="text-[12px] font-bold text-stone-600">{inquiry.contact_email}</span>
-                      </div>
-                    )}
-
+                    <div className="flex flex-col gap-2 mb-4">
+                      {/* Member Info vs Guest Info */}
+                      {inquiry.user ? (
+                        <>
+                          <div
+                            onClick={(e) => handleCopy(e, inquiry.user.university_email, '大学メール')}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm w-fit hover:bg-indigo-100/50 hover:border-indigo-200 transition-all active:scale-95 group/info cursor-pointer"
+                          >
+                            <Mail className="w-3.5 h-3.5 text-indigo-500" />
+                            <span className="text-[12px] font-black text-indigo-700">{inquiry.user.university_email}</span>
+                            <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-tighter opacity-80 group-hover/info:opacity-100 transition-opacity">大学メール</span>
+                          </div>
+                          {inquiry.user.line_nickname ? (
+                            <div
+                              onClick={(e) => handleCopy(e, inquiry.user.line_nickname, 'LINE Nickname')}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-[#06C755]/10 border border-[#06C755]/20 rounded-xl shadow-sm w-fit hover:bg-[#06C755]/20 transition-all active:scale-95 group/info cursor-pointer"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-[#06C755]" />
+                              <span className="text-[12px] font-black text-[#06C755]">@{inquiry.user.line_nickname}</span>
+                              <span className="text-[10px] font-black bg-[#06C755] text-white px-1.5 py-0.5 rounded-md uppercase tracking-tighter opacity-80 group-hover/info:opacity-100 transition-opacity">LINE</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-50 border border-stone-100 rounded-xl shadow-sm w-fit opacity-50">
+                              <MessageCircle className="w-3.5 h-3.5 text-stone-400" />
+                              <span className="text-[12px] font-black text-stone-500">LINE未連携</span>
+                              <span className="text-[10px] font-black bg-stone-300 text-white px-1.5 py-0.5 rounded-md uppercase tracking-tighter">LINE</span>
+                            </div>
+                          )}
+                        </>
+                      ) : inquiry.contact_email && (
+                        <div
+                          onClick={(e) => handleCopy(e, inquiry.contact_email, 'ゲストメール')}
+                          className={`flex items-center gap-2 px-3 py-1.5 border rounded-xl shadow-sm w-fit hover:bg-white transition-all active:scale-95 group/info cursor-pointer ${inquiry.is_read ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50 border-rose-100'
+                            }`}
+                        >
+                          <Mail className={`w-3.5 h-3.5 ${inquiry.is_read ? 'text-emerald-500' : 'text-rose-500'}`} />
+                          <span className={`text-[12px] text-stone-600 font-black`}>{inquiry.contact_email}</span>
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter ${inquiry.is_read ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>ゲスト</span>
+                        </div>
+                      )}
+                    </div>
                     {/* Timestamp */}
-                    <p className="mt-3 text-[11px] font-bold text-stone-300 uppercase tracking-widest">
+                    <p className="mt-3 text-[11px] font-bold text-stone-400 uppercase tracking-widest">
                       {format(new Date(inquiry.created_at), 'yyyy年M月d日 HH:mm', { locale: ja })}
                     </p>
                   </div>
@@ -186,7 +233,7 @@ export default function InquiriesAdmin() {
                         e.stopPropagation();
                         setDeletingId(inquiry.id);
                       }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 text-rose-500 text-[12px] font-black rounded-xl opacity-0 group-hover:opacity-100 hover:bg-rose-100 transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 text-rose-500 text-[12px] font-black rounded-xl sm:opacity-0 sm:group-hover:opacity-100 hover:bg-rose-100 transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       削除

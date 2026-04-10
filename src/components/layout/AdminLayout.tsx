@@ -203,7 +203,7 @@ export default function AdminLayout() {
           </motion.header>
 
           {/* 4. Page Content with Viewport Management */}
-          <div className="flex-1 overflow-auto p-6 md:p-8 lg:p-10 scrollbar-thin scrollbar-thumb-brand-stone-100">
+          <div className="flex-1 overflow-auto p-3 sm:p-6 md:p-8 lg:p-10 scrollbar-thin scrollbar-thumb-brand-stone-100">
             <div className="max-w-7xl mx-auto">
                <Outlet />
             </div>
