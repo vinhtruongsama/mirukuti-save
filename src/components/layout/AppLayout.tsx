@@ -1,14 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Activity, User, ShieldCheck, LogIn, LogOut } from 'lucide-react';
+import { Home, Activity, User, ShieldCheck, LogIn, LogOut, MessageCircle } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import InquiryModal from '../ui/InquiryModal';
 
 export const AppLayout = () => {
   const { fetchAcademicYears } = useAppStore();
   const { currentRole, currentUser, session, signOut } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [inquiryOpen, setInquiryOpen] = useState(false);
 
   useEffect(() => {
     fetchAcademicYears();
@@ -100,6 +102,17 @@ export const AppLayout = () => {
 
             {/* Right Section: Auth Buttons */}
             <div className="flex-1 flex items-center justify-end gap-3 h-full">
+              {/* 問い合わせ Button — visible to everyone except admins */}
+              {(!currentRole || !['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole)) && (
+                <button
+                  onClick={() => setInquiryOpen(true)}
+                  className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-[11px] tracking-widest uppercase bg-white text-[#D62976] border border-[#D62976]/20 hover:bg-[#D62976] hover:text-white hover:shadow-[0_4px_15px_rgba(214,41,118,0.3)] transition-all duration-500 shadow-sm group"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>問い合わせ</span>
+                </button>
+              )}
+
               {session ? (
                 <button
                   onClick={handleLogout}
@@ -125,6 +138,19 @@ export const AppLayout = () => {
       <main>
         <Outlet />
       </main>
+
+      {/* Floating 問い合わせ button on mobile */}
+      {(!currentRole || !['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole)) && !isLoginPage && (
+        <button
+          onClick={() => setInquiryOpen(true)}
+          className="sm:hidden fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white rounded-full font-black text-[13px] shadow-xl shadow-[#D62976]/30 active:scale-95 transition-all"
+        >
+          <MessageCircle className="w-4 h-4" />
+          問い合わせ
+        </button>
+      )}
+
+      <InquiryModal isOpen={inquiryOpen} onClose={() => setInquiryOpen(false)} />
     </div>
   );
 };

@@ -28,6 +28,7 @@ import ActivitiesAdmin from './pages/admin/ActivitiesAdmin';
 import ActivityRegistrations from './pages/admin/ActivityRegistrations';
 import ArchivedMembers from './pages/admin/ArchivedMembers';
 import AwardsAdmin from './pages/admin/AwardsAdmin';
+import InquiriesAdmin from './pages/admin/InquiriesAdmin';
 import ChangePassword from './pages/ChangePassword';
 
 const queryClient = new QueryClient({
@@ -102,6 +103,7 @@ function App() {
                   <Route path="/admin/activities" element={<ActivitiesAdmin />} />
                   <Route path="/admin/activities/:id" element={<ActivityRegistrations />} />
                   <Route path="/admin/awards" element={<AwardsAdmin />} />
+                  <Route path="/admin/inquiries" element={<InquiriesAdmin />} />
                 </Route>
               </Route>
             </Route>

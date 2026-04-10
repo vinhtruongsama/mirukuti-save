@@ -1,6 +1,7 @@
 import { useState } from 'react';
 // 1. React & Routing
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
 // 2. Third-party Libraries (Icons)
 import { 
@@ -11,12 +12,14 @@ import {
   X,
   ChevronRight,
   Trophy,
-  Home
+  Home,
+  MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // 3. Internal Components & Stores
 import { useAuthStore } from '../../store/useAuthStore';
+import { supabase } from '../../lib/supabase';
 import { YearSelector } from '../ui/YearSelector';
 
 const ADMIN_NAVIGATION = [
@@ -24,12 +27,26 @@ const ADMIN_NAVIGATION = [
   { name: 'メンバー管理', to: '/admin/members', icon: Users },
   { name: 'ボランティア活動', to: '/admin/activities', icon: CalendarDays },
   { name: '表彰・資格', to: '/admin/awards', icon: Trophy },
+  { name: '問い合わせ', to: '/admin/inquiries', icon: MessageCircle },
 ];
 
 export default function AdminLayout() {
   const { pathname } = useLocation();
   const { signOut, currentUser } = useAuthStore();
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+
+  // Unread inquiries badge
+  const { data: unreadCount } = useQuery({
+    queryKey: ['admin-inquiries-unread'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('inquiries')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_read', false);
+      return count || 0;
+    },
+    refetchInterval: 30000,
+  });
   
   return (
     <div className="flex h-screen bg-[#F8F9FA] overflow-hidden font-sans relative">
@@ -118,7 +135,15 @@ export default function AdminLayout() {
                       }`}
                   >
                     <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-white' : 'text-brand-stone-300 group-hover:text-brand-stone-900'}`} />
-                    <span className="tracking-tight">{item.name}</span>
+                    <span className="tracking-tight flex-1">{item.name}</span>
+                    {/* Unread badge for inquiries */}
+                    {item.to === '/admin/inquiries' && (unreadCount ?? 0) > 0 && (
+                      <span className={`min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black flex items-center justify-center ${
+                        isActive ? 'bg-white text-[#4F5BD5]' : 'bg-[#D62976] text-white'
+                      }`}>
+                        {unreadCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

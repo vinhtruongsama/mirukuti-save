@@ -99,7 +99,7 @@ export default function Dashboard() {
 
         const actor = Array.isArray(log.actor) ? log.actor[0] : log.actor;
         const actorRole = actor?.club_memberships?.[0]?.role;
-        
+
         const roleMap: Record<string, string> = {
           'president': '部長',
           'vice_president': '副部長',
@@ -109,7 +109,7 @@ export default function Dashboard() {
           'alumni': '卒業生'
         };
         const roleLabel = actorRole ? (roleMap[actorRole] || actorRole) : '';
-        
+
         const isActorSelf = log.actor_id === currentUser?.id;
         const actorDisplayName = isActorSelf ? '自分' : (actor?.full_name || 'System');
         const actorFullName = (isActorSelf || !roleLabel) ? actorDisplayName : `${roleLabel} ${actorDisplayName}`;
@@ -183,7 +183,6 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-4 mb-12">
           <div>
             <h2 className="text-3xl font-black text-stone-900 tracking-tighter">活動の履歴</h2>
-            <p className="text-stone-400 font-medium mt-1">最近行われた管理操作のログ</p>
           </div>
           <button
             onClick={() => setShowClearModal(true)}
@@ -258,7 +257,7 @@ export default function Dashboard() {
                                   {item.timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              
+
                               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-stone-500 leading-snug">
                                 <span>{item.action}</span>
                                 <span className="text-stone-300">/</span>
@@ -288,7 +287,7 @@ export default function Dashboard() {
       {/* Clear Logs Modal */}
       {showClearModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
             onClick={() => setShowClearModal(false)}
           />
@@ -298,7 +297,7 @@ export default function Dashboard() {
             className="relative w-full max-w-lg bg-white rounded-[2.5rem] p-10 overflow-hidden shadow-2xl"
           >
             <div className="absolute top-0 right-0 p-6">
-              <button 
+              <button
                 onClick={() => setShowClearModal(false)}
                 className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-full hover:bg-stone-100 transition-all"
               >
@@ -313,7 +312,7 @@ export default function Dashboard() {
 
               <div>
                 <h3 className="text-2xl font-black text-stone-900 tracking-tight">履歴をクリア</h3>
-                <p className="text-stone-500 mt-2">どの履歴を削除しますか？<br/>この操作は取り消せません。</p>
+                <p className="text-stone-500 mt-2">どの履歴を削除しますか？<br />この操作は取り消せません。</p>
               </div>
 
               <div className="w-full grid grid-cols-1 gap-3">
@@ -325,11 +324,10 @@ export default function Dashboard() {
                   <button
                     key={option.id}
                     onClick={() => setClearType(option.id as any)}
-                    className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${
-                      clearType === option.id 
-                        ? 'border-indigo-600 bg-indigo-50/30' 
+                    className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${clearType === option.id
+                        ? 'border-indigo-600 bg-indigo-50/30'
                         : 'border-stone-100 hover:border-stone-200'
-                    }`}
+                      }`}
                   >
                     <div className={`p-3 rounded-xl ${clearType === option.id ? 'bg-indigo-600' : 'bg-stone-100'}`}>
                       <Calendar className={`w-5 h-5 ${clearType === option.id ? 'text-white' : 'text-stone-400'}`} />
@@ -357,16 +355,16 @@ export default function Dashboard() {
                       const cutoff = new Date();
                       if (clearType === '7days') cutoff.setDate(cutoff.getDate() - 7);
                       else if (clearType === '30days') cutoff.setDate(cutoff.getDate() - 30);
-                      
+
                       let query = supabase.from('admin_audit_logs').delete();
-                      
+
                       if (clearType === 'all') {
                         // Blanket delete needs a filter in PostgREST
                         query = query.neq('id', '00000000-0000-0000-0000-000000000000');
                       } else {
                         query = query.lt('created_at', cutoff.toISOString());
                       }
-                      
+
                       const { error } = await query;
                       if (error) {
                         toast.error('ログの削除に失敗しました: ' + error.message);
