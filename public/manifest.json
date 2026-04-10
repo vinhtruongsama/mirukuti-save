@@ -1,0 +1,29 @@
+{
+  "short_name": "ミルクティ",
+  "name": "福祉ボランティア部『ミルクティ』",
+  "icons": [
+    {
+      "src": "/icons.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8F9FA",
+  "display": "standalone",
+  "theme_color": "#4F5BD5",
+  "orientation": "portrait"
+}
