@@ -462,9 +462,9 @@ export default function ActivityRegistrations() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <Link
           to="/admin/activities"
-          className="w-full sm:w-auto group inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-gradient-to-r from-[#4F5BD5] to-[#7c3aed] text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] transition-all shadow-[0_10px_30px_rgba(79,91,213,0.3)] hover:shadow-[0_15px_40px_rgba(79,91,213,0.5)] active:scale-95"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3 bg-gradient-to-r from-[#4F5BD5] to-[#7B61FF] text-white rounded-full text-[14px] font-black shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-95 no-underline group"
         >
-          <ArrowLeft className="w-5 h-5 text-white group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span>一覧に戻る</span>
         </Link>
 

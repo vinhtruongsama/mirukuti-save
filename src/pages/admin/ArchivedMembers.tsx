@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ChevronLeft, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
@@ -114,9 +114,10 @@ export default function ArchivedMembers() {
         <div className="space-y-4">
           <Link
             to="/admin/members"
-            className="flex items-center gap-2 text-stone-400 hover:text-stone-900 transition-colors group text-sm font-black uppercase tracking-widest"
+            className="inline-flex items-center gap-3 px-8 py-3 bg-gradient-to-r from-[#4F5BD5] to-[#7B61FF] text-white rounded-full text-[14px] font-black shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-95 no-underline group"
           >
-            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> メンバー名簿へ戻る
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            <span>一覧に戻る</span>
           </Link>
           <h1 className="text-[38px] font-black text-stone-900 font-mincho leading-tight">
             削除された部員
