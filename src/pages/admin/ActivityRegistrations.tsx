@@ -72,7 +72,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, totalSessions }:
   // Status Mutation (Now specialized for session-level)
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
-      console.log('Updating status to:', newStatus, 'for session:', currentSessionIdx);
+
       if (currentSessionIdx !== null) {
         // Upsert into attendance_records
         const { error } = await supabase
@@ -267,7 +267,7 @@ export default function ActivityRegistrations() {
   const { data: registrations, isLoading: regLoading } = useQuery({
     queryKey: ['admin-registrations', activityId],
     queryFn: async () => {
-      console.log('Fetching registrations for activityId:', activityId);
+
       const { data, error } = await supabase
         .from('registrations')
         .select(`
@@ -284,8 +284,7 @@ export default function ActivityRegistrations() {
         throw error;
       }
 
-      console.log('Successfully fetched registrations count:', data?.length || 0);
-      console.log('Raw data sample:', data?.[0]);
+
       return data;
     },
     enabled: !!activityId
