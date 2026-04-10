@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
-import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive } from 'lucide-react';
+import { calcAxisDelta, motion } from 'framer-motion';
+import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -32,6 +34,7 @@ const memberSchema = z.object({
   hometown: z.string().optional(),
   role: z.enum(['president', 'vice_president', 'treasurer', 'executive', 'member', 'alumni']),
   university_year: z.number().min(0).max(4),
+  nationality: z.string().optional(),
 });
 
 type MemberFormData = z.infer<typeof memberSchema>;
@@ -201,6 +204,7 @@ export default function Members() {
           university_email: data.university_email,
           line_nickname: data.line_nickname,
           hometown: data.hometown,
+          nationality: data.nationality,
           university_year: data.university_year // Year moved here
         }).eq('id', data.user_id);
         if (userError) throw userError;
@@ -234,6 +238,7 @@ export default function Members() {
             gender: data.gender, phone: data.phone, university_email: data.university_email,
             line_nickname: data.line_nickname, hometown: data.hometown,
             university_year: data.university_year, // Year for new users
+            nationality: data.nationality,
             is_new: true // Ensure manual registrations also get the NEW badge
           });
           if (insertUserError) throw insertUserError;
@@ -298,6 +303,77 @@ export default function Members() {
   });
 
   // --- ACTIONS ---
+  const exportToExcel = () => {
+    try {
+      const ws = XLSX.utils.json_to_sheet([]);
+
+      const headers = [
+        ['部員一覧表'],
+        [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+        [''],
+        ['No', '学籍番号', '氏名', 'フリガナ', '学年', '役割', '性別', '電話番号', '大学メール', 'メール', 'LINEニックネーム', '国籍']
+      ];
+
+      XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
+
+      const rowData = filteredData.map((m: any, idx) => {
+        const gradeBadge = getGradeBadge(m.users?.university_year);
+        return [
+          idx + 1,
+          m.users?.mssv || '',
+          m.users?.full_name || '',
+          m.users?.full_name_kana || '',
+          m.users?.university_year || '',
+          m.role === 'president' ? '部長' :
+            m.role === 'vice_president' ? '副部長' :
+              m.role === 'treasurer' ? '会計' :
+                m.role === 'executive' ? '幹部' :
+                  m.role === 'alumni' ? '卒業生' : '部員',
+          m.users?.gender === 'male' ? '男性' : m.users?.gender === 'female' ? '女性' : 'その他',
+          m.users?.phone || '',
+          m.users?.university_email || '',
+          m.users?.email || '',
+          m.users?.line_nickname || '',
+          m.users?.nationality || ''
+        ];
+      });
+
+      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A5' });
+
+      // Add Total Row
+      const totalRowOrigin = `A${rowData.length + 5}`;
+      XLSX.utils.sheet_add_aoa(ws, [
+        ['合計:', filteredData.length]
+      ], { origin: totalRowOrigin });
+
+      // Column widths
+      ws['!cols'] = [
+        { wch: 6 },  // No
+        { wch: 15 }, // MSSV
+        { wch: 20 }, // Full Name
+        { wch: 30 }, // Furigana
+        { wch: 5 }, // Grade
+        { wch: 5 }, // Role
+        { wch: 10 }, // Gender
+        { wch: 15 }, // Phone
+        { wch: 35 }, // Uni Email
+        { wch: 35 }, // Personal Email
+        { wch: 20 }, // LINE Nickname
+        { wch: 15 }  // Nationality
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Members');
+
+      const fileName = `Member_List_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      toast.success('Excelをエクスポートしました');
+    } catch (error: any) {
+      console.error('Export error:', error);
+      toast.error('エクスポートに失敗しました');
+    }
+  };
+
   // Note: Edit and Delete are handled via MemberDetailDrawer
 
   // Grade styling logic (Task 2)
@@ -331,6 +407,14 @@ export default function Members() {
         <div className="w-full lg:w-auto flex flex-wrap items-center justify-end gap-3 lg:gap-4 order-last lg:order-none mt-4 lg:mt-0">
           {isPresident && (
             <>
+              <button
+                onClick={exportToExcel}
+                className="h-12 lg:h-14 flex-2 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-[#4F5BD5] rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-indigo-50 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Download size={16} className="text-[#4F5BD5]" />
+                <span>EXCEL</span>
+              </button>
+
               <button
                 onClick={() => setIsImportOpen(true)}
                 className="h-12 lg:h-14 flex-2 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-stone-600 rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-stone-50 active:scale-95 flex items-center justify-center gap-2"

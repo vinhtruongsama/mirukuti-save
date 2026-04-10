@@ -12,7 +12,7 @@ interface InquiryModalProps {
 export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
   const { currentUser } = useAuthStore();
   const [message, setMessage] = useState('');
-  const [name, setName] = useState(currentUser?.full_name || '');
+  const [name, setName] = useState(currentUser?.full_name_kana || currentUser?.full_name || '');
   const [email, setEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isDone, setIsDone] = useState(false);
@@ -43,7 +43,7 @@ export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
     // Reset state after close animation
     setTimeout(() => {
       setMessage('');
-      setName(currentUser?.full_name || '');
+      setName(currentUser?.full_name_kana || currentUser?.full_name || '');
       setEmail('');
       setIsDone(false);
     }, 300);
@@ -140,10 +140,6 @@ export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
                         className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-4 text-sm font-medium text-stone-900 focus:outline-none focus:border-[#4F5BD5]/50 focus:bg-white transition-all resize-none placeholder:text-stone-300 leading-relaxed"
                       />
                     </div>
-
-                    <p className="text-[11px] text-stone-400 font-medium leading-relaxed px-1">
-                      ✦ ご回答はLINEにてお送りします。しばらくお待ちください。
-                    </p>
 
                     {/* Submit Button */}
                     <button

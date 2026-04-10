@@ -30,6 +30,7 @@ const memberSchema = z.object({
   line_nickname: z.string().optional(),
   role: z.enum(['president', 'vice_president', 'treasurer', 'executive', 'member', 'alumni']),
   university_year: z.number().min(0).max(4),
+  nationality: z.string().optional(),
   password: z.string().optional().or(z.literal('')), // Thêm field password
 });
 
@@ -71,6 +72,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
         line_nickname: member.users?.line_nickname || '',
         role: (member.role === 'admin' ? 'president' : member.role) || 'member',
         university_year: member.users?.university_year || 1,
+        nationality: member.users?.nationality || '',
         password: '',
       });
       if (!member.id) {
@@ -111,6 +113,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
     { label: '連絡用メール', value: member.users?.email?.trim() || '無', icon: Mail, copy: true },
     { label: '大学メール', value: member.users?.university_email?.trim() || '無', icon: GraduationCap },
     { label: '電話番号', value: member.users?.phone?.trim() || '無', icon: Phone },
+    { label: '国籍', value: member.users?.nationality?.trim() || '無', icon: MessagesSquare },
     { label: 'LINE', value: member.users?.line_nickname?.trim() ? `@${member.users.line_nickname.trim()}` : '無', icon: MessagesSquare }
   ];
 
@@ -251,6 +254,37 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                       <div className="space-y-2">
                         <span className="text-[13px] font-bold text-stone-500 pl-1">LINE名</span>
                         <input id="line_nickname" {...register('line_nickname')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                      </div>
+                      <div className="space-y-2">
+                        <span className="text-[13px] font-bold text-stone-500 pl-1">国籍 (Nationality)</span>
+                        <div className="relative group">
+                          <select 
+                            id="nationality" 
+                            {...register('nationality')} 
+                            className="w-full h-12 sm:h-14 bg-stone-50 rounded-2xl px-5 sm:px-6 text-[13px] sm:text-[14px] font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black pr-12"
+                          >
+                            <option value="">未設定</option>
+                            <option value="日本">日本 (Japan)</option>
+                            <option value="ベトナム">ベトナム (Vietnam)</option>
+                            <option value="ミャンマー">ミャンマー (Myanmar)</option>
+                            <option value="中国">中国 (China)</option>
+                            <option value="韓国">韓国 (South Korea)</option>
+                            <option value="台湾">台湾 (Taiwan)</option>
+                            <option value="タイ">タイ (Thailand)</option>
+                            <option value="インドネシア">インドネシア (Indonesia)</option>
+                            <option value="フィリピン">フィリピン (Philippines)</option>
+                            <option value="マレーシア">マレーシア (Malaysia)</option>
+                            <option value="カンボジア">カンボジア (Cambodia)</option>
+                            <option value="ラオス">ラオス (Laos)</option>
+                            <option value="ネパール">ネパール (Nepal)</option>
+                            <option value="その他">その他 (Other)</option>
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-stone-300 group-focus-within:text-emerald-500">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -26,7 +26,7 @@ const STATUS_COLOR_THEME = {
 // -------------------------------------------------------------
 // CHILD COMPONENT: Simple Registration Item
 // -------------------------------------------------------------
-function RegistrationItem({ reg, activityId, currentSessionIdx }: { reg: any, activityId: string, currentSessionIdx: number | null }) {
+function RegistrationItem({ reg, activityId, currentSessionIdx, totalSessions }: { reg: any, activityId: string, currentSessionIdx: number | null, totalSessions: number }) {
   const queryClient = useQueryClient();
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState(reg.admin_note || '');
@@ -126,7 +126,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx }: { reg: any, ac
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <p className="text-lg font-black text-[#0f172a] tracking-tight truncate uppercase">
-                {reg.users.full_name}
+                {reg.users.full_name_kana || reg.users.full_name}
               </p>
               {reg.users.mssv && (
                 <span className="text-[10px] font-black tracking-widest text-[#4F5BD5] bg-[#4F5BD5]/5 px-2 py-0.5 rounded-lg border border-[#4F5BD5]/10">
@@ -135,9 +135,21 @@ function RegistrationItem({ reg, activityId, currentSessionIdx }: { reg: any, ac
               )}
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                Applied: {format(new Date(reg.registered_at), 'MM/dd')}
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                申し込み: {format(new Date(reg.registered_at), 'MM/dd')}
               </span>
+              {Array.isArray(reg.selected_sessions) && reg.selected_sessions.length > 0 && (
+                <>
+                  <div className="h-1 w-1 bg-gray-200 rounded-full" />
+                  <div className="flex items-center gap-1">
+                    {reg.selected_sessions.map((sIdx: number) => (
+                      <span key={sIdx} className="text-[9px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
+                        Vol.{sIdx + 1}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
               <div className="h-1 w-1 bg-gray-200 rounded-full" />
               <button
                 onClick={() => setShowNote(!showNote)}
@@ -145,34 +157,36 @@ function RegistrationItem({ reg, activityId, currentSessionIdx }: { reg: any, ac
                   }`}
               >
                 <MessageSquare className="w-3 h-3" />
-                {reg.admin_note ? 'Read Note' : 'Add Note'}
+                {reg.admin_note ? 'メモをみる' : 'メモをかく'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons Section */}
-        <div className="flex flex-row items-center gap-1.5 w-full lg:w-auto">
-          {[
-            { id: 'present', label: '出席', color: 'present', icon: CheckCircle2 },
-            { id: 'unexcused_absence', label: '欠席', color: 'unexcused_absence', icon: UserX },
-            { id: 'applied', label: '確認待ち', color: 'applied', icon: Sparkles },
-          ].map((item) => {
-            const theme = STATUS_COLOR_THEME[item.color as keyof typeof STATUS_COLOR_THEME];
-            const isActive = displayStatus === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => updateStatusMutation.mutate(item.id)}
-                className={`flex-1 lg:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-1 sm:px-3 py-3 rounded-xl border-2 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 ${isActive ? theme.active : `bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-700 shadow-sm`
-                  }`}
-              >
-                <item.icon className="w-3.5 h-3.5 sm:w-4 h-4" />
-                <span className="truncate">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Action Buttons Section - Show when a specific Vol is selected OR when the activity has NO sessions at all */}
+        {(currentSessionIdx !== null || totalSessions === 0) && (
+          <div className="flex flex-row items-center gap-1.5 w-full lg:w-auto">
+            {[
+              { id: 'present', label: '出席', color: 'present', icon: CheckCircle2 },
+              { id: 'unexcused_absence', label: '欠席', color: 'unexcused_absence', icon: UserX },
+              { id: 'applied', label: '確認待ち', color: 'applied', icon: Sparkles },
+            ].map((item) => {
+              const theme = STATUS_COLOR_THEME[item.color as keyof typeof STATUS_COLOR_THEME];
+              const isActive = displayStatus === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => updateStatusMutation.mutate(item.id)}
+                  className={`flex-1 lg:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-1 sm:px-3 py-3 rounded-xl border-2 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 ${isActive ? theme.active : `bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-700 shadow-sm`
+                    }`}
+                >
+                  <item.icon className="w-3.5 h-3.5 sm:w-4 h-4" />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Expandable Note Section */}
@@ -186,7 +200,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx }: { reg: any, ac
           >
             <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Admin Notes</span>
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">メモ</span>
                 {isSavingNote && <Loader2 className="w-3 h-3 animate-spin text-[#4F5BD5]" />}
               </div>
               <textarea
@@ -210,7 +224,6 @@ function RegistrationItem({ reg, activityId, currentSessionIdx }: { reg: any, ac
 export default function ActivityRegistrations() {
   const { id: activityId } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSessionIdx, setSelectedSessionIdx] = useState<number | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 400);
 
@@ -224,6 +237,12 @@ export default function ActivityRegistrations() {
     enabled: !!activityId
   });
 
+  useEffect(() => {
+    if (activity?.sessions?.length === 1 && selectedSessionIdx === null) {
+      setSelectedSessionIdx(0);
+    }
+  }, [activity, selectedSessionIdx]);
+
   const { data: registrations, isLoading: regLoading } = useQuery({
     queryKey: ['admin-registrations', activityId],
     queryFn: async () => {
@@ -232,7 +251,7 @@ export default function ActivityRegistrations() {
         .from('registrations')
         .select(`
           id, attendance_status, admin_note, registered_at, selected_sessions,
-          users:user_id (id, mssv, full_name, email, phone),
+          users:user_id (id, mssv, full_name, full_name_kana, email, phone),
           attendance_records (session_index, status)
         `)
         .eq('activity_id', activityId)
@@ -261,18 +280,6 @@ export default function ActivityRegistrations() {
     if (!registrations) return [];
     let result = registrations;
 
-    // Filter by Date (Only if a specific date pill is clicked)
-    if (selectedDate) {
-      result = result.filter((r: any) => {
-        try {
-          return format(new Date(r.registered_at), 'yyyy-MM-dd') === selectedDate;
-        } catch {
-          return false;
-        }
-      });
-    }
-
-    // Filter by Session Index (Only if a specific Vol. pill is clicked)
     if (selectedSessionIdx !== null) {
       result = result.filter((r: any) => {
         // If sessions field is missing, it's effectively registered for everything
@@ -287,6 +294,7 @@ export default function ActivityRegistrations() {
       const lower = debouncedSearch.toLowerCase();
       result = result.filter((r: any) =>
         (r.users?.full_name?.toLowerCase().includes(lower)) ||
+        (r.users?.full_name_kana?.toLowerCase().includes(lower)) ||
         (r.users?.mssv?.toLowerCase().includes(lower))
       );
     }
@@ -295,7 +303,7 @@ export default function ActivityRegistrations() {
     result = result.filter((r: any) => r.users && r.users.full_name);
 
     return result;
-  }, [registrations, debouncedSearch, selectedDate, selectedSessionIdx]);
+  }, [registrations, debouncedSearch, selectedSessionIdx]);
 
   const exportToExcel = () => {
     if (!registrations || !activity) return;
@@ -305,47 +313,93 @@ export default function ActivityRegistrations() {
       // Meta Information & Headers
       const sessionInfo = selectedSessionIdx !== null
         ? ` (Vol.${selectedSessionIdx + 1} - ${activity.sessions[selectedSessionIdx].start_time})`
-        : ' (全ての日程)';
+        : ' (全日程一括)';
+
+      const headersRow = ['No', '氏名', '学籍番号'];
+      if (selectedSessionIdx !== null && activity.sessions?.[selectedSessionIdx]) {
+        const s = activity.sessions[selectedSessionIdx];
+        const datePart = format(new Date(s.date), 'M月d日');
+        headersRow.push(`${datePart} (${s.start_time})`);
+      } else if (activity.sessions?.length === 1) {
+        const s = activity.sessions[0];
+        const datePart = format(new Date(s.date), 'M月d日');
+        headersRow.push(`${datePart} (${s.start_time})`);
+      } else if (activity.sessions?.length > 1) {
+        activity.sessions.forEach((s: any) => {
+          const datePart = format(new Date(s.date), 'M月d日');
+          headersRow.push(`${datePart} (${s.start_time})`);
+        });
+      } else {
+        // NO SESSIONS CASE: use main activity date
+        try {
+          const d = new Date(activity.date);
+          const datePart = format(d, 'M月d日');
+          const timePart = format(d, 'HH:mm');
+          headersRow.push(`${datePart} (${timePart})`);
+        } catch {
+          headersRow.push('出欠');
+        }
+      }
+      headersRow.push('備考');
 
       const headers = [
         [`活動名：${activity.title}${sessionInfo}`],
         [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
         [''],
-        ['No', '氏名', '学籍番号', '出欠', '備考']
+        headersRow
       ];
 
       XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
 
       // Member Data
       const rowData = filteredRegs.map((r: any, idx) => {
-        // Determine status for this specific session or overall
-        let statusText = '確認中';
+        const row: any[] = [
+          idx + 1,
+          r.users?.full_name_kana || r.users?.full_name || 'N/A',
+          r.users?.mssv || 'N/A'
+        ];
+
         if (selectedSessionIdx !== null) {
           const sStatus = r.attendance_records?.find((ar: any) => ar.session_index === selectedSessionIdx)?.status;
-          if (sStatus) statusText = STATUS_JA[sStatus as keyof typeof STATUS_JA] || '確認中';
+          row.push(STATUS_JA[sStatus as keyof typeof STATUS_JA] || STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中');
+        } else if (activity.sessions?.length > 0) {
+          activity.sessions.forEach((_: any, i: number) => {
+            const isSelected = !r.selected_sessions || (Array.isArray(r.selected_sessions) && r.selected_sessions.includes(i));
+            if (!isSelected) {
+              row.push('-'); // Not registered for this session
+            } else {
+              const sStatus = r.attendance_records?.find((ar: any) => ar.session_index === i)?.status;
+              row.push(STATUS_JA[sStatus as keyof typeof STATUS_JA] || '確認中');
+            }
+          });
         } else {
-          statusText = STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中';
+          row.push(STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中');
         }
 
-        return [
-          idx + 1,
-          r.users?.full_name || 'N/A',
-          r.users?.mssv || 'N/A',
-          statusText,
-          r.admin_note || ''
-        ];
+        row.push(r.admin_note || '');
+        return row;
       });
 
-      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A6' });
+      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A5' });
 
       // Column Widths for better readability
-      ws['!cols'] = [
+      const colWidths = [
         { wch: 6 },  // No
         { wch: 30 }, // 氏名
         { wch: 15 }, // 学籍番号
-        { wch: 20 }, // 出欠
-        { wch: 40 }  // その他
       ];
+      
+      // Add widths for attendance columns
+      if (selectedSessionIdx !== null || !activity.sessions?.length) {
+        colWidths.push({ wch: 20 });
+      } else {
+        activity.sessions.forEach(() => {
+          colWidths.push({ wch: 15 });
+        });
+      }
+      colWidths.push({ wch: 40 }); // 備考
+
+      ws['!cols'] = colWidths;
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Attendance List');
@@ -354,7 +408,7 @@ export default function ActivityRegistrations() {
       const safeTitle = activity.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 50);
       const datePart = format(new Date(), 'yyyyMMdd');
       const sessionFilePart = selectedSessionIdx !== null ? `_Vol${selectedSessionIdx + 1}` : '';
-      
+
       XLSX.writeFile(wb, `${safeTitle}の出欠（${datePart}）${sessionFilePart}.xlsx`);
 
       toast.success('Excel Report Exported Successfully');
@@ -422,58 +476,38 @@ export default function ActivityRegistrations() {
           </div>
         </div>
 
-        {/* Date Filter Pills */}
+        {/* Navigation Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          <button
-            onClick={() => {
-              setSelectedDate(null);
-              setSelectedSessionIdx(null);
-            }}
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedDate === null && selectedSessionIdx === null
+          {activity?.sessions?.length > 1 && (
+            <button
+              onClick={() => setSelectedSessionIdx(null)}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === null
                 ? 'bg-gray-900 border-gray-900 text-white shadow-lg'
                 : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
-              }`}
-          >
-            All Updates
-          </button>
-          {registrationDates.map((dateString) => (
-            <button
-              key={dateString}
-              onClick={() => {
-                setSelectedDate(dateString);
-                setSelectedSessionIdx(null);
-              }}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedDate === dateString
-                  ? 'bg-[#4F5BD5] border-[#4F5BD5] text-white shadow-lg shadow-[#4F5BD5]/20'
-                  : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
                 }`}
             >
-              Update: {format(new Date(dateString), 'MM/dd')}
+              すべて
             </button>
-          ))}
-        </div>
+          )}
 
-        {/* Session Filter Pills */}
-        {activity?.sessions?.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <div className="h-8 w-[2px] bg-gray-100 mx-2 shrink-0" />
-            {activity.sessions.map((session: any, idx: number) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  setSelectedSessionIdx(idx);
-                  setSelectedDate(null);
-                }}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === idx
+          {activity?.sessions?.length > 0 && (
+            <>
+              {activity.sessions.length > 1 && <div className="h-8 w-[2px] bg-gray-100 mx-1 shrink-0" />}
+              {activity.sessions.map((session: any, idx: number) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedSessionIdx(idx)}
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === idx
                     ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20'
                     : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
-                  }`}
-              >
-                Vol.{idx + 1} ({session.start_time})
-              </button>
-            ))}
-          </div>
-        )}
+                    }`}
+                >
+                  Vol.{idx + 1} ({session.start_time})
+                </button>
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Registration List */}
@@ -485,7 +519,13 @@ export default function ActivityRegistrations() {
           </div>
         ) : (
           filteredRegs.map((reg) => (
-            <RegistrationItem key={reg.id} reg={reg} activityId={activityId!} currentSessionIdx={selectedSessionIdx} />
+            <RegistrationItem 
+              key={reg.id} 
+              reg={reg} 
+              activityId={activityId!} 
+              currentSessionIdx={selectedSessionIdx} 
+              totalSessions={activity?.sessions?.length || 0}
+            />
           ))
         )}
       </div>

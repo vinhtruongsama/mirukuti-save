@@ -47,9 +47,10 @@ export default function Dashboard() {
         .from('admin_audit_logs')
         .select(`
           *,
-          users:user_id (full_name, email),
+          users:user_id (full_name, full_name_kana, email),
           actor:actor_id (
             full_name,
+            full_name_kana,
             club_memberships (role)
           )
         `)
@@ -110,13 +111,12 @@ export default function Dashboard() {
         };
         const roleLabel = actorRole ? (roleMap[actorRole] || actorRole) : '';
 
-        const isActorSelf = log.actor_id === currentUser?.id;
-        const actorDisplayName = isActorSelf ? '自分' : (actor?.full_name || 'System');
-        const actorFullName = (isActorSelf || !roleLabel) ? actorDisplayName : `${roleLabel} ${actorDisplayName}`;
+        const actorDisplayName = actor?.full_name_kana || actor?.full_name || 'System';
+        const actorFullName = !roleLabel ? actorDisplayName : `${roleLabel} ${actorDisplayName}`;
 
         return {
           id: log.id,
-          user: user?.full_name || 'Unknown User',
+          user: user?.full_name_kana || user?.full_name || 'Unknown User',
           actor: actorFullName,
           email: user?.email,
           action: config.label,
