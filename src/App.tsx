@@ -83,13 +83,12 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
-              <Route path="/activities" element={<Activities />} />
-              <Route path="/activities/:id" element={<ActivityDetail />} />
-              
               {/* Member Only Routes */}
               <Route element={<RequireAuth />}>
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/change-password" element={<ChangePassword />} />
+                <Route path="/activities" element={<Activities />} />
+                <Route path="/activities/:id" element={<ActivityDetail />} />
               </Route>
             </Route>
 

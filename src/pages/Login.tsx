@@ -167,7 +167,7 @@ export default function Login() {
            className="w-full max-w-[400px] bg-white/95 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.1)] flex flex-col p-8 sm:p-10 border border-white/50"
         >
           <div className="mb-6 flex flex-col items-center">
-             <img src="/chao-.png" alt="Welcome" className="h-[100px] w-auto object-contain drop-shadow-xl" />
+             <img src="/chao.png" alt="Welcome" className="h-[100px] w-auto object-contain drop-shadow-xl" />
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

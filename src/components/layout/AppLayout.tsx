@@ -23,8 +23,10 @@ export const AppLayout = () => {
 
   const navItems = [
     { path: '/', label: 'ホーム', icon: Home },
-    { path: '/activities', label: 'ボランティア活動', icon: Activity },
-    ...(currentUser ? [{ path: '/profile', label: 'マイページ', icon: User }] : []),
+    ...(currentUser ? [
+      { path: '/activities', label: 'ボランティア活動', icon: Activity },
+      { path: '/profile', label: 'マイページ', icon: User }
+    ] : []),
     ...(currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole) 
       ? [{ path: '/admin', label: '管理コンソール', icon: ShieldCheck }] 
       : []),

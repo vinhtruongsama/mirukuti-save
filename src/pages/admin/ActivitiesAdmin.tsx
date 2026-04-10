@@ -671,15 +671,13 @@ export default function ActivitiesAdmin() {
                               const val = watch('date');
                               return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                             })()}
-                            onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
                             placeholder="DD/MM/YYYY"
                             className="w-full bg-white/50 border border-pink-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-[#D62976]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#D62976]/40"
                           />
                           <input
                             type="date"
                             {...register('date')}
-                            className="absolute inset-0 opacity-0 pointer-events-none"
-                            tabIndex={-1}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
                         </div>
@@ -705,15 +703,13 @@ export default function ActivitiesAdmin() {
                               const val = watch('registration_deadline');
                               return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                             })()}
-                            onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
                             placeholder="DD/MM/YYYY"
                             className="w-full bg-white/50 border border-indigo-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#4F5BD5]/40"
                           />
                           <input
                             type="date"
                             {...register('registration_deadline')}
-                            className="absolute inset-0 opacity-0 pointer-events-none"
-                            tabIndex={-1}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
                         </div>
@@ -739,15 +735,13 @@ export default function ActivitiesAdmin() {
                               const val = watch('cancellation_deadline');
                               return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                             })()}
-                            onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
                             placeholder="DD/MM/YYYY"
                             className="w-full bg-white/50 border border-amber-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-amber-500/30 outline-none transition-all shadow-sm cursor-pointer hover:border-amber-500/40"
                           />
                           <input
                             type="date"
                             {...register('cancellation_deadline')}
-                            className="absolute inset-0 opacity-0 pointer-events-none"
-                            tabIndex={-1}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
                         </div>
@@ -928,15 +922,13 @@ export default function ActivitiesAdmin() {
                                       const val = watch(`sessions.${index}.date`);
                                       return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                                     })()}
-                                    onClick={(e) => (e.currentTarget.nextElementSibling as HTMLInputElement)?.showPicker()}
                                     placeholder="DD/MM/YYYY"
                                     className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer"
                                   />
                                   <input
                                     type="date"
                                     {...register(`sessions.${index}.date` as const)}
-                                    className="absolute inset-0 opacity-0 pointer-events-none"
-                                    tabIndex={-1}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
                                   />
                                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm pointer-events-none group-hover/input:text-[#4F5BD5] transition-colors" />
                                 </div>

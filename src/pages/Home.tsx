@@ -36,7 +36,7 @@ export default function Home() {
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
-                className="relative w-36 h-36 sm:w-48 sm:h-48 xl:w-[320px] xl:h-[320px] mb-4 xl:mb-4"
+                className="relative w-36 h-36 sm:w-48 sm:h-48 xl:w-[240px] xl:h-[240px] mb-8 xl:mb-12"
               >
                 <img
                   src="/logo-sitdown.png"
@@ -50,14 +50,16 @@ export default function Home() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex flex-col gap-3 w-full xl:-mt-10"
+                className="flex flex-col gap-3 w-full"
               >
-                <Link 
-                  to="/activities" 
-                  className="w-full px-8 py-4 bg-white hover:bg-stone-50 text-[#D62976] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/5 flex items-center justify-center no-underline border border-[#D62976]/10"
-                >
-                  活動を見る
-                </Link>
+                {session && (
+                  <Link 
+                    to="/activities" 
+                    className="w-full px-8 py-4 bg-white hover:bg-stone-50 text-[#D62976] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/5 flex items-center justify-center no-underline border border-[#D62976]/10"
+                  >
+                    活動を見る
+                  </Link>
+                )}
 
                 <Link 
                   to={session ? "/profile" : "/login"} 
@@ -192,7 +194,9 @@ export default function Home() {
                 <h4 className="text-[12px] font-black tracking-[0.5em] text-white/20 uppercase border-b border-white/5 pb-4">Explore</h4>
                 <ul className="space-y-8">
                   <li><Link to="/" className="text-xl md:text-2xl font-bold text-white/40 hover:text-[#FEDA75] transition-all hover:translate-y-[-2px] inline-block">ホーム</Link></li>
-                  <li><Link to="/activities" className="text-xl md:text-2xl font-bold text-white/40 hover:text-[#D62976] transition-all hover:translate-y-[-2px] inline-block">活動一覧</Link></li>
+                  {session && (
+                    <li><Link to="/activities" className="text-xl md:text-2xl font-bold text-white/40 hover:text-[#D62976] transition-all hover:translate-y-[-2px] inline-block">活動一覧</Link></li>
+                  )}
                 </ul>
               </div>
               <div className="space-y-10">
