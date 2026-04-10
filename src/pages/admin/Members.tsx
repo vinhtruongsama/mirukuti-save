@@ -63,6 +63,9 @@ export default function Members() {
 
   const isPresident = currentUserMembership?.role === 'president';
   const isVicePresident = currentUserMembership?.role === 'vice_president';
+  const isExecutive = currentUserMembership?.role === 'executive';
+
+  const canEditMembers = isPresident || isVicePresident || isExecutive;
   const canToggleDisclosure = isPresident || isVicePresident;
 
   // --- UI STATES ---
@@ -151,7 +154,7 @@ export default function Members() {
   }, [filteredData, currentPage]);
 
   // --- APP SETTINGS (Global Toggle) ---
-  const { data: settings } = useQuery({
+  const { data: settings, isLoading: isSettingsLoading } = useQuery({
     queryKey: ['app-settings'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -165,6 +168,8 @@ export default function Members() {
       }, {});
     }
   });
+  const isSeniorAdmin = isPresident || isVicePresident;
+  const isFullDisclosure = isSeniorAdmin || settings?.allow_profile_edit === true;
 
   const toggleEditMutation = useMutation({
     mutationFn: async (currentVal: boolean) => {
@@ -393,18 +398,18 @@ export default function Members() {
       {/* 1. PRESTIGIOUS HEADER (App-Style Optimized) */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 lg:gap-8 shrink-0 px-2 lg:px-0">
         <div className="flex flex-row items-center justify-between w-full lg:w-auto">
+          <div className="w-1.5 h-12 mr-4 rounded-full bg-gradient-to-b from-[#D62976] to-[#4F5BD5] mt-1 hidden sm:block" />
           <div className="flex flex-col">
             <h1 className="text-[32px] lg:text-[48px] font-black text-stone-900 tracking-tighter leading-none mb-1 lg:mb-2 text-glow">部員一覧表</h1>
             <div className="flex items-center gap-2 text-[10px] lg:text-[12px] font-black uppercase tracking-[0.4em]">
-              <span className="text-stone-300">Management</span>
-              <span className="text-[#D62976]">Console</span>
+
             </div>
           </div>
         </div>
 
         {/* TOP LEVEL ACTIONS */}
         <div className="w-full lg:w-auto flex flex-wrap items-center justify-end gap-3 lg:gap-4 order-last lg:order-none mt-4 lg:mt-0">
-          {isPresident && (
+          {canEditMembers && (
             <>
               <button
                 onClick={exportToExcel}
@@ -453,17 +458,23 @@ export default function Members() {
             <div className="flex items-center gap-4">
               <div className={cn(
                 "w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center transition-colors duration-500",
-                settings?.allow_profile_edit ? "bg-emerald-500 shadow-lg shadow-emerald-500/20" : "bg-white border border-stone-200"
+                isSettingsLoading
+                  ? "bg-stone-100"
+                  : settings?.allow_profile_edit
+                    ? "bg-emerald-500 shadow-lg shadow-emerald-500/20"
+                    : "bg-white border border-stone-200"
               )}>
-                <Shield className={cn("w-5 h-5", settings?.allow_profile_edit ? "text-white" : "text-stone-300")} />
+                <Shield className={cn("w-5 h-5", (settings?.allow_profile_edit && !isSettingsLoading) ? "text-white" : "text-stone-300")} />
               </div>
               <div>
                 <p className="text-[14px] lg:text-[16px] font-black text-stone-900 tracking-tight leading-tight mb-0.5">
-                  マイページの開示 : <span className={settings?.allow_profile_edit ? "text-emerald-600" : "text-rose-500"}>{settings?.allow_profile_edit ? 'ON' : 'OFF'}</span>
+                  マイページの開示 : <span className={isSettingsLoading ? "text-stone-300" : settings?.allow_profile_edit ? "text-emerald-600" : "text-rose-500"}>
+                    {isSettingsLoading ? '読み込み中...' : settings?.allow_profile_edit ? 'ON' : 'OFF'}
+                  </span>
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className={cn("text-[13px] font-bold uppercase tracking-widest", settings?.allow_profile_edit ? "text-emerald-500" : "text-rose-400")}>
-                    {settings?.allow_profile_edit ? '全ての情報を開示中' : '部員には氏名・学籍番号のみ表示'}
+                  <span className={cn("text-[13px] font-bold uppercase tracking-widest", isSettingsLoading ? "text-stone-300" : settings?.allow_profile_edit ? "text-emerald-500" : "text-rose-400")}>
+                    {isSettingsLoading ? '設定を確認しています' : settings?.allow_profile_edit ? '全ての情報を開示中' : '部員には氏名・学籍番号のみ表示'}
                   </span>
                 </div>
               </div>
@@ -471,15 +482,15 @@ export default function Members() {
 
             <button
               onClick={() => toggleEditMutation.mutate(settings?.allow_profile_edit ?? false)}
-              disabled={toggleEditMutation.isPending || !canToggleDisclosure}
+              disabled={isSettingsLoading || toggleEditMutation.isPending || !canToggleDisclosure}
               className={cn(
                 "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-500",
-                settings?.allow_profile_edit ? 'bg-emerald-500' : 'bg-stone-300'
+                (settings?.allow_profile_edit && !isSettingsLoading) ? 'bg-emerald-500' : 'bg-stone-300'
               )}
             >
               <div className={cn(
                 "h-5 w-5 transform rounded-full bg-white shadow-md transition-all duration-500",
-                settings?.allow_profile_edit ? "translate-x-6" : "translate-x-1"
+                (settings?.allow_profile_edit && !isSettingsLoading) ? "translate-x-6" : "translate-x-1"
               )} />
             </button>
           </div>
@@ -757,10 +768,13 @@ export default function Members() {
           member={selectedMember}
           isOpen={!!selectedMember}
           isPresident={isPresident}
+          isVicePresident={isVicePresident}
+          isFullDisclosure={isFullDisclosure}
+          canEdit={canEditMembers}
           onClose={() => setSelectedMember(null)}
           onSave={async (data) => {
-            if (!isPresident) {
-              toast.error('部長 (President) 権限が必要です。操作を完了できません。');
+            if (!canEditMembers) {
+              toast.error('編集権限が必要です（部長・副部長・幹部）。');
               return;
             }
 

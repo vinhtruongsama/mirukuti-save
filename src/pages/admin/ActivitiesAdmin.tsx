@@ -269,16 +269,12 @@ export default function ActivitiesAdmin() {
             className="flex items-start gap-6"
           >
             {/* Vertical Gradient Bar */}
-            <div className="w-1.5 h-16 rounded-full bg-gradient-to-b from-[#D62976] to-[#4F5BD5] mt-1 hidden sm:block" />
+            <div className="w-1.5 h-10 rounded-full bg-gradient-to-b from-[#D62976] to-[#4F5BD5] mt-1 hidden sm:block" />
 
             <div className="flex flex-col gap-3 text-left">
               <h1 className="text-4xl md:text-4xl font-black text-brand-stone-900 tracking-tighter leading-none">
                 活動管理
               </h1>
-              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.4em] leading-none">
-                <span className="text-brand-stone-400">Management</span>
-                <span className="text-[#D62976]">Console</span>
-              </div>
             </div>
           </motion.div>
 
@@ -593,7 +589,7 @@ export default function ActivitiesAdmin() {
                             onClick={(e) => {
                               try {
                                 (e.currentTarget as any).showPicker();
-                              } catch (err) {}
+                              } catch (err) { }
                             }}
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
@@ -630,7 +626,7 @@ export default function ActivitiesAdmin() {
                             onClick={(e) => {
                               try {
                                 (e.currentTarget as any).showPicker();
-                              } catch (err) {}
+                              } catch (err) { }
                             }}
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
@@ -822,7 +818,7 @@ export default function ActivitiesAdmin() {
                                     onClick={(e) => {
                                       try {
                                         (e.currentTarget as any).showPicker();
-                                      } catch (err) {}
+                                      } catch (err) { }
                                     }}
                                   />
                                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm pointer-events-none group-hover/input:text-[#4F5BD5] transition-colors" />

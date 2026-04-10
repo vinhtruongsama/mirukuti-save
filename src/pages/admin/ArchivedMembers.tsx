@@ -6,11 +6,29 @@ import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useState, useMemo } from 'react';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export default function ArchivedMembers() {
   const queryClient = useQueryClient();
+  const { currentRole } = useAuthStore();
   const { selectedYear } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
+
+  // 1. Fetch App Settings
+  const { data: appSettings } = useQuery({
+    queryKey: ['app-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('app_settings').select('*');
+      if (error) throw error;
+      return data.reduce((acc: any, curr) => {
+        acc[curr.key] = curr.value;
+        return acc;
+      }, {});
+    }
+  });
+
+  const isSeniorAdmin = currentRole === 'president' || currentRole === 'vice_president';
+  const isFullDisclosure = isSeniorAdmin || appSettings?.allow_profile_edit === true;
 
   const { data: archivedMembers = [], isLoading } = useQuery({
     queryKey: ['archived-members', selectedYear?.id],
@@ -153,7 +171,10 @@ export default function ArchivedMembers() {
                   <td className="px-10 py-8">
                     <div className="flex flex-col">
                       <span className="text-[15px] font-black text-stone-900 font-mincho">{mem.users?.full_name}</span>
-                      <span className="text-[12px] font-bold text-stone-400 tracking-tight">{mem.users?.mssv} • {mem.users?.email}</span>
+                      <span className="text-[12px] font-bold text-stone-400 tracking-tight">
+                        {mem.users?.mssv}
+                        {isFullDisclosure && mem.users?.email && ` • ${mem.users.email}`}
+                      </span>
                     </div>
                   </td>
                   <td className="px-10 py-8">

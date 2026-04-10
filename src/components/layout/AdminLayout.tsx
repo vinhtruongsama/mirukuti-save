@@ -4,11 +4,11 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 // 2. Third-party Libraries (Icons)
-import { 
-  LayoutDashboard, 
-  Users, 
-  CalendarDays, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Users,
+  CalendarDays,
+  LogOut,
   X,
   ChevronRight,
   Trophy,
@@ -47,10 +47,10 @@ export default function AdminLayout() {
     },
     refetchInterval: 30000,
   });
-  
+
   return (
     <div className="flex h-screen bg-[#F8F9FA] overflow-hidden font-sans relative">
-      
+
       {/* Re-opening Trigger: Red Triangle / Chevron */}
       <AnimatePresence>
         {!isSidebarVisible && (
@@ -82,8 +82,8 @@ export default function AdminLayout() {
 
       <div className="flex w-full h-full overflow-hidden">
         {/* 1. Refined Sidebar (Synchronized Animation) */}
-        <motion.aside 
-          animate={{ 
+        <motion.aside
+          animate={{
             width: isSidebarVisible ? 280 : 0,
             opacity: isSidebarVisible ? 1 : 0,
             x: isSidebarVisible ? 0 : -280
@@ -104,19 +104,19 @@ export default function AdminLayout() {
             <div className="p-8 border-b border-brand-stone-50 flex justify-center">
               <Link to="/" className="group block transition-all duration-700">
                 <div className="relative group-hover:scale-105 transition-transform duration-700">
-                   <img src="/ミルクティ-text.png" alt="ミルクティ-" className="w-full max-w-[160px] h-auto object-contain" />
+                  <img src="/ミルクティ-text.png" alt="ミルクティ-" className="w-full max-w-[160px] h-auto object-contain" />
                 </div>
               </Link>
             </div>
 
             {/* Section 2: User Identification */}
             <div className="px-10 py-4 border-b border-brand-stone-50">
-               <span className="text-[15px] font-black text-brand-stone-900 tracking-tight block">
-                  {currentUser?.full_name || 'System Admin'}
-               </span>
-               <span className="text-[9px] font-black text-[#4F5BD5] uppercase tracking-widest block mt-1 opacity-60">
-                  Administrator Access
-               </span>
+              <span className="text-[15px] font-black text-brand-stone-900 tracking-tight block">
+                {currentUser?.full_name || 'System Admin'}
+              </span>
+              <span className="text-[9px] font-black text-[#4F5BD5] uppercase tracking-widest block mt-1 opacity-60">
+                Administrator Access
+              </span>
             </div>
 
             {/* Section 3: Navigation Functions */}
@@ -130,17 +130,16 @@ export default function AdminLayout() {
                     key={item.name}
                     to={item.to}
                     className={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[14px] font-black transition-all group ${isActive
-                        ? 'bg-[#4F5BD5] text-white shadow-xl shadow-[#4F5BD5]/20 scale-[1.02]'
-                        : 'text-brand-stone-400 hover:text-brand-stone-900 hover:bg-brand-stone-50'
+                      ? 'bg-[#4F5BD5] text-white shadow-xl shadow-[#4F5BD5]/20 scale-[1.02]'
+                      : 'text-brand-stone-400 hover:text-brand-stone-900 hover:bg-brand-stone-50'
                       }`}
                   >
                     <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-white' : 'text-brand-stone-300 group-hover:text-brand-stone-900'}`} />
                     <span className="tracking-tight flex-1">{item.name}</span>
                     {/* Unread badge for inquiries */}
                     {item.to === '/admin/inquiries' && (unreadCount ?? 0) > 0 && (
-                      <span className={`min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black flex items-center justify-center ${
-                        isActive ? 'bg-white text-[#4F5BD5]' : 'bg-[#D62976] text-white'
-                      }`}>
+                      <span className={`min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black flex items-center justify-center ${isActive ? 'bg-white text-[#4F5BD5]' : 'bg-[#D62976] text-white'
+                        }`}>
                         {unreadCount}
                       </span>
                     )}
@@ -162,50 +161,47 @@ export default function AdminLayout() {
         </motion.aside>
 
         {/* 2. Main Content Area (Synchronized Layout) */}
-        <motion.main 
+        <motion.main
           layout
           transition={{ type: "spring", damping: 30, stiffness: 250 }}
           className="flex-1 flex flex-col h-full overflow-hidden bg-white md:bg-[#F8F9FA]"
         >
           {/* 3. Minimalist Top Bar */}
-          <motion.header 
+          <motion.header
             layout
             className="h-16 bg-white border-b border-brand-stone-100 flex items-center justify-between px-6 lg:px-10 shrink-0 z-10 shadow-sm"
           >
             {/* Left: Modern Home Navigation & Brand Context */}
             <div className="flex items-center gap-4">
-               <Link 
-                 to="/" 
-                 className="group relative flex items-center justify-center"
-                 title="Go to Homepage"
-               >
-                 {/* Premium Glow Effect on Hover */}
-                 <div className="absolute inset-0 bg-[#4F5BD5] opacity-0 blur-xl group-hover:opacity-20 transition-all duration-700 rounded-full" />
-                 
-                 <div className="relative w-10 h-10 rounded-2xl bg-[#4F5BD5]/5 border border-[#4F5BD5]/10 flex items-center justify-center transition-all duration-500 group-hover:bg-[#4F5BD5] group-hover:border-transparent group-hover:scale-110 group-hover:shadow-[0_12px_24px_-8px_rgba(79,91,213,0.4)] group-active:scale-90">
-                    <Home className="w-5 h-5 text-[#4F5BD5] group-hover:text-white transition-all duration-500 group-hover:-translate-y-0.5 group-hover:rotate-[-8deg]" />
-                 </div>
-               </Link>
+              <Link
+                to="/"
+                className="group relative flex items-center justify-center"
+                title="Go to Homepage"
+              >
+                {/* Premium Glow Effect on Hover */}
+                <div className="absolute inset-0 bg-[#4F5BD5] opacity-0 blur-xl group-hover:opacity-20 transition-all duration-700 rounded-full" />
 
-               <div className="h-6 w-[1px] bg-brand-stone-100 hidden sm:block mx-1" />
-               
-               <span className="text-[13px] font-black uppercase tracking-[0.2em] text-brand-stone-900 hidden sm:block">
-                 Management Console
-               </span>
+                <div className="relative w-10 h-10 rounded-2xl bg-[#4F5BD5]/5 border border-[#4F5BD5]/10 flex items-center justify-center transition-all duration-500 group-hover:bg-[#4F5BD5] group-hover:border-transparent group-hover:scale-110 group-hover:shadow-[0_12px_24px_-8px_rgba(79,91,213,0.4)] group-active:scale-90">
+                  <Home className="w-5 h-5 text-[#4F5BD5] group-hover:text-white transition-all duration-500 group-hover:-translate-y-0.5 group-hover:rotate-[-8deg]" />
+                </div>
+              </Link>
+
+              <div className="h-6 w-[1px] bg-brand-stone-100 hidden sm:block mx-1" />
+
             </div>
 
             {/* Right: Year Selector */}
             <div className="flex items-center group">
-               <div className="scale-y-90 origin-right">
-                  <YearSelector variant="light" />
-               </div>
+              <div className="scale-y-90 origin-right">
+                <YearSelector variant="light" />
+              </div>
             </div>
           </motion.header>
 
           {/* 4. Page Content with Viewport Management */}
           <div className="flex-1 overflow-auto p-3 sm:p-6 md:p-8 lg:p-10 scrollbar-thin scrollbar-thumb-brand-stone-100">
             <div className="max-w-7xl mx-auto">
-               <Outlet />
+              <Outlet />
             </div>
           </div>
         </motion.main>

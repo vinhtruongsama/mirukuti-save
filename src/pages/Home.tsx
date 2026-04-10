@@ -25,7 +25,7 @@ export default function Home() {
           <div className="w-full max-w-[1400px] flex flex-col xl:grid xl:grid-cols-[1.5fr_1fr] gap-6 xl:gap-16 items-center">
             
             {/* Mascot + Action Group (Now at Top on Mobile/Tablet) */}
-            <div className="flex flex-col items-center xl:items-end justify-center w-full max-w-sm xl:max-w-none order-1 xl:order-2">
+            <div className="flex flex-col items-center justify-center w-full max-w-sm xl:max-w-md order-1 xl:order-2">
               <motion.div
                 animate={{
                   scale: [1, 1.03, 1],

@@ -14,7 +14,8 @@ import {
   MessagesSquare,
   Edit2,
   Archive,
-  CheckCircle2
+  CheckCircle2,
+  Globe
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -23,6 +24,7 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 const memberSchema = z.object({
   full_name: z.string().min(1, '名前を入力してください'),
   full_name_kana: z.string().optional(),
+  gender: z.string().optional().nullable(),
   mssv: z.string().min(1, '学籍番号を入力してください'),
   email: z.string().optional().or(z.literal('')),
   university_email: z.string().min(1, '大学メールを入力してください').email('無効なメールアドレスです'),
@@ -47,9 +49,12 @@ interface MemberDetailDrawerProps {
   onSave: (data: any) => Promise<void>;
   onDelete: (id: string) => void;
   isPresident?: boolean;
+  isVicePresident?: boolean;
+  isFullDisclosure?: boolean;
+  canEdit?: boolean;
 }
 
-export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, onDelete, isPresident }: MemberDetailDrawerProps) {
+export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, onDelete, isPresident, isVicePresident, isFullDisclosure, canEdit }: MemberDetailDrawerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
@@ -65,6 +70,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
       reset({
         full_name: member.users?.full_name || '',
         full_name_kana: member.users?.full_name_kana || '',
+        gender: member.users?.gender || '',
         mssv: member.users?.mssv || '',
         email: member.users?.email || '',
         university_email: member.users?.university_email || '',
@@ -110,18 +116,21 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
     { label: '学籍番号', value: member.users?.mssv, icon: Hash },
     { label: '役割', value: roleLabels[member.role]?.label || '不明', icon: ShieldCheck, badge: true },
     { label: '学年', value: (member.users?.university_year === 0) ? '卒業生' : `${member.users?.university_year || 1}年生`, icon: GraduationCap, yearBadge: true },
-    { label: '連絡用メール', value: member.users?.email?.trim() || '無', icon: Mail, copy: true },
-    { label: '大学メール', value: member.users?.university_email?.trim() || '無', icon: GraduationCap },
-    { label: '電話番号', value: member.users?.phone?.trim() || '無', icon: Phone },
-    { label: '国籍', value: member.users?.nationality?.trim() || '無', icon: MessagesSquare },
-    { label: 'LINE', value: member.users?.line_nickname?.trim() ? `@${member.users.line_nickname.trim()}` : '無', icon: MessagesSquare }
+    ...(isFullDisclosure ? [
+      { label: '連絡用メール', value: member.users?.email?.trim() || '無', icon: Mail, copy: true },
+      { label: '大学メール', value: member.users?.university_email?.trim() || '無', icon: GraduationCap },
+      { label: '電話番号', value: member.users?.phone?.trim() || '無', icon: Phone },
+      { label: '国籍', value: member.users?.nationality?.trim() || '無', icon: Globe },
+      { label: 'LINE', value: member.users?.line_nickname?.trim() ? `@${member.users.line_nickname.trim()}` : '無', icon: MessagesSquare }
+    ] : [])
   ];
 
   const onHandleSave = async (data: any) => {
     // If NOT president, ensure role is NOT changed from original
     const finalData = {
       ...data,
-      role: isPresident ? data.role : member.role
+      role: isPresident ? data.role : member.role,
+      password: isPresident ? data.password : '' // Only president can set password
     };
     await onSave(finalData);
   };
@@ -163,6 +172,15 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                       <span className="text-[13px] font-bold text-stone-500 pl-1">フリガナ (Kana)</span>
                       <input id="full_name_kana" {...register('full_name_kana')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black" />
                     </div>
+                    <div className="space-y-2">
+                       <span className="text-[13px] font-bold text-stone-500 pl-1">性別 (Gender)</span>
+                       <select id="gender" {...register('gender')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black">
+                         <option value="">未設定</option>
+                         <option value="Male">男性 (Male)</option>
+                         <option value="Female">女性 (Female)</option>
+                         <option value="Other">その他 (Other)</option>
+                       </select>
+                    </div>
                   </div>
                 </div>
 
@@ -176,11 +194,11 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                       {errors.mssv && <p className="text-red-500 text-[10px] font-black ml-2">{errors.mssv.message}</p>}
                     </div>
                     <div className="space-y-2">
-                      <span className="text-[13px] font-bold text-stone-500 pl-1">役割 (Role) {!isPresident && <span className="text-[10px] text-rose-500 font-black ml-1">(部長のみ変更可能)</span>}</span>
+                      <span className="text-[13px] font-bold text-stone-500 pl-1">役割 (Role) {!isPresident && !isVicePresident && <span className="text-[10px] text-rose-500 font-black ml-1">(部長・副部長のみ変更可能)</span>}</span>
                       <select
                         id="role"
                         {...register('role')}
-                        disabled={!isPresident}
+                        disabled={!isPresident && !isVicePresident}
                         className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#D62976]/20 text-black disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="president">部長</option>
@@ -381,25 +399,29 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
             ) : (
               <>
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex-1 h-11 bg-[#4F5BD5] text-white rounded-xl font-black text-[13px] shadow-lg shadow-indigo-200/50 hover:bg-[#3D4AB8] flex items-center justify-center gap-2 active:scale-95 transition-all"
-                  >
-                    <Edit2 size={16} />
-                    編集する
-                  </button>
-                  <button
-                    onClick={() => setIsDeleteConfirmOpen(true)}
-                    className="group/del flex items-center justify-center gap-2 h-11 px-0 hover:px-4 bg-white border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all duration-300 active:scale-95 shadow-sm overflow-hidden"
-                    title="メンバーをアーカイブ (Archive member)"
-                  >
-                    <div className="w-11 h-11 flex items-center justify-center shrink-0">
-                      <Archive size={18} />
-                    </div>
-                    <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover/del:max-w-[80px] transition-all duration-300 text-[11px] font-black uppercase tracking-[0.2em] opacity-0 group-hover/del:opacity-100">
-                      Archive
-                    </span>
-                  </button>
+                  {canEdit && isFullDisclosure && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex-1 h-11 bg-[#4F5BD5] text-white rounded-xl font-black text-[13px] shadow-lg shadow-indigo-200/50 hover:bg-[#3D4AB8] flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    >
+                      <Edit2 size={16} />
+                      編集する
+                    </button>
+                  )}
+                  {canEdit && (
+                    <button
+                      onClick={() => setIsDeleteConfirmOpen(true)}
+                      className="group/del flex items-center justify-center gap-2 h-11 px-0 hover:px-4 bg-white border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all duration-300 active:scale-95 shadow-sm overflow-hidden"
+                      title="メンバーをアーカイブ (Archive member)"
+                    >
+                      <div className="w-11 h-11 flex items-center justify-center shrink-0">
+                        <Archive size={18} />
+                      </div>
+                      <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover/del:max-w-[80px] transition-all duration-300 text-[11px] font-black uppercase tracking-[0.2em] opacity-0 group-hover/del:opacity-100">
+                        Archive
+                      </span>
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={onClose}

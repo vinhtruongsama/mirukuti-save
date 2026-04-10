@@ -7,6 +7,7 @@ import { ArrowLeft, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, Me
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useDebounce } from '../../hooks/useDebounce';
 
 // Helper Map for Status
@@ -227,6 +228,26 @@ export default function ActivityRegistrations() {
   const [selectedSessionIdx, setSelectedSessionIdx] = useState<number | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 400);
 
+  const { currentRole } = useAuthStore();
+
+  // 1. Fetch App Settings
+  const { data: appSettings } = useQuery({
+    queryKey: ['app-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('app_settings').select('*');
+      if (error) throw error;
+      return data.reduce((acc: any, curr) => {
+        acc[curr.key] = curr.value;
+        return acc;
+      }, {});
+    }
+  });
+
+  const isPresident = currentRole === 'president';
+  const isVicePresident = currentRole === 'vice_president';
+  const isSeniorAdmin = isPresident || isVicePresident;
+  const isFullDisclosure = isSeniorAdmin || appSettings?.allow_profile_edit === true;
+
   const { data: activity, isLoading: actLoading } = useQuery({
     queryKey: ['admin-activity-detail', activityId],
     queryFn: async () => {
@@ -311,6 +332,10 @@ export default function ActivityRegistrations() {
         : ' (全日程一括)';
 
       const headersRow = ['No', '氏名', '学籍番号'];
+      if (isFullDisclosure) {
+        headersRow.push('出身地', '国籍');
+      }
+      
       if (selectedSessionIdx !== null && activity.sessions?.[selectedSessionIdx]) {
         const s = activity.sessions[selectedSessionIdx];
         const datePart = format(new Date(s.date), 'M月d日');
@@ -353,6 +378,11 @@ export default function ActivityRegistrations() {
           r.users?.full_name_kana || r.users?.full_name || 'N/A',
           r.users?.mssv || 'N/A'
         ];
+
+        // Conditional Columns
+        if (isFullDisclosure) {
+          row.push(r.users?.hometown || 'N/A', r.users?.nationality || 'N/A');
+        }
 
         if (selectedSessionIdx !== null) {
           const sStatus = r.attendance_records?.find((ar: any) => ar.session_index === selectedSessionIdx)?.status;
@@ -406,7 +436,11 @@ export default function ActivityRegistrations() {
 
       XLSX.writeFile(wb, `${safeTitle}の出欠（${datePart}）${sessionFilePart}.xlsx`);
 
-      toast.success('Excel Report Exported Successfully');
+      if (!isFullDisclosure) {
+        toast.info('プライバシー設定により、氏名と学籍番号のみエクスポートされました。');
+      } else {
+        toast.success('Excel Report Exported Successfully');
+      }
     } catch (err: any) {
       console.error('Export error:', err);
       toast.error('Failed to export Excel report: ' + err.message);

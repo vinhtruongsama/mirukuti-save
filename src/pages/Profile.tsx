@@ -143,7 +143,7 @@ export default function Profile() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarVisible(false)}
-            className="lg:hidden fixed inset-0 bg-indigo-900/10 backdrop-blur-md z-[40]"
+            className="lg:hidden fixed inset-0 bg-indigo-900/20 z-[40]"
           />
         )}
       </AnimatePresence>
@@ -154,13 +154,13 @@ export default function Profile() {
             width: isSidebarVisible ? (window.innerWidth < 1024 ? '100%' : 440) : 0,
             x: isSidebarVisible ? 0 : -440
           }}
-          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className={`bg-white border-r border-stone-100 flex flex-col z-[50] shrink-0 overflow-hidden relative shadow-2xl lg:shadow-none ${window.innerWidth < 1024 ? 'fixed inset-y-0 left-0 max-w-[440px]' : ''
             }`}
         >
           <button
             onClick={() => setIsSidebarVisible(false)}
-            className="absolute top-4 right-4 w-12 h-12 bg-white hover:bg-rose-50 text-stone-400 hover:text-rose-500 rounded-2xl flex items-center justify-center shadow-sm border border-stone-100 transition-all active:scale-95 z-50 lg:hidden"
+            className="absolute top-4 right-4 w-12 h-12 bg-white hover:bg-rose-50 text-stone-400 hover:text-rose-500 rounded-2xl flex items-center justify-center shadow-sm border border-stone-100 transition-colors active:scale-95 z-50 lg:hidden"
           >
             <X className="w-6 h-6" strokeWidth={2.5} />
           </button>
@@ -189,7 +189,7 @@ export default function Profile() {
             {/* Attendance Cards */}
             {isFullDisclosure && (
               <div className="grid grid-cols-2 gap-4 mb-12">
-                <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-all hover:bg-white hover:shadow-xl hover:shadow-indigo-100 group">
+                <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-colors hover:bg-indigo-100/20 group">
                   <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-600">
                     <Sparkles className="w-5 h-5" />
                   </div>
@@ -198,7 +198,7 @@ export default function Profile() {
                     <p className="text-[11px] font-black text-indigo-400 mt-2 uppercase tracking-widest text-[10px]">学内活動</p>
                   </div>
                 </div>
-                <div className="bg-orange-50/50 border border-orange-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-all hover:bg-white hover:shadow-xl hover:shadow-orange-100 group">
+                <div className="bg-orange-50/50 border border-orange-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-colors hover:bg-orange-100/20 group">
                   <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-orange-500">
                     <Compass className="w-5 h-5" />
                   </div>
@@ -283,15 +283,14 @@ export default function Profile() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 onClick={() => setIsSidebarVisible(true)}
-                className="absolute left-0 top-32 z-50 w-9 h-24 bg-indigo-600 text-white flex items-center justify-start pl-1.5 shadow-2xl shadow-indigo-200 transition-all group active:scale-95 hover:w-12"
-                style={{ clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }}
+                className="absolute left-0 top-32 z-50 w-9 h-24 bg-indigo-600 text-white flex items-center justify-start pl-1 px-1 rounded-r-2xl shadow-xl transition-transform active:scale-95 hover:translate-x-1"
               >
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" strokeWidth={3} />
               </motion.button>
             )}
           </AnimatePresence>
 
-          <header className="px-8 lg:px-16 py-10 flex flex-col sm:flex-row items-center justify-between gap-6 border-b border-indigo-50 bg-white/60 backdrop-blur-2xl shrink-0 z-10 shadow-sm">
+          <header className="px-8 lg:px-16 py-10 flex flex-col sm:flex-row items-center justify-between gap-6 border-b border-indigo-50 bg-white shrink-0 z-10 shadow-sm">
             <div className="flex items-center gap-8">
               {/* Vertical Gradient Bar (Style from Image 23) */}
               <div className="w-1.5 h-16 rounded-full bg-gradient-to-b from-[#4F5BD5] to-[#D62976] hidden sm:block" />
@@ -315,17 +314,7 @@ export default function Profile() {
           </header>
 
           <div className="flex-1 overflow-y-auto px-6 lg:px-16 py-12 scrollbar-thin scrollbar-thumb-indigo-100">
-            {!isFullDisclosure ? (
-              <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto p-8">
-                <div className="w-32 h-32 rounded-[3.5rem] bg-white shadow-2xl flex items-center justify-center mb-10 group">
-                  <Shield className="w-12 h-12 text-indigo-500/20" />
-                </div>
-                <h4 className="text-[26px] font-black tracking-tight mb-4 uppercase leading-tight">閲覧制限中</h4>
-                <p className="text-stone-400 font-bold text-[14px]">
-                  現在、部員情報の開示設定がOFFになっているため、詳細情報や活動履歴を閲覧することはできません。
-                </p>
-              </div>
-            ) : isHistoryLoading ? (
+            {isHistoryLoading ? (
               <div className="h-full flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
               </div>
@@ -339,7 +328,7 @@ export default function Profile() {
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="group bg-white border border-indigo-50/50 p-8 rounded-[3rem] hover:shadow-[0_45px_100px_-25px_rgba(79,91,213,0.12)] transition-all duration-700 relative overflow-hidden"
+                      className="group bg-white border border-indigo-50/50 p-8 rounded-[3rem] transition-all duration-300 relative overflow-hidden"
                     >
                       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
@@ -377,7 +366,7 @@ export default function Profile() {
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto p-8">
-                <div className="w-32 h-32 rounded-[3.5rem] bg-white shadow-2xl flex items-center justify-center mb-10 group hover:rotate-12 transition-all duration-700">
+                <div className="w-32 h-32 rounded-[3.5rem] bg-white shadow-xl flex items-center justify-center mb-10 group">
                   <Sparkles className="w-12 h-12 text-rose-500/20 group-hover:text-rose-500 transition-colors duration-700" />
                 </div>
                 <h4 className="text-[26px] font-black tracking-tight mb-4 uppercase leading-tight">一緒に新しい活動に<br />参加しましょう！</h4>
