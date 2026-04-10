@@ -13,17 +13,20 @@ export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
   const { currentUser } = useAuthStore();
   const [message, setMessage] = useState('');
   const [name, setName] = useState(currentUser?.full_name || '');
+  const [email, setEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isDone, setIsDone] = useState(false);
 
   const handleSubmit = async () => {
-    if (!message.trim() || !name.trim()) return;
+    const isUnauthenticated = !currentUser;
+    if (!message.trim() || !name.trim() || (isUnauthenticated && !email.trim())) return;
     setIsSending(true);
 
     try {
       const { error } = await supabase.from('inquiries').insert({
         user_id: currentUser?.id || null,
         full_name: name.trim(),
+        contact_email: isUnauthenticated ? email.trim() : currentUser?.email || null,
         message: message.trim(),
       });
 
@@ -41,6 +44,7 @@ export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
     setTimeout(() => {
       setMessage('');
       setName(currentUser?.full_name || '');
+      setEmail('');
       setIsDone(false);
     }, 300);
     onClose();
@@ -99,17 +103,29 @@ export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
                     exit={{ opacity: 0 }}
                     className="space-y-5"
                   >
-                    {/* Name Field */}
+                    {/* Name & Email Fields for Guests */}
                     {!currentUser && (
-                      <div className="space-y-2">
-                        <label className="text-[12px] font-black text-stone-500 uppercase tracking-widest">お名前</label>
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="お名前を入力してください"
-                          className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-stone-900 focus:outline-none focus:border-[#4F5BD5]/50 focus:bg-white transition-all placeholder:text-stone-300"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[12px] font-black text-stone-500 uppercase tracking-widest">お名前</label>
+                          <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="お名前"
+                            className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-stone-900 focus:outline-none focus:border-[#4F5BD5]/50 focus:bg-white transition-all placeholder:text-stone-300"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[12px] font-black text-stone-500 uppercase tracking-widest">連絡先メール</label>
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="example@mail.com"
+                            className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-stone-900 focus:outline-none focus:border-[#4F5BD5]/50 focus:bg-white transition-all placeholder:text-stone-300"
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -132,7 +148,7 @@ export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
                     {/* Submit Button */}
                     <button
                       onClick={handleSubmit}
-                      disabled={isSending || !message.trim() || !name.trim()}
+                      disabled={isSending || !message.trim() || !name.trim() || (!currentUser && !email.trim())}
                       className="w-full py-4 bg-gradient-to-r from-[#D62976] to-[#4F5BD5] text-white font-black text-sm uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#D62976]/20 hover:brightness-110 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {isSending ? (

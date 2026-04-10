@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { MessageCircle, Trash2, Loader2, CheckCircle2, Clock, User } from 'lucide-react';
+import { MessageCircle, Trash2, Loader2, CheckCircle2, Clock, User, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
@@ -62,7 +62,6 @@ export default function InquiriesAdmin() {
         <div className="relative">
           <div className="absolute -left-5 top-0 w-1.5 h-full bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
           <h1 className="text-4xl font-black text-stone-900 tracking-tighter">問い合わせ管理</h1>
-          <p className="text-stone-400 font-medium mt-1 text-sm">メンバーからのご質問・ご要望一覧</p>
         </div>
 
         {unreadCount > 0 && (
@@ -102,11 +101,10 @@ export default function InquiriesAdmin() {
                 onClick={() => {
                   if (!inquiry.is_read) markReadMutation.mutate(inquiry.id);
                 }}
-                className={`relative group p-6 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer ${
-                  inquiry.is_read
-                    ? 'border-stone-100 bg-stone-50/50 hover:bg-white hover:border-stone-200'
-                    : 'border-[#4F5BD5]/20 bg-[#4F5BD5]/5 hover:bg-white hover:border-[#4F5BD5]/30'
-                }`}
+                className={`relative group p-6 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer ${inquiry.is_read
+                  ? 'border-stone-100 bg-stone-50/50 hover:bg-white hover:border-stone-200'
+                  : 'border-[#4F5BD5]/20 bg-[#4F5BD5]/5 hover:bg-white hover:border-[#4F5BD5]/30'
+                  }`}
               >
                 {/* Unread badge */}
                 {!inquiry.is_read && (
@@ -115,9 +113,8 @@ export default function InquiriesAdmin() {
 
                 <div className="flex items-start gap-4">
                   {/* Avatar icon */}
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                    inquiry.is_read ? 'bg-stone-100' : 'bg-[#4F5BD5]/15'
-                  }`}>
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${inquiry.is_read ? 'bg-stone-100' : 'bg-[#4F5BD5]/15'
+                    }`}>
                     <User className={`w-5 h-5 ${inquiry.is_read ? 'text-stone-400' : 'text-[#4F5BD5]'}`} />
                   </div>
 
@@ -139,9 +136,17 @@ export default function InquiriesAdmin() {
                     </div>
 
                     {/* Message */}
-                    <p className="text-[14px] text-stone-600 font-medium leading-relaxed whitespace-pre-wrap">
+                    <p className="text-[14px] text-stone-600 font-medium leading-relaxed whitespace-pre-wrap mb-4">
                       {inquiry.message}
                     </p>
+
+                    {/* Contact Info if available */}
+                    {inquiry.contact_email && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-stone-200 rounded-xl w-fit shadow-sm">
+                        <Mail className="w-3.5 h-3.5 text-[#4F5BD5]" />
+                        <span className="text-[12px] font-bold text-stone-600">{inquiry.contact_email}</span>
+                      </div>
+                    )}
 
                     {/* Timestamp */}
                     <p className="mt-3 text-[11px] font-bold text-stone-300 uppercase tracking-widest">
