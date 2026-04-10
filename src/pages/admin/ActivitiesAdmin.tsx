@@ -4,7 +4,7 @@ import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, isPast } from 'date-fns';
-import { Search, Plus, Edit2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, Users, Calendar, Pin, PinOff, Trash2, Check, ChevronDown, PlusCircle } from 'lucide-react';
+import { Search, Plus, Edit2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, Users, Calendar, Pin, PinOff, Trash2, Check, ChevronDown } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Select from '@radix-ui/react-select';
 import { toast } from 'sonner';
@@ -155,7 +155,7 @@ export default function ActivitiesAdmin() {
       }
     },
     onSuccess: () => {
-      toast.success(editingActivity ? 'イベントを更新しました' : 'テスト用イベントを作成しました');
+      toast.success(editingActivity ? 'イベントを更新しました' : 'イベントを作成しました');
       queryClient.invalidateQueries({ queryKey: ['admin-activities'] });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       setModalOpen(false);
@@ -164,37 +164,6 @@ export default function ActivitiesAdmin() {
     onError: (err: any) => toast.error(err.message)
   });
 
-  const handleRandomCreate = () => {
-    if (!selectedYear) {
-      toast.error('年度を選択してください');
-      return;
-    }
-
-    const titles = ["Web Workshop", "Gaming Night", "Music Live", "Coding Jam", "Study Group", "Pizza Party", "Photography Walk"];
-    const locations = ["Lab 402", "Hall A", "Central Plaza", "Discord Server", "University Hub", "Room 101", "Outdoor Stage"];
-
-    const baseDate = new Date();
-    baseDate.setDate(baseDate.getDate() + Math.floor(Math.random() * 20) + 2); // Random day in next 22 days
-
-    const randomData: ActivityFormData = {
-      title: `${titles[Math.floor(Math.random() * titles.length)]} #${Math.floor(Math.random() * 900) + 100}`,
-      description: "【自動生成テスト】ダミーデータです。レイアウト確認や機能テストに使用してください。",
-      date: baseDate.toISOString(),
-      registration_deadline: new Date(baseDate.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-      location: locations[Math.floor(Math.random() * locations.length)],
-      location_type: Math.random() > 0.4 ? 'internal' : 'external',
-      status: Math.random() > 0.2 ? 'open' : 'draft',
-      sessions: [
-        {
-          date: baseDate.toISOString().split('T')[0],
-          start_time: "18:00",
-          end_time: "20:00"
-        }
-      ]
-    };
-
-    saveMutation.mutate(randomData);
-  };
 
   // 4. Delete Mutation
   const deleteMutation = useMutation({
@@ -247,19 +216,23 @@ export default function ActivitiesAdmin() {
       setEditingActivity(act);
       setCoverPreview(act.cover_image_url);
 
-      // Convert ISO strings to local datetime-local format format (YYYY-MM-DDTHH:mm)
       const toLocalDT = (iso: string) => {
         const d = new Date(iso);
         return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      };
+
+      const toLocalDate = (iso: string) => {
+        const d = new Date(iso);
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
       };
 
       reset({
         id: act.id,
         title: act.title,
         description: act.description || '',
-        date: act.date ? toLocalDT(act.date) : '',
-        registration_deadline: act.registration_deadline ? toLocalDT(act.registration_deadline) : '',
-        cancellation_deadline: act.cancellation_deadline ? toLocalDT(act.cancellation_deadline) : '',
+        date: act.date ? toLocalDate(act.date) : '',
+        registration_deadline: act.registration_deadline ? toLocalDate(act.registration_deadline) : '',
+        cancellation_deadline: act.cancellation_deadline ? toLocalDate(act.cancellation_deadline) : '',
         location: act.location,
         location_type: act.location_type || 'internal',
         capacity: act.capacity === null ? NaN : act.capacity,
@@ -309,39 +282,6 @@ export default function ActivitiesAdmin() {
     });
   }, []);
 
-  const handleRandomImage = useCallback(async () => {
-    if (!watchTitle || watchTitle.trim().length < 2) {
-      toast.error('画像を探すためにイベント名を入力してください');
-      return;
-    }
-
-    setIsProcessingImage(true);
-    setProcessingStatus('最適な画像を探しています...');
-
-    try {
-      // Use LoremFlickr for reliable topic-based redirect
-      const topic = encodeURIComponent(watchTitle.split(' ').slice(0, 2).join(','));
-      const url = `https://loremflickr.com/1280/720/${topic || 'volunteer'}`;
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('画像の取得に失敗しました');
-
-      const blob = await response.blob();
-      setProcessingStatus('WebP形式に最適化中...');
-
-      const optimizedFile = await optimizeImage(blob);
-
-      setCoverFile(optimizedFile);
-      setCoverPreview(URL.createObjectURL(optimizedFile));
-
-      toast.success('画像を生成し、最適化しました');
-    } catch (err: any) {
-      toast.error('エラー: ' + err.message);
-    } finally {
-      setIsProcessingImage(false);
-      setProcessingStatus('');
-    }
-  }, [watchTitle, optimizeImage]);
 
   return (
     <div className="min-h-screen relative overflow-hidden p-4 lg:pt-4 lg:px-10">
@@ -374,20 +314,6 @@ export default function ActivitiesAdmin() {
           </motion.div>
 
           <div className="flex items-center gap-2">
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleRandomCreate}
-              disabled={saveMutation.isPending}
-              className="flex items-center gap-1 px-4 py-3 bg-white border border-stone-100 text-stone-900 rounded-2xl text-[11px] font-black shadow-sm transition-all uppercase tracking-widest shrink-0 group hover:border-[#4F5BD5]/20"
-              title="TEST: Create random activity"
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-stone-300 group-hover:text-[#4F5BD5]" />
-              <span className="hidden lg:inline">Random Test</span>
-              <span className="lg:hidden">Test</span>
-            </motion.button>
 
             <motion.button
               initial={{ opacity: 0, scale: 0.9 }}
@@ -614,19 +540,6 @@ export default function ActivitiesAdmin() {
                         )}
                       </div>
 
-                      <div className="flex justify-center">
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleRandomImage}
-                          disabled={isProcessingImage}
-                          className="flex items-center gap-2 px-14 py-4 bg-white text-gray-900 rounded-full text-sm font-black uppercase tracking-widest shadow-[0_30px_60px_rgba(0,0,0,0.1)] border border-gray-400 hover:text-[#D62976] hover:border-[#D62976]/50 transition-all whitespace-nowrap"
-                        >
-                          <Activity className="w-5 h-5 text-[#D62976]" />
-                          画像を自動生成
-                        </motion.button>
-                      </div>
                     </div>
 
                     <input type="file" accept="image/jpeg, image/png" ref={coverInputRef} onChange={onCoverChange} className="hidden" />
@@ -677,7 +590,14 @@ export default function ActivitiesAdmin() {
                           <input
                             type="date"
                             {...register('date')}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onClick={(e) => {
+                              try {
+                                (e.currentTarget as any).showPicker();
+                              } catch (err) {
+                                // Fallback for older browsers
+                              }
+                            }}
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
                         </div>
@@ -709,7 +629,12 @@ export default function ActivitiesAdmin() {
                           <input
                             type="date"
                             {...register('registration_deadline')}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onClick={(e) => {
+                              try {
+                                (e.currentTarget as any).showPicker();
+                              } catch (err) {}
+                            }}
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
                         </div>
@@ -741,7 +666,12 @@ export default function ActivitiesAdmin() {
                           <input
                             type="date"
                             {...register('cancellation_deadline')}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onClick={(e) => {
+                              try {
+                                (e.currentTarget as any).showPicker();
+                              } catch (err) {}
+                            }}
                           />
                           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-300 pointer-events-none transition-transform group-hover/input:translate-y-[-40%]" />
                         </div>
@@ -928,7 +858,12 @@ export default function ActivitiesAdmin() {
                                   <input
                                     type="date"
                                     {...register(`sessions.${index}.date` as const)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    onClick={(e) => {
+                                      try {
+                                        (e.currentTarget as any).showPicker();
+                                      } catch (err) {}
+                                    }}
                                   />
                                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm pointer-events-none group-hover/input:text-[#4F5BD5] transition-colors" />
                                 </div>

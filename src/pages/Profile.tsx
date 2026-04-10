@@ -31,7 +31,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function Profile() {
-  const { currentUser } = useAuthStore();
+  const { currentUser, currentRole } = useAuthStore();
   const { selectedYear } = useAppStore();
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
@@ -67,7 +67,8 @@ export default function Profile() {
     }
   });
 
-  const isFullDisclosure = appSettings?.allow_profile_edit !== false;
+  const isAdmin = currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole);
+  const isFullDisclosure = isAdmin || appSettings?.allow_profile_edit === true;
 
   // 3. Fetch Activity History
   const { data: historyData, isLoading: isHistoryLoading } = useQuery({
@@ -186,26 +187,28 @@ export default function Profile() {
             </div>
 
             {/* Attendance Cards */}
-            <div className="grid grid-cols-2 gap-4 mb-12">
-              <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-all hover:bg-white hover:shadow-xl hover:shadow-indigo-100 group">
-                <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-600">
-                  <Sparkles className="w-5 h-5" />
+            {isFullDisclosure && (
+              <div className="grid grid-cols-2 gap-4 mb-12">
+                <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-all hover:bg-white hover:shadow-xl hover:shadow-indigo-100 group">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-600">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[22px] font-black text-indigo-900 leading-none">{attendanceStats?.internal_count || 0}</p>
+                    <p className="text-[11px] font-black text-indigo-400 mt-2 uppercase tracking-widest text-[10px]">学内活動</p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-[22px] font-black text-indigo-900 leading-none">{attendanceStats?.internal_count || 0}</p>
-                  <p className="text-[11px] font-black text-indigo-400 mt-2 uppercase tracking-widest text-[10px]">学内活動</p>
+                <div className="bg-orange-50/50 border border-orange-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-all hover:bg-white hover:shadow-xl hover:shadow-orange-100 group">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-orange-500">
+                    <Compass className="w-5 h-5" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[22px] font-black text-orange-900 leading-none">{attendanceStats?.external_count || 0}</p>
+                    <p className="text-[11px] font-black text-orange-400 mt-2 uppercase tracking-widest text-[10px]">学外活動</p>
+                  </div>
                 </div>
               </div>
-              <div className="bg-orange-50/50 border border-orange-100/50 rounded-[2rem] p-5 flex flex-col items-center gap-2 transition-all hover:bg-white hover:shadow-xl hover:shadow-orange-100 group">
-                <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-orange-500">
-                  <Compass className="w-5 h-5" />
-                </div>
-                <div className="text-center">
-                  <p className="text-[22px] font-black text-orange-900 leading-none">{attendanceStats?.external_count || 0}</p>
-                  <p className="text-[11px] font-black text-orange-400 mt-2 uppercase tracking-widest text-[10px]">学外活動</p>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Information Grid */}
             <div className="space-y-10">
@@ -218,29 +221,33 @@ export default function Profile() {
                 {/* MSSV in full line */}
                 <InfoRow label="学籍番号" value={profileData.mssv} icon={Hash} color="bg-blue-500" />
 
-                {/* Gender in full line */}
-                <InfoRow
-                  label="性別"
-                  value={profileData.gender === 'Male' ? '男性' : profileData.gender === 'Female' ? '女性' : 'その他'}
-                  icon={Heart}
-                  color="bg-rose-500"
-                />
+                {isFullDisclosure && (
+                  <>
+                    {/* Gender in full line */}
+                    <InfoRow
+                      label="性別"
+                      value={profileData.gender === 'Male' ? '男性' : profileData.gender === 'Female' ? '女性' : 'その他'}
+                      icon={Heart}
+                      color="bg-rose-500"
+                    />
 
-                {/* Year in full line */}
-                <InfoRow
-                  label="学年"
-                  value={profileData.university_year === 0 ? '卒業生' : (profileData.university_year ? `${profileData.university_year}年` : '無')}
-                  icon={GraduationCap}
-                  color="bg-purple-500"
-                />
+                    {/* Year in full line */}
+                    <InfoRow
+                      label="学年"
+                      value={profileData.university_year === 0 ? '卒業生' : (profileData.university_year ? `${profileData.university_year}年` : '無')}
+                      icon={GraduationCap}
+                      color="bg-purple-500"
+                    />
 
-                {/* Nationality in full line */}
-                <InfoRow
-                  label="国籍"
-                  value={profileData.nationality}
-                  icon={Globe}
-                  color="bg-emerald-500"
-                />
+                    {/* Nationality in full line */}
+                    <InfoRow
+                      label="国籍"
+                      value={profileData.nationality}
+                      icon={Globe}
+                      color="bg-emerald-500"
+                    />
+                  </>
+                )}
               </div>
 
               {/* Conditional Contacts Section */}
@@ -308,7 +315,17 @@ export default function Profile() {
           </header>
 
           <div className="flex-1 overflow-y-auto px-6 lg:px-16 py-12 scrollbar-thin scrollbar-thumb-indigo-100">
-            {isHistoryLoading ? (
+            {!isFullDisclosure ? (
+              <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto p-8">
+                <div className="w-32 h-32 rounded-[3.5rem] bg-white shadow-2xl flex items-center justify-center mb-10 group">
+                  <Shield className="w-12 h-12 text-indigo-500/20" />
+                </div>
+                <h4 className="text-[26px] font-black tracking-tight mb-4 uppercase leading-tight">閲覧制限中</h4>
+                <p className="text-stone-400 font-bold text-[14px]">
+                  現在、部員情報の開示設定がOFFになっているため、詳細情報や活動履歴を閲覧することはできません。
+                </p>
+              </div>
+            ) : isHistoryLoading ? (
               <div className="h-full flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
               </div>

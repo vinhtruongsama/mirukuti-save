@@ -24,14 +24,21 @@ import {
 const COLUMN_MAPPING: Record<string, string> = {
   '氏名(漢字または ROMAJI)': 'full_name',
   '氏名': 'full_name',
+  '氏名 ': 'full_name',
   'フリガナ': 'furigana',
   '学籍番号': 'student_id',
+  '学年度': 'academic_year',
   '学年': 'grade',
+  '学年 ': 'grade',
   '性別': 'gender',
   'LINEニックネーム': 'line_name',
+  'LINE': 'line_name',
+  'LINE ID': 'line_name',
   '電話番号': 'phone',
   '大学のメール': 'university_email',
+  '大学メール': 'university_email',
   '連絡メール': 'personal_email',
+  '国籍': 'nationality',
 };
 
 interface MemberRow {
@@ -44,6 +51,7 @@ interface MemberRow {
   phone?: string;
   university_email?: string;
   personal_email: string;
+  nationality?: string;
   _valid: boolean;
   _error?: string;
 }
@@ -90,16 +98,24 @@ const MemberImport: React.FC<{
 
         if (mappedKey === 'grade') {
           // 4. Grade Extraction (Task 3.4)
-          // 学年の抽出（例：「4年生」-> 4）
-          const match = value.match(/\d+/);
-          normalized[mappedKey] = match ? parseInt(match[0]) : 1;
+          // Handle numbers and Japanese numerals
+          const valueLower = value.toLowerCase();
+          if (valueLower.includes('一') || valueLower.includes('1')) normalized[mappedKey] = 1;
+          else if (valueLower.includes('二') || valueLower.includes('2')) normalized[mappedKey] = 2;
+          else if (valueLower.includes('三') || valueLower.includes('3')) normalized[mappedKey] = 3;
+          else if (valueLower.includes('四') || valueLower.includes('4')) normalized[mappedKey] = 4;
+          else if (valueLower.includes('卒') || valueLower.includes('0')) normalized[mappedKey] = 0;
+          else {
+            const match = value.match(/\d+/);
+            normalized[mappedKey] = match ? parseInt(match[0]) : 1;
+          }
         } else if (mappedKey === 'phone') {
           // 3. Phone Formatting (Task 3.3)
           // 電話番号の成形（ハイフン除去、"0"付与）
           let cleaned = value.replace(/[- ]/g, '');
           if (cleaned.length > 0 && !cleaned.startsWith('0')) cleaned = '0' + cleaned;
           normalized[mappedKey] = cleaned;
-        } else if (['full_name', 'furigana', 'student_id', 'gender', 'line_name', 'university_email', 'personal_email'].includes(mappedKey)) {
+        } else if (['full_name', 'furigana', 'student_id', 'gender', 'line_name', 'university_email', 'personal_email', 'nationality'].includes(mappedKey)) {
           normalized[mappedKey] = value;
         }
       });
@@ -244,7 +260,9 @@ const MemberImport: React.FC<{
             university_year: row.grade,
             phone: row.phone,
             university_email: row.university_email,
-            email: row.personal_email || row.university_email || null, // No more system.temp fallback
+            email: row.personal_email || row.university_email || null,
+            line_nickname: row.line_name || null,
+            nationality: row.nationality || null,
           }, { onConflict: 'mssv' })
           .select('id')
           .single();
