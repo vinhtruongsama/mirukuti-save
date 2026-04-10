@@ -15,7 +15,6 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useAuthStore } from '../../store/useAuthStore';
 import { supabase } from '../../lib/supabase';
 
 export default function Dashboard() {
