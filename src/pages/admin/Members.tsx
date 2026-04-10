@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { calcAxisDelta, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -317,7 +317,6 @@ export default function Members() {
       XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
 
       const rowData = filteredData.map((m: any, idx) => {
-        const gradeBadge = getGradeBadge(m.users?.university_year);
         return [
           idx + 1,
           m.users?.mssv || '',

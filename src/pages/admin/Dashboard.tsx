@@ -58,7 +58,6 @@ export default function Dashboard() {
         .limit(50);
 
       if (error) throw error;
-      const { currentUser } = useAuthStore.getState();
 
       return (data || []).map((log: any) => {
         const user = Array.isArray(log.users) ? log.users[0] : log.users;

@@ -270,11 +270,6 @@ export default function ActivityRegistrations() {
     enabled: !!activityId
   });
 
-  const registrationDates = useMemo(() => {
-    if (!registrations) return [];
-    const dates = registrations.map((r: any) => format(new Date(r.registered_at), 'yyyy-MM-dd'));
-    return Array.from(new Set(dates)).sort();
-  }, [registrations]);
 
   const filteredRegs = useMemo(() => {
     if (!registrations) return [];
