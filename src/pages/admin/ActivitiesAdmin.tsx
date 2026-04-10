@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,8 +59,7 @@ export default function ActivitiesAdmin() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState('');
+
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<ActivityFormData>({
     resolver: zodResolver(activitySchema),
@@ -72,7 +71,7 @@ export default function ActivitiesAdmin() {
     name: "sessions"
   });
 
-  const watchTitle = useWatch({ control, name: 'title' });
+
 
   // 1. Fetch
   const { data: activities, isLoading } = useQuery({
@@ -216,10 +215,7 @@ export default function ActivitiesAdmin() {
       setEditingActivity(act);
       setCoverPreview(act.cover_image_url);
 
-      const toLocalDT = (iso: string) => {
-        const d = new Date(iso);
-        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      };
+
 
       const toLocalDate = (iso: string) => {
         const d = new Date(iso);
@@ -253,34 +249,7 @@ export default function ActivitiesAdmin() {
   };
 
   // --- IMAGE OPTIMIZATION (WebP, < 500KB, 1280px) ---
-  const optimizeImage = useCallback(async (blob: Blob): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d')!;
 
-        // Target: 1280x720 (16:9)
-        canvas.width = 1280;
-        canvas.height = 720;
-
-        // Draw with cover fit logic
-        const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
-        const x = (canvas.width / 2) - (img.width / 2) * scale;
-        const y = (canvas.height / 2) - (img.height / 2) * scale;
-        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
-        // Export as WebP with 0.8 quality to hit < 500KB easily
-        canvas.toBlob((result) => {
-          if (!result) return reject(new Error('画像処理エラー'));
-          const file = new File([result], `cover_${Date.now()}.webp`, { type: 'image/webp' });
-          resolve(file);
-        }, 'image/webp', 0.85);
-      };
-      img.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
-      img.src = URL.createObjectURL(blob);
-    });
-  }, []);
 
 
   return (
@@ -510,18 +479,9 @@ export default function ActivitiesAdmin() {
 
                     <div className="grid grid-cols-1 gap-7 w-full">
                       <div
-                        onClick={() => !isProcessingImage && coverInputRef.current?.click()}
-                        className={`w-full h-40 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden transition-all relative ${isProcessingImage
-                          ? 'border-[#D62976]/50 bg-[#D62976]/5 cursor-wait'
-                          : 'border-gray-200 hover:border-[#D62976]/50 bg-gray-50/50 cursor-pointer shadow-inner'
-                          }`}
+                        onClick={() => coverInputRef.current?.click()}
+                        className="w-full h-40 border-2 border-dashed border-gray-200 hover:border-[#D62976]/50 bg-gray-50/50 rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden transition-all relative cursor-pointer shadow-inner"
                       >
-                        {isProcessingImage && (
-                          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
-                            <Loader2 className="w-12 h-12 text-[#D62976] animate-spin mb-4" />
-                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] animate-pulse">{processingStatus}</p>
-                          </div>
-                        )}
 
                         {coverPreview ? (
                           <>
