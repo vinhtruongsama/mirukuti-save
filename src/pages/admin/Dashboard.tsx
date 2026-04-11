@@ -206,7 +206,7 @@ export default function Dashboard() {
               </div>
               <input 
                 type="text"
-                placeholder="Tìm kiếm theo ngày (12/3) hoặc nội dung..."
+                placeholder="日付 (12/3) または内容で検索..."
                 value={logSearch}
                 onChange={(e) => {
                   setLogSearch(e.target.value);
