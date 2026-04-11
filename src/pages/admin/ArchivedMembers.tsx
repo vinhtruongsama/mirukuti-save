@@ -125,13 +125,15 @@ export default function ArchivedMembers() {
 
       {/* Modern Filter */}
       <div className="relative max-w-md group">
-        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-stone-900 transition-colors" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center pointer-events-none z-10">
+          <Search className="w-4 h-4 text-stone-500 group-focus-within:text-[#4F5BD5] transition-all duration-300 group-focus-within:scale-110" />
+        </div>
         <input
           type="text"
           placeholder="アーカイブ内を検索..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-14 pr-6 py-4 bg-stone-100 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-stone-200 transition-all placeholder:text-stone-300"
+          className="w-full h-14 pl-14 pr-6 bg-stone-50 border-2 border-stone-200 focus:border-[#4F5BD5] focus:bg-white rounded-2xl text-[14px] font-bold text-stone-900 focus:outline-none placeholder:text-stone-400 transition-all shadow-sm group-hover:border-stone-300"
         />
       </div>
 
