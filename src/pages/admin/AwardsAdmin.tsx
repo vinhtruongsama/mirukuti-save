@@ -449,7 +449,7 @@ export default function AwardsAdmin() {
                               type="number" min={0}
                               value={c.minInternal}
                               onChange={e => updateCondition(c.id, 'minInternal', parseInt(e.target.value) || 0)}
-                              className="w-full h-11 pl-8 pr-4 bg-indigo-50/60 border-2 border-transparent focus:border-[#4F5BD5] focus:bg-white rounded-xl text-[15px] font-black text-[#4F5BD5] outline-none transition-all"
+                              className="w-full h-11 pl-8 pr-4 bg-indigo-50/60 border-2 border-transparent focus:border-[#4F5BD5] focus:bg-white rounded-xl text-[15px] font-black text-stone-900 outline-none transition-all"
                             />
                           </div>
                           <span className="text-stone-300 font-black">＋</span>
@@ -464,7 +464,7 @@ export default function AwardsAdmin() {
                             type="number" min={0}
                             value={c.minExternal}
                             onChange={e => updateCondition(c.id, 'minExternal', parseInt(e.target.value) || 0)}
-                            className="w-full h-11 pl-8 pr-4 bg-rose-50/60 border-2 border-transparent focus:border-[#D62976] focus:bg-white rounded-xl text-[15px] font-black text-[#D62976] outline-none transition-all"
+                            className="w-full h-11 pl-8 pr-4 bg-rose-50/60 border-2 border-transparent focus:border-[#D62976] focus:bg-white rounded-xl text-[15px] font-black text-stone-900 outline-none transition-all"
                           />
                         </div>
                       </div>
