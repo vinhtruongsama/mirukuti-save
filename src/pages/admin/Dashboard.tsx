@@ -239,8 +239,8 @@ export default function Dashboard() {
 
             {/* 🔍 Premium Search Input */}
             <div className="relative flex-1 max-w-md group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center pointer-events-none">
-                <Search className="w-4 h-4 text-stone-300 group-focus-within:text-[#4F5BD5] transition-all duration-300 group-focus-within:scale-110" />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center pointer-events-none z-10">
+                <Search className="w-4 h-4 text-stone-500 group-focus-within:text-[#4F5BD5] transition-all duration-300 group-focus-within:scale-110" />
               </div>
               <input
                 type="text"
@@ -250,10 +250,10 @@ export default function Dashboard() {
                   setLogSearch(e.target.value);
                   setDisplayLimit(30);
                 }}
-                className="w-full pl-12 pr-6 py-3.5 bg-stone-50/50 border border-stone-100/80 rounded-2xl text-[14px] font-bold text-stone-900 placeholder:text-stone-300 focus:bg-white focus:border-[#4F5BD5]/20 focus:ring-4 focus:ring-[#4F5BD5]/5 focus:outline-none transition-all duration-300 shadow-sm"
+                className="w-full pl-12 pr-12 py-4 bg-stone-50 border-2 border-stone-200 rounded-2xl text-[14px] font-bold text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-[#4F5BD5] focus:ring-4 focus:ring-[#4F5BD5]/10 focus:outline-none transition-all duration-300 shadow-sm group-hover:border-stone-300"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
-                <span className="text-[10px] font-black text-stone-300 bg-stone-50 px-1.5 py-0.5 rounded border border-stone-100">ESC</span>
+                <span className="text-[10px] font-black text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200">ESC</span>
               </div>
             </div>
           </div>
