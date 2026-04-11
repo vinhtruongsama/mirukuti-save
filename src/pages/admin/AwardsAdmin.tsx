@@ -14,6 +14,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import { Download } from 'lucide-react';
 
 // Custom CSS to make number input spinners always visible
 const spinnerStyle = `
@@ -38,6 +40,7 @@ interface MemberStatus {
   full_name: string;
   full_name_kana: string;
   mssv: string | null;
+  grade: string | null;
   internal_count: number;
   external_count: number;
   total_count: number;
@@ -105,7 +108,7 @@ export default function AwardsAdmin() {
       // 1. Fetch academic year memberships
       const { data: membershipData, error: mError } = await supabase
         .from('club_memberships')
-        .select('user:users(id, full_name, full_name_kana, mssv)')
+        .select('user:users(id, full_name, full_name_kana, mssv, university_year)')
         .eq('academic_year_id', selectedYear?.id)
         .is('deleted_at', null);
       if (mError) throw mError;
@@ -140,6 +143,7 @@ export default function AwardsAdmin() {
           full_name: m.user.full_name,
           full_name_kana: m.user.full_name_kana || '',
           mssv: m.user.mssv,
+          grade: m.user.university_year ? `${m.user.university_year}年` : '不明',
           internal_count: 0,
           external_count: 0,
           total_count: 0,
@@ -204,6 +208,48 @@ export default function AwardsAdmin() {
       conditions.some(c => m.internal_count >= c.minInternal && m.external_count >= c.minExternal)
     );
   }, [members, conditions]);
+
+  // ── Excel Export ──────────────────────────────────────────────────────────
+  const handleExportExcel = () => {
+    if (qualifiedMembers.length === 0) {
+      toast.error('対象者がいません');
+      return;
+    }
+
+    const exportData = qualifiedMembers.map((m, idx) => ({
+      'NO': idx + 1,
+      '氏名': m.full_name,
+      'フリガナ': m.full_name_kana,
+      '学籍番号': m.mssv || '',
+      '学年': m.grade || '',
+      '学内活動数': m.internal_count,
+      '学外活動数': m.external_count,
+      '合計': m.total_count,
+      '活動名': m.activities.map(a => a.title_ja).join(', ')
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'AwardsList');
+    
+    // Column widths
+    const wscols = [
+      {wch: 5},  // NO
+      {wch: 20}, // Name
+      {wch: 20}, // Kana
+      {wch: 15}, // MSSV
+      {wch: 8},  // Grade
+      {wch: 12}, // Internal
+      {wch: 12}, // External
+      {wch: 8},  // Total
+      {wch: 50}  // Activity List
+    ];
+    worksheet['!cols'] = wscols;
+
+    const fileName = `Awards_List_${selectedYear?.name || 'export'}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success('Excelファイルをダウンロードしました');
+  };
 
   const rankingList = useMemo(() => {
     return rankingView === 'qualified' ? qualifiedMembers : members;
@@ -428,6 +474,13 @@ export default function AwardsAdmin() {
             </div>
             <div className="px-8 py-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
               <span className="text-[12px] font-bold text-stone-500">条件を満たすメンバー: <span className="text-emerald-600">{qualifiedMembers.length}名</span></span>
+              <button 
+                onClick={handleExportExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl font-black text-[12px] transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Excel Export
+              </button>
             </div>
           </div>
 
