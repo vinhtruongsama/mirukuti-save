@@ -310,6 +310,8 @@ export default function Dashboard() {
                   </div>
                 </div>
               ));
+            })()}
+
             {activityFeed.length >= displayLimit && (
               <div className="pt-10 flex justify-center">
                 <button
