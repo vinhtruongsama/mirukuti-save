@@ -361,7 +361,7 @@ export default function Activities() {
                       <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">開催日時</span>
                         <span className="text-sm font-black text-brand-stone-900">
-                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'M月d日 (E) HH:mm', { locale: jaLocale }) : '---'}
+                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'M月d日 (E)', { locale: jaLocale }) : '---'}
                         </span>
                       </div>
                     </div>
