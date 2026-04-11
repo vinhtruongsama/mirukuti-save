@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 
 import { useAuthStore } from '../../store/useAuthStore';
-import { useAppStore } from '../../store/useAppStore';
 
 export default function Dashboard() {
   const [showClearModal, setShowClearModal] = useState(false);
