@@ -57,19 +57,35 @@ export default function Dashboard() {
           )
         `);
 
-      // 🔍 Better Search Logic
+      // 🔍 Enhanced Search Logic (Support Japanese & International Formats)
       if (logSearch.trim()) {
         const term = logSearch.trim();
+        let start: Date | null = null;
 
-        // 1. Try to parse Vietnamese Date Format (d/m/yyyy)
-        const dateMatch = term.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
-        if (dateMatch) {
-          const [_, d, m, y] = dateMatch;
-          const start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+        // 1. Match YYYY年M月D日
+        const jpFullMatch = term.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+        // 2. Match M月D日 (assume current year)
+        const jpShortMatch = term.match(/^(\d{1,2})月(\d{1,2})日$/);
+        // 3. Match D/M/YYYY or D-M-YYYY or YYYY-MM-DD
+        const intlMatch = term.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+
+        if (jpFullMatch) {
+          const [_, y, m, d] = jpFullMatch;
+          start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+        } else if (jpShortMatch) {
+          const [_, m, d] = jpShortMatch;
+          const y = new Date().getFullYear();
+          start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+        } else if (intlMatch) {
+          const [_, d, m, y] = intlMatch;
+          start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+        }
+
+        if (start && !isNaN(start.getTime())) {
           const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
           query = query.gte('created_at', start.toISOString()).lt('created_at', end.toISOString());
         } else {
-          // 2. Fallback to text search on content_name
+          // 4. Fallback to text search on content_name
           query = query.ilike('content_name', `%${term}%`);
         }
       }
@@ -204,9 +220,9 @@ export default function Dashboard() {
               <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center pointer-events-none">
                 <Search className="w-4 h-4 text-stone-300 group-focus-within:text-[#4F5BD5] transition-all duration-300 group-focus-within:scale-110" />
               </div>
-              <input 
+              <input
                 type="text"
-                placeholder="日付 (12/3) または内容で検索..."
+                placeholder="日付 12月3日 または 内容で検索..."
                 value={logSearch}
                 onChange={(e) => {
                   setLogSearch(e.target.value);
