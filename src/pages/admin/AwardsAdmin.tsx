@@ -297,11 +297,11 @@ export default function AwardsAdmin() {
                     <div className="flex items-center gap-3 sm:gap-8 shrink-0">
                       <div className="flex items-center gap-3 sm:gap-6">
                         <div className="text-center">
-                          <span className="block text-[9px] sm:text-[10px] font-black text-stone-400 uppercase tracking-widest mb-0.5 sm:mb-1">学内</span>
+                          <span className="block text-[9px] sm:text-[10px] font-black text-[#4F5BD5] uppercase tracking-widest mb-0.5 sm:mb-1">学内</span>
                           <span className="text-lg sm:text-2xl font-black text-[#4F5BD5]">{m.internal_count}</span>
                         </div>
                         <div className="text-center">
-                          <span className="block text-[9px] sm:text-[10px] font-black text-stone-400 uppercase tracking-widest mb-0.5 sm:mb-1">学外</span>
+                          <span className="block text-[9px] sm:text-[10px] font-black text-[#D62976] uppercase tracking-widest mb-0.5 sm:mb-1">学外</span>
                           <span className="text-lg sm:text-2xl font-black text-[#D62976]">{m.external_count}</span>
                         </div>
                       </div>
@@ -391,7 +391,7 @@ export default function AwardsAdmin() {
                   </div>
                   <div className="col-span-12 sm:col-span-10 flex flex-wrap gap-4 sm:gap-8 mt-4 sm:mt-0">
                     <div className="flex flex-col gap-1.5 min-w-[120px]">
-                      <label className="text-[14px] font-black text-stone-600 uppercase tracking-widest pl-1">学内活動</label>
+                      <label className="text-[14px] font-black text-[#4F5BD5] uppercase tracking-widest pl-1">学内活動</label>
                       <div className="relative">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#4F5BD5]" />
                         <input
@@ -404,7 +404,7 @@ export default function AwardsAdmin() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-1.5 min-w-[120px]">
-                      <label className="text-[14px] font-black text-stone-600 uppercase tracking-widest pl-1">学外活動</label>
+                      <label className="text-[14px] font-black text-[#D62976] uppercase tracking-widest pl-1">学外活動</label>
                       <div className="relative">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D62976]" />
                         <input
@@ -440,11 +440,11 @@ export default function AwardsAdmin() {
 
             <div className="bg-white rounded-3xl border border-stone-100 overflow-hidden shadow-sm overflow-x-auto">
               <div className="min-w-[600px]">
-                <div className="grid grid-cols-12 px-8 py-4 bg-stone-50 text-[10px] font-black uppercase tracking-widest text-stone-400">
-                  <div className="col-span-6">メンバー</div>
-                  <div className="col-span-2 text-center">学内</div>
-                  <div className="col-span-2 text-center">学外</div>
-                  <div className="col-span-2 text-right">合計</div>
+                <div className="grid grid-cols-12 px-8 py-4 bg-stone-50 text-[10px] font-black uppercase tracking-widest">
+                  <div className="col-span-6 text-stone-400">メンバー</div>
+                  <div className="col-span-2 text-center text-[#4F5BD5]">学内</div>
+                  <div className="col-span-2 text-center text-[#D62976]">学外</div>
+                  <div className="col-span-2 text-right text-stone-400">合計</div>
                 </div>
                 <div className="divide-y divide-stone-50">
                   {rankingList.map((m) => (
