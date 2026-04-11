@@ -141,6 +141,7 @@ export default function Members() {
     if (query) {
       result = result.filter(m =>
         (m.users?.full_name?.toLowerCase().includes(query)) ||
+        (m.users?.full_name_kana?.toLowerCase().includes(query)) ||
         (m.users?.mssv?.toLowerCase().includes(query)) ||
         (m.users?.email?.toLowerCase().includes(query))
       );
@@ -504,7 +505,7 @@ export default function Members() {
             <Search className="absolute left-10 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 group-focus-within:text-[#D62976] transition-colors" />
             <input
               type="text"
-              placeholder="名前、学籍番号、メールで一括検索..."
+              placeholder="名前、フリガナ、学籍番号で検索..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-20 pr-10 py-5 lg:py-6 bg-transparent text-stone-900 rounded-[2.5rem] text-[13px] lg:text-[14px] font-bold focus:outline-none placeholder:text-stone-300 transition-all"
@@ -513,19 +514,10 @@ export default function Members() {
 
           {/* Dropdown Selectors & Density Toggle */}
           <div className="flex flex-wrap items-center gap-3 p-1">
-            <div className="hidden lg:flex bg-stone-50 rounded-2xl p-1 gap-1 border border-stone-100">
-              <button
-                onClick={() => setIsCompact(false)}
-                className={`px-4 py-2 rounded-xl text-[14px] font-black transition-all ${!isCompact ? 'bg-white shadow-sm text-[#4F5BD5]' : 'text-stone-400 hover:text-stone-600'}`}
-              >
-                標準
-              </button>
-              <button
-                onClick={() => setIsCompact(true)}
-                className={`px-4 py-2 rounded-xl text-[12px] font-black transition-all ${isCompact ? 'bg-white shadow-sm text-[#4F5BD5]' : 'text-stone-400 hover:text-stone-600'}`}
-              >
-                コンパクト
-              </button>
+            <div className="hidden lg:flex items-center px-6 bg-stone-50/50 rounded-2xl border border-stone-100 h-11">
+              <span className="text-[14px] font-black text-stone-900 tracking-tighter">
+                {filteredData.length} <span className="text-stone-600 font-bold ml-1">結果</span>
+              </span>
             </div>
 
             <select
@@ -539,7 +531,6 @@ export default function Members() {
               <option value="treasurer">会計</option>
               <option value="executive">幹部</option>
               <option value="member">部員</option>
-              <option value="alumni">卒業生</option>
             </select>
 
             <select
@@ -552,6 +543,7 @@ export default function Members() {
               <option value="2">2年生</option>
               <option value="3">3年生</option>
               <option value="4">4年生</option>
+              <option value="alumni">卒業生</option>
             </select>
 
             <button
