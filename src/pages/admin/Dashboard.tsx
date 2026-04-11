@@ -60,7 +60,7 @@ export default function Dashboard() {
       // 🔍 Better Search Logic
       if (logSearch.trim()) {
         const term = logSearch.trim();
-        
+
         // 1. Try to parse Vietnamese Date Format (d/m/yyyy)
         const dateMatch = term.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
         if (dateMatch) {
@@ -198,20 +198,25 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
             <h2 className="text-3xl font-black text-stone-900 tracking-tighter shrink-0">活動の履歴</h2>
-            
-            {/* 🔍 Search Input */}
+
+            {/* 🔍 Premium Search Input */}
             <div className="relative flex-1 max-w-md group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-[#4F5BD5] transition-colors" />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center pointer-events-none">
+                <Search className="w-4 h-4 text-stone-300 group-focus-within:text-[#4F5BD5] transition-all duration-300 group-focus-within:scale-110" />
+              </div>
               <input 
                 type="text"
-                placeholder="日付 (例: 12/3/2026) hay keyword..."
+                placeholder="Tìm kiếm theo ngày (12/3) hoặc nội dung..."
                 value={logSearch}
                 onChange={(e) => {
                   setLogSearch(e.target.value);
-                  setDisplayLimit(30); // Reset limit when searching
+                  setDisplayLimit(30);
                 }}
-                className="w-full pl-12 pr-4 py-3 bg-stone-50 border border-stone-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/20 focus:outline-none transition-all placeholder:text-stone-300"
+                className="w-full pl-12 pr-6 py-3.5 bg-stone-50/50 border border-stone-100/80 rounded-2xl text-[14px] font-bold text-stone-900 placeholder:text-stone-300 focus:bg-white focus:border-[#4F5BD5]/20 focus:ring-4 focus:ring-[#4F5BD5]/5 focus:outline-none transition-all duration-300 shadow-sm"
               />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
+                <span className="text-[10px] font-black text-stone-300 bg-stone-50 px-1.5 py-0.5 rounded border border-stone-100">ESC</span>
+              </div>
             </div>
           </div>
 
@@ -220,7 +225,7 @@ export default function Dashboard() {
             className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm hover:bg-rose-100 transition-all active:scale-95 shrink-0"
           >
             <Trash2 className="w-4 h-4" />
-            <span className="hidden sm:inline">履歴 hoặc xóa</span><span className="sm:hidden">Xóa</span>
+            <span className="hidden sm:inline">履歴を削除</span><span className="sm:hidden">履歴を削除</span>
           </button>
         </div>
 
