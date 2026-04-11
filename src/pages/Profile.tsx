@@ -135,7 +135,7 @@ export default function Profile() {
   );
 
   return (
-    <div className="h-[calc(100vh-4.5rem)] bg-[#F8F9FD] overflow-hidden relative font-sans text-stone-900">
+    <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-4.5rem)] bg-[#F8F9FD] overflow-hidden relative font-sans text-stone-900">
       {isSidebarVisible && (
         <div
           onClick={() => setIsSidebarVisible(false)}
@@ -145,12 +145,11 @@ export default function Profile() {
 
       <div className="h-full flex relative overflow-hidden">
         <aside
-          style={{ 
-            width: isSidebarVisible ? (window.innerWidth < 1024 ? '100%' : 440) : 0,
-            transform: isSidebarVisible ? 'translateX(0)' : 'translateX(-440px)'
-          }}
-          className={`bg-white border-r border-stone-100 flex flex-col z-[50] shrink-0 overflow-hidden relative shadow-2xl lg:shadow-none transition-all duration-300 ${window.innerWidth < 1024 ? 'fixed inset-y-0 left-0 max-w-[440px]' : ''
-            }`}
+          className={`bg-white border-r border-stone-100 flex flex-col z-[50] shrink-0 overflow-hidden relative shadow-2xl lg:shadow-none transition-all duration-300 ${
+            isSidebarVisible
+              ? 'w-full lg:w-[440px] fixed lg:relative inset-y-0 left-0 max-w-[440px]'
+              : 'w-0 fixed lg:relative'
+          }`}
         >
           <button
             onClick={() => setIsSidebarVisible(false)}
@@ -279,13 +278,13 @@ export default function Profile() {
               </button>
             )}
 
-          <header className="px-8 lg:px-16 py-10 flex flex-col sm:flex-row items-center justify-between gap-6 border-b border-indigo-50 bg-white shrink-0 z-10 shadow-sm">
-            <div className="flex items-center gap-8">
+          <header className="px-5 sm:px-8 lg:px-16 py-6 sm:py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 border-b border-indigo-50 bg-white shrink-0 z-10 shadow-sm">
+            <div className="flex items-center gap-4 sm:gap-8">
               {/* Vertical Gradient Bar (Style from Image 23) */}
               <div className="w-1.5 h-16 rounded-full bg-gradient-to-b from-[#4F5BD5] to-[#D62976] hidden sm:block" />
 
-              <div className="space-y-2">
-                <h3 className="text-[36px] font-black tracking-tighter font-serif leading-none text-stone-900">活動履歴</h3>
+              <div className="space-y-1 sm:space-y-2">
+                <h3 className="text-[24px] sm:text-[36px] font-black tracking-tighter font-serif leading-none text-stone-900">活動履歴</h3>
                 <div className="flex items-center gap-2 text-[10px] font-black text-stone-400 uppercase tracking-[0.6em] opacity-60">
                   <span>Activity</span>
                   <span className="text-[#D62976]">Records</span>
@@ -293,7 +292,7 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 bg-white p-2 pr-6 rounded-[2rem] border border-indigo-50 shadow-sm transition-all hover:shadow-md">
+            <div className="flex items-center gap-4 bg-white p-2 pr-4 sm:pr-6 rounded-[1.5rem] sm:rounded-[2rem] border border-indigo-50 shadow-sm transition-all hover:shadow-md">
               <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-[12px]">26</div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-stone-300 uppercase tracking-widest">Academic Year</span>
@@ -302,7 +301,7 @@ export default function Profile() {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-6 lg:px-16 py-12 scrollbar-thin scrollbar-thumb-indigo-100">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-16 py-8 sm:py-12 scrollbar-thin scrollbar-thumb-indigo-100">
             {isHistoryLoading ? (
               <div className="h-full flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
