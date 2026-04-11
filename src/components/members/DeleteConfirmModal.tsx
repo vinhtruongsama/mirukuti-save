@@ -58,8 +58,8 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberN
             isHard ? "bg-red-600" : "bg-stone-50"
           )}>
             <h2 className={cn(
-              "text-[14px] font-black tracking-tighter uppercase font-sans",
-              isHard ? "text-white" : "text-stone-400"
+              "text-[18px] font-black text-[#4F5BD5] tighter uppercase font-sans",
+              isHard ? "text-white" : "text-stone-900"
             )}>
               {isHard ? "緊急警告 (CAUTION)" : "解除の確認"}
             </h2>
@@ -71,16 +71,16 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberN
               <h3 className="text-stone-900 text-[14px] font-bold leading-tight font-sans">
                 {isHard ? (
                   <>
-                    メンバー 「<span className="text-[16px] text-red-600 font-serif">{memberName}</span>」<br />
-                    を完全に削除しますか？
+                    メンバー 「<span className="text-[16px] text-red-600 font-serif">{memberName}</span>」を<br />
+                    完全に削除しますか？
                     <span className="block mt-1 text-[14px] text-rose-500 font-black tracking-widest bg-rose-50 py-2 rounded-lg">
                       ※ ログイン不能・復旧不可
                     </span>
                   </>
                 ) : (
                   <>
-                    メンバー 「<span className="text-[16px] text-[#4F5BD5] font-serif">{memberName}</span>」<br />
-                    を解除箱へ移動しますか？
+                    メンバー 「<span className="text-[16px] text-[#4F5BD5] font-serif">{memberName}</span>」を<br />
+                    解除箱へ移動しますか？
                   </>
                 )}
               </h3>
@@ -101,7 +101,7 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberN
                   onClick={onClose}
                   className="w-full py-4 bg-stone-50 hover:bg-stone-100 text-stone-400 rounded-xl font-black text-[12px] transition-all active:scale-95 font-sans"
                 >
-                  キャンセル (Cancel)
+                  キャンセル
                 </button>
               </div>
             </div>

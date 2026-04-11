@@ -156,7 +156,7 @@ export default function Activities() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.01] mix-blend-overlay" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 pt-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 relative z-10">
         <div className="mb-14 space-y-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="relative">

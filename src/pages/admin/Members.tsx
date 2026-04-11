@@ -301,7 +301,7 @@ export default function Members() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('メンバーをアーカイブしました');
+      toast.success('解除箱に入れました');
       queryClient.invalidateQueries({ queryKey: ['admin-members'] });
       queryClient.invalidateQueries({ queryKey: ['archived-members'] });
     }

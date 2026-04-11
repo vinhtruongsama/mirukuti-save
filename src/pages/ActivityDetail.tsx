@@ -174,7 +174,7 @@ export default function ActivityDetail() {
           <X className="w-6 h-6 group-hover:scale-110" />
         </Link>
 
-        <div className="p-8 sm:p-14">
+        <div className="p-5 sm:p-8 lg:p-14">
           <div className="flex flex-wrap items-center gap-3 mb-8">
             <span className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-gray-900/20">
               {activity.location_type === 'external' ? '学外活動' : '学内活動'}
@@ -189,7 +189,7 @@ export default function ActivityDetail() {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-7xl font-serif text-gray-900 leading-[1.1] tracking-tighter mb-12 break-words">
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-serif text-gray-900 leading-[1.1] tracking-tighter mb-8 sm:mb-12 break-words">
             {activity.title}
           </h1>
 
@@ -229,7 +229,7 @@ export default function ActivityDetail() {
             </div>
           </div>
 
-          <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex items-center gap-6 mb-6 group hover:bg-white hover:shadow-xl transition-all duration-500">
+          <div className="p-5 sm:p-8 bg-gray-50/50 rounded-[2rem] sm:rounded-[2.5rem] border border-gray-100 flex items-center gap-4 sm:gap-6 mb-6 group hover:bg-white hover:shadow-xl transition-all duration-500">
             <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm group-hover:bg-indigo-500 group-hover:text-white transition-all">
               <MapPin className="w-7 h-7" />
             </div>
@@ -255,8 +255,8 @@ export default function ActivityDetail() {
             </div>
           )}
 
-          <div className="mb-20">
-            <div className="p-8 md:p-12 border-2 border-stone-600 rounded-[2.5rem] bg-gray-50/50 shadow-sm">
+          <div className="mb-12 sm:mb-20">
+            <div className="p-5 sm:p-8 md:p-12 border-2 border-stone-600 rounded-[2rem] sm:rounded-[2.5rem] bg-gray-50/50 shadow-sm">
               <p className="text-xl text-gray-500 leading-[1.8] font-medium whitespace-pre-wrap max-w-3xl">
                 {activity.description || '活動の詳細情報はありません。'}
               </p>

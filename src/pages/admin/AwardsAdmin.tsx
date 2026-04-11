@@ -231,18 +231,18 @@ export default function AwardsAdmin() {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'AwardsList');
-    
+
     // Column widths
     const wscols = [
-      {wch: 5},  // NO
-      {wch: 20}, // Name
-      {wch: 20}, // Kana
-      {wch: 15}, // MSSV
-      {wch: 8},  // Grade
-      {wch: 12}, // Internal
-      {wch: 12}, // External
-      {wch: 8},  // Total
-      {wch: 50}  // Activity List
+      { wch: 5 },  // NO
+      { wch: 20 }, // Name
+      { wch: 20 }, // Kana
+      { wch: 15 }, // MSSV
+      { wch: 8 },  // Grade
+      { wch: 12 }, // Internal
+      { wch: 12 }, // External
+      { wch: 8 },  // Total
+      { wch: 50 }  // Activity List
     ];
     worksheet['!cols'] = wscols;
 
@@ -473,8 +473,8 @@ export default function AwardsAdmin() {
               ))}
             </div>
             <div className="px-8 py-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
-              <span className="text-[12px] font-bold text-stone-500">条件を満たすメンバー: <span className="text-emerald-600">{qualifiedMembers.length}名</span></span>
-              <button 
+              <span className="text-[14px] font-bold text-stone-600">条件を満たすメンバー: <span className="text-emerald-600">{qualifiedMembers.length}名</span></span>
+              <button
                 onClick={handleExportExcel}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl font-black text-[12px] transition-all"
               >
@@ -487,8 +487,8 @@ export default function AwardsAdmin() {
           {/* Ranking Table style */}
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-1.5 bg-stone-100 rounded-xl w-fit">
-              <button onClick={() => setRankingView('qualified')} className={`px-4 py-2 rounded-lg text-[12px] font-black ${rankingView === 'qualified' ? 'bg-white text-emerald-600 shadow-sm' : 'text-stone-500'}`}>対象者</button>
-              <button onClick={() => setRankingView('all')} className={`px-4 py-2 rounded-lg text-[12px] font-black ${rankingView === 'all' ? 'bg-white text-[#4F5BD5] shadow-sm' : 'text-stone-500'}`}>全員</button>
+              <button onClick={() => setRankingView('qualified')} className={`px-4 py-2 rounded-lg text-[14px] font-black ${rankingView === 'qualified' ? 'bg-white text-emerald-600 shadow-sm' : 'text-stone-600'}`}>対象者</button>
+              <button onClick={() => setRankingView('all')} className={`px-4 py-2 rounded-lg text-[14px] font-black ${rankingView === 'all' ? 'bg-white text-[#4F5BD5] shadow-sm' : 'text-stone-600'}`}>全員</button>
             </div>
 
             <div className="bg-white rounded-3xl border border-stone-100 shadow-sm">
