@@ -127,9 +127,9 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, totalSessions }:
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <p className="text-lg font-black text-[#0f172a] tracking-tight truncate uppercase">
-                {reg.users.full_name_kana || reg.users.full_name}
+                {reg.users ? (reg.users.full_name_kana || reg.users.full_name) : '退会済みユーザー'}
               </p>
-              {reg.users.mssv && (
+              {reg.users?.mssv && (
                 <span className="text-[10px] font-black tracking-widest text-[#4F5BD5] bg-[#4F5BD5]/5 px-2 py-0.5 rounded-lg border border-[#4F5BD5]/10">
                   {reg.users.mssv}
                 </span>
@@ -314,9 +314,8 @@ export default function ActivityRegistrations() {
       );
     }
 
-    // Final filter: Only show registrations where the associated user exists
-    result = result.filter((r: any) => r.users && r.users.full_name);
-
+    // Final filter: Keep all registrations to preserve historical "results"
+    // (We no longer filter out registrations from deleted users)
     return result;
   }, [registrations, debouncedSearch, selectedSessionIdx]);
 
@@ -374,13 +373,13 @@ export default function ActivityRegistrations() {
       const rowData = filteredRegs.map((r: any, idx) => {
         const row: any[] = [
           idx + 1,
-          r.users?.full_name_kana || r.users?.full_name || 'N/A',
+          r.users ? (r.users.full_name_kana || r.users.full_name) : '退会済みユーザー',
           r.users?.mssv || 'N/A'
         ];
 
         // Conditional Columns
         if (isFullDisclosure) {
-          row.push(r.users?.hometown || 'N/A', r.users?.nationality || 'N/A');
+          row.push(r.users?.hometown || '-', r.users?.nationality || '-');
         }
 
         if (selectedSessionIdx !== null) {

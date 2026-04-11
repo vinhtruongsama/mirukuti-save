@@ -691,12 +691,19 @@ export default function Members() {
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0 flex flex-col py-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[17px] font-black text-stone-900 truncate leading-tight">
-                              {mem.users?.full_name}
-                            </span>
-                            {isNewlyAdded(mem.users) && (
-                              <span className="px-2 py-0.5 bg-[#D62976] text-white text-[8px] font-black rounded-md animate-pulse">NEW</span>
+                          <div className="flex flex-col mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[16px] font-black text-stone-900 truncate leading-tight">
+                                {mem.users?.full_name_kana || mem.users?.full_name}
+                              </span>
+                              {isNewlyAdded(mem.users) && (
+                                <span className="px-2 py-0.5 bg-[#D62976] text-white text-[8px] font-black rounded-md animate-pulse">NEW</span>
+                              )}
+                            </div>
+                            {mem.users?.full_name_kana && (
+                              <span className="text-[10px] font-black text-stone-400 truncate uppercase mt-0.5 tracking-wider">
+                                {mem.users?.full_name}
+                              </span>
                             )}
                           </div>
                           <div className="flex items-center gap-2">

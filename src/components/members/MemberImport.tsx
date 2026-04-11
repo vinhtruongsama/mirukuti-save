@@ -89,46 +89,60 @@ const MemberImport: React.FC<{
       const normalized: any = { _valid: true };
 
       Object.entries(row).forEach(([key, val]) => {
-        const mappedKey = COLUMN_MAPPING[key.trim()] || key.trim();
-        let value = String(val ?? '').trim();
+        const keyTrimmed = key.trim();
+        let mappedKey = COLUMN_MAPPING[keyTrimmed];
 
-        // 1. Trim & Zenkaku to Hankaku (Task 3.1 & 3.2)
-        // 空白除去と全角・半角変換
+        // --- Task 2.1: Prefix-based Mapping (Robust Header matching) ---
+        if (!mappedKey) {
+          if (keyTrimmed.startsWith('学年')) {
+            mappedKey = 'grade';
+          } else if (keyTrimmed.startsWith('氏名')) {
+            mappedKey = 'full_name';
+          } else {
+            mappedKey = keyTrimmed;
+          }
+        }
+
+        let value = String(val ?? '').trim();
         value = toHankaku(value);
 
         if (mappedKey === 'grade') {
-          // 4. Grade Extraction (Task 3.4)
-          // Handle numbers and Japanese numerals
-          const valueLower = value.toLowerCase();
-          if (valueLower.includes('一') || valueLower.includes('1')) normalized[mappedKey] = 1;
-          else if (valueLower.includes('二') || valueLower.includes('2')) normalized[mappedKey] = 2;
-          else if (valueLower.includes('三') || valueLower.includes('3')) normalized[mappedKey] = 3;
-          else if (valueLower.includes('四') || valueLower.includes('4')) normalized[mappedKey] = 4;
-          else if (valueLower.includes('卒') || valueLower.includes('0')) normalized[mappedKey] = 0;
+          // 4. Grade Extraction (Task 3.4) - Robust check
+          const valLower = value.toLowerCase();
+          if (valLower.includes('一') || valLower.includes('1')) normalized.grade = 1;
+          else if (valLower.includes('二') || valLower.includes('2')) normalized.grade = 2;
+          else if (valLower.includes('三') || valLower.includes('3')) normalized.grade = 3;
+          else if (valLower.includes('四') || valLower.includes('4')) normalized.grade = 4;
+          else if (valLower.includes('卒') || valLower.includes('0')) normalized.grade = 0;
           else {
             const match = value.match(/\d+/);
-            normalized[mappedKey] = match ? parseInt(match[0]) : 1;
+            normalized.grade = match ? parseInt(match[0]) : 1;
           }
         } else if (mappedKey === 'phone') {
-          // 3. Phone Formatting (Task 3.3)
-          // 電話番号の成形（ハイフン除去、"0"付与）
           let cleaned = value.replace(/[- ]/g, '');
-          if (cleaned.length > 0 && !cleaned.startsWith('0')) cleaned = '0' + cleaned;
-          normalized[mappedKey] = cleaned;
-        } else if (['full_name', 'furigana', 'student_id', 'gender', 'line_name', 'university_email', 'personal_email', 'nationality'].includes(mappedKey)) {
+          if (cleaned.length > 0 && !cleaned.startsWith('0') && cleaned.length < 11) cleaned = '0' + cleaned;
+          normalized.phone = cleaned;
+        } else if (mappedKey === 'gender') {
+          // Handle Japanese and basic Vietnamese/English
+          if (value.includes('男')) normalized.gender = '男';
+          else if (value.includes('女')) normalized.gender = '女';
+          else normalized.gender = value;
+        } else if (['full_name', 'furigana', 'student_id', 'line_name', 'university_email', 'personal_email', 'nationality', 'academic_year'].includes(mappedKey)) {
           normalized[mappedKey] = value;
         }
       });
 
       // --- Task 4.3: Error Highlighting (Validation) ---
-      // 学籍番号（student_id）または氏名（full_name）がない場合はエラー
       if (!normalized.student_id) {
         normalized._valid = false;
-        normalized._error = `行 ${index + 2}: 学籍番号が必要です (Missing student_id)`;
+        normalized._error = `行 ${index + 2}: 学籍番号が必要です (Student ID is required)`;
       } else if (!normalized.full_name) {
         normalized._valid = false;
-        normalized._error = `行 ${index + 2}: 氏名が必要です (Missing full_name)`;
+        normalized._error = `行 ${index + 2}: 氏名が必要です (Name is required)`;
       }
+
+      // Check for login capability (Informational check)
+      normalized._canLogin = !!(normalized.personal_email || normalized.university_email);
 
       return normalized as MemberRow;
     });
@@ -139,19 +153,34 @@ const MemberImport: React.FC<{
    * Creates and downloads a pre-formatted Excel template with correct headers and sample data.
    */
   const handleDownloadTemplate = () => {
-    const headers = Object.keys(COLUMN_MAPPING).filter(h => h !== '氏名(漢字または ROMAJI)'); // Avoid duplicates
+    // Standardized headers with specific order (Task: Custom Column Order)
+    const headers = [
+      'NO',
+      '氏名',
+      'フリガナ',
+      '学籍番号',
+      '学年',
+      '性別',
+      '国籍',
+      'LINEニックネーム',
+      '電話番号',
+      '大学のメール',
+      '連絡メール'
+    ];
 
     // Sample Data Row (Task: Provide a clear example)
     const sampleRow = [
-      '太郎',    // 氏名
-      'ヤマダ タロウ',           // フリガナ
-      '33123456',               // 学籍番号
-      '1年生',                  // 学年
-      '男',                      // 性別
-      'たろう',            // LINEニックネーム
-      '08012341234',          // 電話番号
-      'taro@red.umds.ac.jp',         // 大学のメール
-      'taro@gmail.com'          // 連絡メール
+      1,                       // NO
+      '太郎',                  // 氏名
+      'ヤマダ タロウ',          // フリガナ
+      '33123456',              // 学籍番号
+      '1',                     // 学年
+      '男',                    // 性別
+      '日本',                  // 国籍
+      'たろう',                 // LINEニックネーム
+      '08012341234',           // 電話番号
+      'taro@red.umds.ac.jp',   // 大学のメール
+      'taro@gmail.com',        // 連絡メール
     ];
 
     const worksheet = XLSX.utils.aoa_to_sheet([headers, sampleRow]);
@@ -163,7 +192,7 @@ const MemberImport: React.FC<{
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '部員名簿');
 
-    XLSX.writeFile(workbook, 'mirukuti_member_example.xlsx');
+    XLSX.writeFile(workbook, 'member_example.xlsx');
     toast.info('サンプルファイルをダウンロードしました。');
   };
 
@@ -384,6 +413,7 @@ const MemberImport: React.FC<{
                   <thead className="bg-slate-50/50">
                     <tr>
                       <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                      <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">ログイン</th>
                       <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">学籍番号</th>
                       <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">氏名 (Full Name)</th>
                       <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">フリガナ</th>
@@ -399,6 +429,13 @@ const MemberImport: React.FC<{
                             <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center"><CheckCircle2 className="w-5 h-5" /></div>
                           ) : (
                             <div className="w-10 h-10 bg-rose-100 text-rose-500 rounded-xl flex items-center justify-center animate-pulse" title={row._error}><AlertTriangle className="w-5 h-5" /></div>
+                          )}
+                        </td>
+                        <td className="px-8 py-5">
+                          {(row as any)._canLogin ? (
+                             <span className="px-2 py-1 bg-indigo-50 text-indigo-500 text-[10px] font-black rounded-md border border-indigo-100 italic">LOGIN OK</span>
+                          ) : (
+                             <span className="px-2 py-1 bg-amber-50 text-amber-500 text-[10px] font-black rounded-md border border-amber-100 italic whitespace-nowrap">NO EMAIL (NO LOGIN)</span>
                           )}
                         </td>
                         <td className="px-8 py-5 font-mono font-black text-slate-800 text-center tracking-tight">{row.student_id || '—'}</td>
@@ -445,14 +482,14 @@ const MemberImport: React.FC<{
               以下の項目が含まれているか確認してください：
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              {['氏名', 'フリガナ', '学籍番号', '学年', '性別', '連絡メール', '電話番号', 'LINEニックネーム', '大学のメール'].map((field) => (
+              {['氏名', 'フリガナ', '学籍番号', '学年', '性別', '国籍', '連絡メール', '電話番号', 'LINEニックネーム', '大学のメール'].map((field) => (
                 <span key={field} className="px-3 py-1 bg-white border border-stone-200 rounded-lg text-stone-900 text-[12px] lg:text-[14px] font-black shadow-sm">
                   {field}
                 </span>
               ))}
             </div>
             <p className="text-[#D62976] text-[11px] lg:text-[13px] font-black opacity-90 pt-2 bg-rose-50/50 py-3 rounded-2xl border border-rose-100/50">
-              ※ 学籍番号と氏名は必須項目です。それ以外は空欄でもインポート可能です。
+              ※ 学籍番号と氏名は必須項目です。メールアドレスがない場合はログインができません。それ以外は空欄でもインポート可能です。
             </p>
           </div>
         </div>

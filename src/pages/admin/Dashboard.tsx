@@ -114,12 +114,12 @@ export default function Dashboard() {
 
         return {
           id: log.id,
-          user: user?.full_name_kana || user?.full_name || 'Unknown User',
+          user: user?.full_name_kana || user?.full_name || '削除されたメンバー',
           actor: actorFullName,
           email: user?.email,
           action: config.label,
           summary: changeSummary,
-          target: log.content_name || 'System',
+          target: log.content_name || 'システム',
           timestamp: new Date(log.created_at),
           icon: config.icon,
           color: config.color,
@@ -323,8 +323,8 @@ export default function Dashboard() {
                     key={option.id}
                     onClick={() => setClearType(option.id as any)}
                     className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${clearType === option.id
-                        ? 'border-indigo-600 bg-indigo-50/30'
-                        : 'border-stone-100 hover:border-stone-200'
+                      ? 'border-indigo-600 bg-indigo-50/30'
+                      : 'border-stone-100 hover:border-stone-200'
                       }`}
                   >
                     <div className={`p-3 rounded-xl ${clearType === option.id ? 'bg-indigo-600' : 'bg-stone-100'}`}>

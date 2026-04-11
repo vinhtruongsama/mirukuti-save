@@ -31,31 +31,29 @@ export default function ArchivedMembers() {
   const isFullDisclosure = isSeniorAdmin || appSettings?.allow_profile_edit === true;
 
   const { data: archivedMembers = [], isLoading } = useQuery({
-    queryKey: ['archived-members', selectedYear?.id],
+    queryKey: ['archived-members'],
     queryFn: async () => {
-      if (!selectedYear) return [];
+      // Fetch directly from users table to see EVERYONE who is soft-deleted
       const { data, error } = await supabase
-        .from('club_memberships')
+        .from('users')
         .select(`
           *,
-          users!inner(*)
+          club_memberships(*)
         `)
-        .eq('academic_year_id', selectedYear.id)
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false });
 
       if (error) throw error;
       return data || [];
-    },
-    enabled: !!selectedYear
+    }
   });
 
   const filteredMembers = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
     if (!q) return archivedMembers;
     return archivedMembers.filter(m =>
-      m.users?.full_name?.toLowerCase().includes(q) ||
-      m.users?.mssv?.toLowerCase().includes(q)
+      m.full_name?.toLowerCase().includes(q) ||
+      m.mssv?.toLowerCase().includes(q)
     );
   }, [archivedMembers, searchTerm]);
 
@@ -171,10 +169,10 @@ export default function ArchivedMembers() {
                 >
                   <td className="px-10 py-8">
                     <div className="flex flex-col">
-                      <span className="text-[15px] font-black text-stone-900 font-mincho">{mem.users?.full_name}</span>
+                      <span className="text-[15px] font-black text-stone-900 font-mincho">{mem.full_name}</span>
                       <span className="text-[12px] font-bold text-stone-400 tracking-tight">
-                        {mem.users?.mssv}
-                        {isFullDisclosure && mem.users?.email && ` • ${mem.users.email}`}
+                        {mem.mssv}
+                        {isFullDisclosure && mem.email && ` • ${mem.email}`}
                       </span>
                     </div>
                   </td>
@@ -186,14 +184,14 @@ export default function ArchivedMembers() {
                   <td className="px-10 py-8 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <button
-                        onClick={() => restoreMutation.mutate({ userUuid: mem.user_id, yearId: selectedYear?.id || '' })}
+                        onClick={() => restoreMutation.mutate({ userUuid: mem.id, yearId: selectedYear?.id || (mem.club_memberships?.[0]?.academic_year_id) || '' })}
                         className="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-900 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all active:scale-95 shadow-lg shadow-stone-200"
                         title="リストに復元する"
                       >
                         <RotateCcw className="w-3 h-3" /> 復元
                       </button>
                       <button
-                        onClick={() => hardDeleteMutation.mutate(mem.user_id)}
+                        onClick={() => hardDeleteMutation.mutate(mem.id)}
                         className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm"
                         title="完全に削除する"
                       >
