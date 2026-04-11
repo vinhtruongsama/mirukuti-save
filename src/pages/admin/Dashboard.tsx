@@ -275,7 +275,7 @@ export default function Dashboard() {
             })()}
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Clear Logs Modal */}
       {showClearModal && (

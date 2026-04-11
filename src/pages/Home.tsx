@@ -71,7 +71,7 @@ export default function Home() {
                     <span className="group-hover/admin:tracking-widest transition-all duration-500">全て管理</span>
                   </Link>
                 )}
-              </motion.div>
+              </div>
             </div>
 
             {/* Cinematic Typography (Bottom on Mobile/Tablet) */}
@@ -165,7 +165,7 @@ export default function Home() {
                 </a>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Centered Premium Navigation */}
           <div className="mt-24 w-full max-w-3xl">

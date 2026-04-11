@@ -224,7 +224,7 @@ export default function Login() {
               </div>
             </div>
           </form>
-        </motion.div>
+        </div>
       </main>
 
       <footer className="relative z-50 w-full py-6 flex items-center justify-center">
