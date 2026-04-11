@@ -25,7 +25,7 @@ export default function Dashboard() {
   const [clearType, setClearType] = useState<'all' | '30days' | '7days'>('30days');
   const queryClient = useQueryClient();
   const { currentRole } = useAuthStore();
-  const isPresident = currentRole === '部長';
+  const isPresident = currentRole === 'president';
 
   const [displayLimit, setDisplayLimit] = useState(30);
   const [logSearch, setLogSearch] = useState('');
@@ -90,14 +90,15 @@ export default function Dashboard() {
           end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
         } else if (jpFullMonth || intlMonth) {
           const [_, m_or_y, y_or_m] = jpFullMonth || intlMonth!;
-          const y = jpFullMonth ? m_or_y : y_or_m;
-          const m = jpFullMonth ? y_or_m : m_or_y;
-          start = new Date(`${y}-${m.padStart(2, '0')}-01T00:00:00Z`);
-          end = new Date(y, parseInt(m), 1); // Next month
+          const y = parseInt(jpFullMonth ? m_or_y : y_or_m);
+          const m = parseInt(jpFullMonth ? y_or_m : m_or_y);
+          start = new Date(`${y}-${String(m).padStart(2, '0')}-01T00:00:00Z`);
+          end = new Date(y, m, 1); // Next month (JS handles m=12 as January next year)
         } else if (jpShortMonth) {
-          const [_, m] = jpShortMonth;
-          start = new Date(`${currentYear}-${m.padStart(2, '0')}-01T00:00:00Z`);
-          end = new Date(currentYear, parseInt(m), 1);
+          const [_, m_str] = jpShortMonth;
+          const m = parseInt(m_str);
+          start = new Date(`${currentYear}-${String(m).padStart(2, '0')}-01T00:00:00Z`);
+          end = new Date(currentYear, m, 1);
         }
 
         if (start && !isNaN(start.getTime())) {
