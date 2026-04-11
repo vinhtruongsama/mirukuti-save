@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 
 import { useAuthStore } from '../../store/useAuthStore';
+import { useAppStore } from '../../store/useAppStore';
 
 export default function Dashboard() {
   const [showClearModal, setShowClearModal] = useState(false);
@@ -93,7 +94,7 @@ export default function Dashboard() {
           const y = parseInt(jpFullMonth ? m_or_y : y_or_m);
           const m = parseInt(jpFullMonth ? y_or_m : m_or_y);
           start = new Date(`${y}-${String(m).padStart(2, '0')}-01T00:00:00Z`);
-          end = new Date(y, m, 1); // Next month (JS handles m=12 as January next year)
+          end = new Date(y, m, 1); // Next month
         } else if (jpShortMonth) {
           const [_, m_str] = jpShortMonth;
           const m = parseInt(m_str);
