@@ -6,10 +6,13 @@ interface DeleteConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   memberName: string;
+  variant?: 'soft' | 'hard';
 }
 
-export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberName }: DeleteConfirmModalProps) {
+export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberName, variant = 'hard' }: DeleteConfirmModalProps) {
   if (!isOpen) return null;
+
+  const isHard = variant === 'hard';
 
   return (
     <AnimatePresence>
@@ -20,7 +23,10 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberN
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-stone-950/90 backdrop-blur-sm"
+          className={cn(
+            "absolute inset-0 backdrop-blur-sm transition-colors",
+            isHard ? "bg-stone-950/90" : "bg-stone-900/60"
+          )}
         />
 
         {/* Modal Body */}
@@ -28,20 +34,34 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberN
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-sm bg-white rounded-[3rem] shadow-[0_60px_120px_rgba(220,38,38,0.25)] overflow-hidden border border-red-50"
+          className={cn(
+            "relative w-full max-w-sm bg-white rounded-[3rem] overflow-hidden border transition-all",
+            isHard
+              ? "shadow-[0_60px_120px_rgba(220,38,38,0.25)] border-red-50"
+              : "shadow-[0_40px_80px_rgba(0,0,0,0.1)] border-stone-100"
+          )}
         >
           {/* Close corner */}
           <button
             onClick={onClose}
-            className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-10"
+            className={cn(
+              "absolute top-6 right-6 transition-colors z-10",
+              isHard ? "text-white/50 hover:text-white" : "text-stone-300 hover:text-stone-900"
+            )}
           >
             <X size={20} />
           </button>
 
           {/* Intensity Header */}
-          <div className="bg-red-600 px-8 py-5 flex flex-col items-center text-center">
-            <h2 className="text-white text-[16px] font-black tracking-tighter uppercase font-serif">
-              緊急警告 (CAUTION)
+          <div className={cn(
+            "px-8 py-5 flex flex-col items-center text-center transition-colors",
+            isHard ? "bg-red-600" : "bg-stone-50"
+          )}>
+            <h2 className={cn(
+              "text-[14px] font-black tracking-tighter uppercase font-sans",
+              isHard ? "text-white" : "text-stone-400"
+            )}>
+              {isHard ? "緊急警告 (CAUTION)" : "解除の確認"}
             </h2>
           </div>
 
@@ -49,16 +69,33 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberN
           <div className="px-8 py-10 text-center">
             <div className="space-y-8">
               <h3 className="text-stone-900 text-[14px] font-bold leading-tight font-sans">
-                メンバー 「<span className="text-[16px] text-red-600 font-serif">{memberName}</span>」<br />
-                をリストから除外しますか？
+                {isHard ? (
+                  <>
+                    メンバー 「<span className="text-[16px] text-red-600 font-serif">{memberName}</span>」<br />
+                    を完全に削除しますか？
+                    <span className="block mt-1 text-[14px] text-rose-500 font-black tracking-widest bg-rose-50 py-2 rounded-lg">
+                      ※ ログイン不能・復旧不可
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    メンバー 「<span className="text-[16px] text-[#4F5BD5] font-serif">{memberName}</span>」<br />
+                    を解除箱へ移動しますか？
+                  </>
+                )}
               </h3>
 
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => { onConfirm(); onClose(); }}
-                  className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-[13px] shadow-lg shadow-red-200 transition-all active:scale-95 font-sans"
+                  className={cn(
+                    "w-full py-4 text-white rounded-xl font-black text-[13px] transition-all active:scale-95 font-sans",
+                    isHard
+                      ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200"
+                      : "bg-[#4F5BD5] hover:bg-brand-stone-900 shadow-lg shadow-indigo-100"
+                  )}
                 >
-                  削除を確定する
+                  {isHard ? "削除を確定する" : "解除箱へ送る"}
                 </button>
                 <button
                   onClick={onClose}
@@ -73,4 +110,9 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, memberN
       </div>
     </AnimatePresence>
   );
+}
+
+// Simple internal helper for joining classes
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(' ');
 }

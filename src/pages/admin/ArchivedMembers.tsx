@@ -7,12 +7,14 @@ import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useState, useMemo } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
+import DeleteConfirmModal from '../../components/members/DeleteConfirmModal';
 
 export default function ArchivedMembers() {
   const queryClient = useQueryClient();
   const { currentRole } = useAuthStore();
   const { selectedYear } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [memberToDelete, setMemberToDelete] = useState<any>(null);
 
   // 1. Fetch App Settings
   const { data: appSettings } = useQuery({
@@ -76,10 +78,6 @@ export default function ArchivedMembers() {
 
   const hardDeleteMutation = useMutation({
     mutationFn: async (userUuid: string) => {
-      if (!window.confirm('このメンバーを完全に削除してもよろしいですか？\n\n・ログインアクセスも完全に削除されます\n・この操作は取り消せません')) {
-        throw new Error('キャンセルされました');
-      }
-
       // Step 1: Delete auth account (removes login access permanently)
       const { error: authError } = await supabase.rpc('admin_delete_auth_user', {
         p_user_uuid: userUuid
@@ -193,7 +191,7 @@ export default function ArchivedMembers() {
                         <RotateCcw className="w-3 h-3" /> 復元
                       </button>
                       <button
-                        onClick={() => hardDeleteMutation.mutate(mem.id)}
+                        onClick={() => setMemberToDelete(mem)}
                         className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm"
                         title="完全に削除する"
                       >
@@ -207,6 +205,18 @@ export default function ArchivedMembers() {
           </tbody>
         </table>
       </div>
+
+      <DeleteConfirmModal 
+        isOpen={!!memberToDelete}
+        onClose={() => setMemberToDelete(null)}
+        variant="hard"
+        onConfirm={() => {
+          if (memberToDelete) {
+            hardDeleteMutation.mutate(memberToDelete.id);
+          }
+        }}
+        memberName={memberToDelete?.full_name || '—'}
+      />
     </div>
   );
 }

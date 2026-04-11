@@ -437,6 +437,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
       <DeleteConfirmModal
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
+        variant="soft"
         onConfirm={() => {
           onClose(); // Close the drawer
           onDelete(member.id);
