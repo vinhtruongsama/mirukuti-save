@@ -77,7 +77,7 @@ export default function Profile() {
       if (!currentUser || !selectedYear) return [];
       const { data, error } = await supabase
         .from('registrations')
-        .select(`*, activities!inner(*)`)
+        .select(`*, activities!inner(*), attendance_records(*)`)
         .eq('user_id', currentUser.id)
         .eq('activities.academic_year_id', selectedYear.id);
       if (error) throw error;
@@ -95,7 +95,7 @@ export default function Profile() {
         academic_year_uuid: selectedYear.id
       });
       if (error) throw error;
-      return data;
+      return data?.[0] || { internal_count: 0, external_count: 0 };
     },
     enabled: !!currentUser && !!selectedYear
   });
@@ -338,15 +338,25 @@ export default function Profile() {
                             <span className="text-[13px] font-black text-stone-900">{format(new Date(activity.date), 'yyyy.MM.dd')}</span>
                           </div>
 
-                          {reg.attendance_status === 'present' ? (
-                            <span className="px-5 py-2 bg-emerald-50 text-emerald-600 text-[11px] font-black rounded-full border border-emerald-100 uppercase tracking-widest shadow-sm">出席</span>
-                          ) : reg.attendance_status === 'excused_absence' ? (
-                            <span className="px-5 py-2 bg-blue-50 text-blue-600 text-[11px] font-black rounded-full border border-blue-100 uppercase tracking-widest shadow-sm">公欠</span>
-                          ) : reg.attendance_status === 'unexcused_absence' ? (
-                            <span className="px-5 py-2 bg-rose-50 text-rose-600 text-[11px] font-black rounded-full border border-rose-100 uppercase tracking-widest shadow-sm">欠席</span>
-                          ) : (
-                            <span className="px-5 py-2 bg-amber-50 text-amber-600 text-[11px] font-black rounded-full border border-amber-100 uppercase tracking-widest shadow-sm">確認待ち</span>
-                          )}
+                          {(() => {
+                            // Extract consolidated status from attendance_records or fallback to attendance_status
+                            let status = reg.attendance_status;
+                            if (reg.attendance_records && reg.attendance_records.length > 0) {
+                              if (reg.attendance_records.some((r: any) => r.status === 'present')) status = 'present';
+                              else if (reg.attendance_records.some((r: any) => r.status === 'excused_absence')) status = 'excused_absence';
+                              else if (reg.attendance_records.some((r: any) => r.status === 'unexcused_absence')) status = 'unexcused_absence';
+                            }
+                            
+                            if (status === 'present') {
+                              return <span className="px-5 py-2 bg-emerald-50 text-emerald-600 text-[11px] font-black rounded-full border border-emerald-100 uppercase tracking-widest shadow-sm">出席</span>;
+                            } else if (status === 'excused_absence') {
+                              return <span className="px-5 py-2 bg-blue-50 text-blue-600 text-[11px] font-black rounded-full border border-blue-100 uppercase tracking-widest shadow-sm">公欠</span>;
+                            } else if (status === 'unexcused_absence') {
+                              return <span className="px-5 py-2 bg-rose-50 text-rose-600 text-[11px] font-black rounded-full border border-rose-100 uppercase tracking-widest shadow-sm">欠席</span>;
+                            } else {
+                              return <span className="px-5 py-2 bg-amber-50 text-amber-600 text-[11px] font-black rounded-full border border-amber-100 uppercase tracking-widest shadow-sm">確認待ち</span>;
+                            }
+                          })()}
                         </div>
 
                         <h4 className="text-[22px] font-black text-stone-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight leading-snug mb-6">
