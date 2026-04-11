@@ -161,11 +161,7 @@ export default function Login() {
       </div>
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 h-full overflow-y-auto">
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="w-full max-w-[400px] bg-white/95 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.1)] flex flex-col p-8 sm:p-10 border border-white/50"
-        >
+        <div className="w-full max-w-[400px] bg-white/95 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.1)] flex flex-col p-8 sm:p-10 border border-white/50">
           <div className="mb-6 flex flex-col items-center">
              <img src="/chao.png" alt="Welcome" className="h-[100px] w-auto object-contain drop-shadow-xl" />
           </div>
@@ -183,9 +179,8 @@ export default function Login() {
               {errors.studentId && <p className="text-rose-500 text-[11px] font-bold mt-1 pl-1">{errors.studentId.message}</p>}
             </div>
 
-            <AnimatePresence mode="wait">
               {isAdminMode && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-2">
+                <div className="space-y-2">
                   <label className="text-[12px] font-black text-stone-400 uppercase tracking-widest pl-1">パスワード</label>
                   <div className="relative">
                     <input
@@ -198,15 +193,14 @@ export default function Login() {
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
 
             {loginError && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3">
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                 <p className="text-[12px] font-black text-rose-600 tracking-tight">{loginError}</p>
-              </motion.div>
+              </div>
             )}
 
             <div className="pt-4 flex flex-col gap-4">

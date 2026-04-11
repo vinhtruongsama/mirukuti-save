@@ -172,12 +172,7 @@ export default function Dashboard() {
       </div>
 
       {/* 2. Management Activity Feed Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="w-full bg-white border border-brand-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-brand-stone-200/10"
-      >
+      <div className="w-full bg-white border border-brand-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-brand-stone-200/10">
         <div className="flex items-center justify-between gap-4 mb-12">
           <div>
             <h2 className="text-3xl font-black text-stone-900 tracking-tighter">活動の履歴</h2>
@@ -289,11 +284,7 @@ export default function Dashboard() {
             className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
             onClick={() => setShowClearModal(false)}
           />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-lg bg-white rounded-[2.5rem] p-10 overflow-hidden shadow-2xl"
-          >
+          <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] p-10 overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 p-6">
               <button
                 onClick={() => setShowClearModal(false)}
@@ -381,7 +372,7 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
     </div>

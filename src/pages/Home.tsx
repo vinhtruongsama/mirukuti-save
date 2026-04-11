@@ -46,12 +46,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-[#4F5BD5]/10 blur-[100px] -z-10 rounded-full" />
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex flex-col gap-3 w-full"
-              >
+              <div className="flex flex-col gap-3 w-full">
                 {session && (
                   <Link 
                     to="/activities" 
@@ -81,24 +76,14 @@ export default function Home() {
 
             {/* Cinematic Typography (Bottom on Mobile/Tablet) */}
             <div className="flex flex-col gap-4 text-center xl:text-left items-center xl:items-start w-full order-2 xl:order-1">
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-4xl sm:text-5xl md:text-6xl xl:text-[5.2rem] font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)] leading-[1.2] xl:leading-[1.2] whitespace-nowrap"
-              >
+              <h1 className="text-4xl sm:text-5xl md:text-6xl xl:text-[5.2rem] font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)] leading-[1.2] xl:leading-[1.2] whitespace-nowrap">
                 ボランティアを通じて<br />
                 <span className="bg-gradient-to-r from-[#FEDA75] via-[#D62976] to-[#4F5BD5] bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(0,0,0,0.2)]">新しい出会い</span>
-              </motion.h1>
+              </h1>
               
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.8 }}
-                transition={{ delay: 0.5 }}
-                className="text-white/70 text-xs sm:text-sm md:text-lg font-black tracking-[0.3em] uppercase"
-              >
+              <p className="text-white/70 text-xs sm:text-sm md:text-lg font-black tracking-[0.3em] uppercase">
                 Volunteer Club Management System
-              </motion.p>
+              </p>
             </div>
 
           </div>
@@ -144,12 +129,7 @@ export default function Home() {
           </div>
 
           {/* Social Card (Premium Brand Integration) */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-24 relative p-10 md:p-14 rounded-[3.5rem] bg-white/[0.02] border border-white/5 overflow-hidden group w-full max-w-xl shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]"
-          >
+          <div className="mt-24 relative p-10 md:p-14 rounded-[3.5rem] bg-white/[0.02] border border-white/5 overflow-hidden group w-full max-w-xl shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]">
             {/* Animated Brand Pulse Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#4F5BD5]/5 via-transparent to-[#D62976]/5 opacity-50" />
             <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-[#833AB4] via-[#C13584] to-[#E1306C] opacity-[0.12] blur-[80px] -mr-40 -mt-40 group-hover:opacity-20 transition-all duration-1000" />

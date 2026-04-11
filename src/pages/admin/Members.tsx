@@ -451,10 +451,7 @@ export default function Members() {
 
       {/* 2. ADMIN INSIGHTS - GLOBAL TOGGLE */}
       <div className="space-y-6 lg:space-y-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="w-full lg:w-fit bg-stone-900/5 backdrop-blur-xl border border-stone-200/40 p-4 lg:p-5 rounded-[2rem] shadow-sm overflow-hidden"
-        >
+        <div className="w-full lg:w-fit bg-stone-900/5 backdrop-blur-xl border border-stone-200/40 p-4 lg:p-5 rounded-[2rem] shadow-sm overflow-hidden">
           <div className="flex items-center gap-6 lg:gap-12">
             <div className="flex items-center gap-4">
               <div className={cn(
@@ -495,7 +492,7 @@ export default function Members() {
               )} />
             </button>
           </div>
-        </motion.div>
+        </div>
 
         {/* 3. ADVANCED FILTER BAR & DENSITY TOGGLE (Task 2) */}
         <section className="bg-white/70 backdrop-blur-3xl border border-stone-100 p-3 lg:p-4 rounded-[2rem] lg:rounded-[3.5rem] flex flex-col xl:flex-row gap-4 shrink-0 shadow-2xl shadow-stone-200/10">
