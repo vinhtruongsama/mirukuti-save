@@ -80,4 +80,18 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* iOS Safe Area support for iPhone notch and home indicator */
+  .safe-area-pb {
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+  }
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Touch-friendly tap targets (Apple HIG: 44px minimum) */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }

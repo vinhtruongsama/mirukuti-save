@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 // 1. React & Routing
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Trophy,
   Home,
-  MessageCircle
+  MessageCircle,
+  Menu,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,7 +34,15 @@ const ADMIN_NAVIGATION = [
 export default function AdminLayout() {
   const { pathname } = useLocation();
   const { signOut, currentUser } = useAuthStore();
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  // Default: open on desktop (lg+), closed on mobile
+  const [isSidebarVisible, setIsSidebarVisible] = useState(window.innerWidth >= 1024);
+
+  // Auto-close sidebar when navigating on mobile
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setIsSidebarVisible(false);
+    }
+  }, [pathname]);
 
   // Unread inquiries badge
   const { data: unreadCount } = useQuery({
@@ -172,7 +181,16 @@ export default function AdminLayout() {
             className="h-16 bg-white border-b border-brand-stone-100 flex items-center justify-between px-6 lg:px-10 shrink-0 z-10 shadow-sm"
           >
             {/* Left: Modern Home Navigation & Brand Context */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Hamburger menu button for sidebar (visible on all screens) */}
+              <button
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-stone-50 border border-stone-100 text-stone-500 hover:bg-[#4F5BD5]/5 hover:text-[#4F5BD5] hover:border-[#4F5BD5]/20 transition-all active:scale-90"
+                title="メニューを開く"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
               <Link
                 to="/"
                 className="group relative flex items-center justify-center"
