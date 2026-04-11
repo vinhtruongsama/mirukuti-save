@@ -498,13 +498,15 @@ export default function Members() {
 
           {/* Debounced Search Input */}
           <div className="relative flex-1 group">
-            <Search className="absolute left-10 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 group-focus-within:text-[#D62976] transition-colors" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center pointer-events-none z-10">
+              <Search className="w-5 h-5 text-stone-500 group-focus-within:text-[#D62976] transition-all duration-300 group-focus-within:scale-110" />
+            </div>
             <input
               type="text"
               placeholder="名前、フリガナ、学籍番号で検索..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-20 pr-10 py-5 lg:py-6 bg-transparent text-stone-900 rounded-[2.5rem] text-[13px] lg:text-[14px] font-bold focus:outline-none placeholder:text-stone-300 transition-all"
+              className="w-full h-14 lg:h-16 pl-14 pr-10 bg-stone-50 border-2 border-stone-200 focus:border-[#D62976] focus:bg-white rounded-3xl text-[14px] lg:text-[15px] font-bold text-stone-900 focus:outline-none placeholder:text-stone-400 transition-all shadow-sm group-hover:border-stone-300"
             />
           </div>
 
