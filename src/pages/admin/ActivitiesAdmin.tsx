@@ -218,8 +218,13 @@ export default function ActivitiesAdmin() {
 
 
       const toLocalDate = (iso: string) => {
+        if (!iso) return '';
         const d = new Date(iso);
-        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        // Correct way to get YYYY-MM-DD in local time
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       };
 
       reset({

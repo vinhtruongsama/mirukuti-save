@@ -196,22 +196,17 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-12">
             {(() => {
-              const groups: { date: string; items: any[] }[] = [];
+              const groups: Record<string, any[]> = {};
               activityFeed.forEach(item => {
                 if (!item.timestamp) return;
                 const dateKey = item.timestamp.toLocaleDateString('ja-JP', {
                   year: 'numeric', month: 'long', day: 'numeric'
                 });
-                
-                let group = groups.find(g => g.date === dateKey);
-                if (!group) {
-                  group = { date: dateKey, items: [] };
-                  groups.push(group);
-                }
-                group.items.push(item);
+                if (!groups[dateKey]) groups[dateKey] = [];
+                groups[dateKey].push(item);
               });
 
-              return groups.map(({ date, items }) => (
+              return Object.entries(groups).map(([date, items]) => (
                 <div key={date} className="relative space-y-4">
                   {/* Normal Date Header (No longer sticky to avoid overlapping) */}
                   <div className="py-4 px-2 mb-4 border-b border-stone-100">

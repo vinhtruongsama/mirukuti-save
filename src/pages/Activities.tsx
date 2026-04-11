@@ -282,7 +282,7 @@ export default function Activities() {
                           <div className="px-3 py-1.5 bg-indigo-50/50 rounded-xl flex items-center gap-2 border border-indigo-100/30 shrink-0">
                             <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                             <span className="text-[12px] font-black text-indigo-900 tracking-tight">
-                              {activity.date ? format(new Date(activity.date), 'M/d (E)', { locale: jaLocale }) : '---'}
+                              {activity.date ? format(new Date(activity.date), 'd/M (E)', { locale: jaLocale }) : '---'}
                             </span>
                           </div>
 
@@ -361,7 +361,7 @@ export default function Activities() {
                       <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">開催日時</span>
                         <span className="text-sm font-black text-brand-stone-900">
-                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'M月d日 (E)', { locale: jaLocale }) : '---'}
+                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'd/M (E)', { locale: jaLocale }) : '---'}
                         </span>
                       </div>
                     </div>
@@ -384,7 +384,7 @@ export default function Activities() {
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">募集終了</span>
-                        <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'M月d日 (E)', { locale: jaLocale })}</span>
+                        <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'd/M (E)', { locale: jaLocale })}</span>
                       </div>
                     </div>
                   </div>

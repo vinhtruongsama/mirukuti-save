@@ -200,7 +200,7 @@ export default function ActivityDetail() {
               </div>
               <div>
                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">開催日時</p>
-                <p className="text-xl sm:text-2xl font-serif text-gray-900">{format(new Date(activity.date), "M月d日 (E)", { locale: jaLocale })}</p>
+                <p className="text-xl sm:text-2xl font-serif text-gray-900">{format(new Date(activity.date), "d/M (E)", { locale: jaLocale })}</p>
               </div>
             </div>
 
@@ -222,7 +222,7 @@ export default function ActivityDetail() {
                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">募集終了</p>
                 <p className="text-xl sm:text-2xl font-serif text-gray-900">
                   <span className={cn(isPast(new Date(activity.registration_deadline)) && "line-through opacity-30")}>
-                    {format(new Date(activity.registration_deadline), "M月d日 (E)", { locale: jaLocale })}
+                    {format(new Date(activity.registration_deadline), "d/M (E)", { locale: jaLocale })}
                   </span>
                 </p>
               </div>
