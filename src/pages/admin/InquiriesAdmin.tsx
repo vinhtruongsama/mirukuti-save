@@ -20,6 +20,7 @@ export default function InquiriesAdmin() {
           *,
           user:users (
             full_name_kana,
+            mssv,
             university_email,
             line_nickname
           )
@@ -139,16 +140,23 @@ export default function InquiriesAdmin() {
                       <span className={`font-black text-[14px] sm:text-[15px] truncate text-stone-700`}>
                         {inquiry.user?.full_name_kana || inquiry.full_name}
                       </span>
-                      {inquiry.is_read ? (
-                        <span className="flex items-center gap-1 text-[12px] sm:text-[14px] font-black text-emerald-500 uppercase tracking-widest">
-                          <CheckCircle2 className="w-3 h-3" /> 既読
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-[12px] sm:text-[14px] font-black text-rose-500 uppercase tracking-widest">
-                          <Clock className="w-3 h-3" /> 未読
-                        </span>
+                        {inquiry.is_read ? (
+                          <span className="flex items-center gap-1 text-[12px] sm:text-[14px] font-black text-emerald-500 uppercase tracking-widest">
+                            <CheckCircle2 className="w-3 h-3" /> 既読
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[12px] sm:text-[14px] font-black text-rose-500 uppercase tracking-widest">
+                            <Clock className="w-3 h-3 animate-pulse" /> 未読
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Task: Member Student ID Display (kix1) */}
+                      {inquiry.user?.mssv && (
+                        <p className="text-[11px] font-bold text-stone-500 uppercase tracking-widest -mt-1 mb-2">
+                          学籍番号: {inquiry.user.mssv}
+                        </p>
                       )}
-                    </div>
 
                     {/* Message */}
                     <p className="text-[13px] sm:text-[14px] text-stone-600 font-medium leading-relaxed whitespace-pre-wrap break-words mb-3 sm:mb-4">

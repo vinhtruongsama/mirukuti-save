@@ -12,7 +12,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 
 // Helper Map for Status
 const STATUS_JA = {
-  'applied': '確認待ち',
+  'applied': '確認中',
   'present': '出席',
   'unexcused_absence': '欠席'
 };
@@ -170,7 +170,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, totalSessions }:
             {[
               { id: 'present', label: '出席', color: 'present', icon: CheckCircle2 },
               { id: 'unexcused_absence', label: '欠席', color: 'unexcused_absence', icon: UserX },
-              { id: 'applied', label: '確認待ち', color: 'applied', icon: Sparkles },
+              { id: 'applied', label: '確認中', color: 'applied', icon: Sparkles },
             ].map((item) => {
               const theme = STATUS_COLOR_THEME[item.color as keyof typeof STATUS_COLOR_THEME];
               const isActive = displayStatus === item.id;
@@ -330,10 +330,7 @@ export default function ActivityRegistrations() {
         : ' (全日程一括)';
 
       const headersRow = ['No', '氏名', '学籍番号'];
-      if (isFullDisclosure) {
-        headersRow.push('出身地', '国籍');
-      }
-      
+
       if (selectedSessionIdx !== null && activity.sessions?.[selectedSessionIdx]) {
         const s = activity.sessions[selectedSessionIdx];
         const datePart = format(new Date(s.date), 'M月d日');
@@ -358,7 +355,8 @@ export default function ActivityRegistrations() {
           headersRow.push('出欠');
         }
       }
-      headersRow.push('備考');
+
+      headersRow.push('大学メール', '電話番号', '備考');
 
       const headers = [
         [`活動名：${activity.title}${sessionInfo}`],
@@ -377,10 +375,7 @@ export default function ActivityRegistrations() {
           r.users?.mssv || 'N/A'
         ];
 
-        // Conditional Columns
-        if (isFullDisclosure) {
-          row.push(r.users?.hometown || '-', r.users?.nationality || '-');
-        }
+        // (Task kix1) Hometown/Nationality removed as requested
 
         if (selectedSessionIdx !== null) {
           const sStatus = r.attendance_records?.find((ar: any) => ar.session_index === selectedSessionIdx)?.status;
@@ -398,7 +393,9 @@ export default function ActivityRegistrations() {
         } else {
           row.push(STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中');
         }
-
+        // Task kix1: Adding Email and Phone before Remarks
+        row.push(r.users?.university_email || r.users?.email || '-');
+        row.push(r.users?.phone || '-');
         row.push(r.admin_note || '');
         return row;
       });
@@ -411,7 +408,7 @@ export default function ActivityRegistrations() {
         { wch: 30 }, // 氏名
         { wch: 15 }, // 学籍番号
       ];
-      
+
       // Add widths for attendance columns
       if (selectedSessionIdx !== null || !activity.sessions?.length) {
         colWidths.push({ wch: 20 });
@@ -546,11 +543,11 @@ export default function ActivityRegistrations() {
           </div>
         ) : (
           filteredRegs.map((reg) => (
-            <RegistrationItem 
-              key={reg.id} 
-              reg={reg} 
-              activityId={activityId!} 
-              currentSessionIdx={selectedSessionIdx} 
+            <RegistrationItem
+              key={reg.id}
+              reg={reg}
+              activityId={activityId!}
+              currentSessionIdx={selectedSessionIdx}
               totalSessions={activity?.sessions?.length || 0}
             />
           ))

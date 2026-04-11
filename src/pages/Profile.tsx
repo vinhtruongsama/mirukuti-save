@@ -346,15 +346,14 @@ export default function Profile() {
                               else if (reg.attendance_records.some((r: any) => r.status === 'excused_absence')) status = 'excused_absence';
                               else if (reg.attendance_records.some((r: any) => r.status === 'unexcused_absence')) status = 'unexcused_absence';
                             }
-                            
+
                             if (status === 'present') {
                               return <span className="px-5 py-2 bg-emerald-50 text-emerald-600 text-[11px] font-black rounded-full border border-emerald-100 uppercase tracking-widest shadow-sm">出席</span>;
                             } else if (status === 'excused_absence') {
-                              return <span className="px-5 py-2 bg-blue-50 text-blue-600 text-[11px] font-black rounded-full border border-blue-100 uppercase tracking-widest shadow-sm">公欠</span>;
                             } else if (status === 'unexcused_absence') {
                               return <span className="px-5 py-2 bg-rose-50 text-rose-600 text-[11px] font-black rounded-full border border-rose-100 uppercase tracking-widest shadow-sm">欠席</span>;
                             } else {
-                              return <span className="px-5 py-2 bg-amber-50 text-amber-600 text-[11px] font-black rounded-full border border-amber-100 uppercase tracking-widest shadow-sm">確認待ち</span>;
+                              return <span className="px-5 py-2 bg-amber-50 text-amber-600 text-[11px] font-black rounded-full border border-amber-100 uppercase tracking-widest shadow-sm">確認中</span>;
                             }
                           })()}
                         </div>
