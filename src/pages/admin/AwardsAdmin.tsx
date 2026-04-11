@@ -287,22 +287,22 @@ export default function AwardsAdmin() {
                       <div className="w-12 h-12 sm:w-14 sm:h-14 bg-stone-50 rounded-2xl flex items-center justify-center font-black text-stone-400 group-hover:bg-[#4F5BD5] group-hover:text-white transition-all text-lg sm:text-xl shrink-0">
                         {m.full_name?.charAt(0)}
                       </div>
-                      <div className="text-left min-w-0">
+                      <div className="text-left min-w-0 flex-1">
                         <span className="block text-[9px] sm:text-[11px] font-black text-stone-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate">{m.full_name_kana}</span>
                         <h3 className="text-sm font-black text-stone-900 leading-none truncate">{m.full_name}</h3>
                         <p className="text-[11px] sm:text-[12px] font-medium text-stone-400 mt-1 truncate">{m.mssv || '学籍番号なし'}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 sm:gap-8 shrink-0">
-                      <div className="flex items-center gap-3 sm:gap-6">
+                    <div className="flex items-center gap-2 sm:gap-8 shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-6">
                         <div className="text-center">
-                          <span className="block text-[10px] font-black text-[#4F5BD5] uppercase tracking-widest mb-0.5 sm:mb-1">学内</span>
-                          <span className="text-lg sm:text-2xl font-black text-[#4F5BD5]">{m.internal_count}</span>
+                          <span className="block text-[12px] font-black text-[#4F5BD5] uppercase tracking-widest mb-0.5 sm:mb-1">学内</span>
+                          <span className="text-lg sm:text-xl font-black text-[#4F5BD5]">{m.internal_count}</span>
                         </div>
                         <div className="text-center">
-                          <span className="block text-[10px] font-black text-[#D62976] uppercase tracking-widest mb-0.5 sm:mb-1">学外</span>
-                          <span className="text-lg sm:text-2xl font-black text-[#D62976]">{m.external_count}</span>
+                          <span className="block text-[12px] font-black text-[#D62976] uppercase tracking-widest mb-0.5 sm:mb-1">学外</span>
+                          <span className="text-lg sm:text-xl font-black text-[#D62976]">{m.external_count}</span>
                         </div>
                       </div>
                       <div className="p-1 sm:p-2 text-stone-300 group-hover:text-stone-600 transition-colors">
@@ -434,31 +434,31 @@ export default function AwardsAdmin() {
           {/* Ranking Table style */}
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-1.5 bg-stone-100 rounded-xl w-fit">
-              <button onClick={() => setRankingView('qualified')} className={`px-4 py-2 rounded-lg text-[12px] font-black ${rankingView === 'qualified' ? 'bg-white text-emerald-600 shadow-sm' : 'text-stone-400'}`}>対象者</button>
-              <button onClick={() => setRankingView('all')} className={`px-4 py-2 rounded-lg text-[12px] font-black ${rankingView === 'all' ? 'bg-white text-[#4F5BD5] shadow-sm' : 'text-stone-400'}`}>全員</button>
+              <button onClick={() => setRankingView('qualified')} className={`px-4 py-2 rounded-lg text-[12px] font-black ${rankingView === 'qualified' ? 'bg-white text-emerald-600 shadow-sm' : 'text-stone-500'}`}>対象者</button>
+              <button onClick={() => setRankingView('all')} className={`px-4 py-2 rounded-lg text-[12px] font-black ${rankingView === 'all' ? 'bg-white text-[#4F5BD5] shadow-sm' : 'text-stone-500'}`}>全員</button>
             </div>
 
-            <div className="bg-white rounded-3xl border border-stone-100 overflow-hidden shadow-sm overflow-x-auto">
-              <div className="min-w-[600px]">
-                <div className="grid grid-cols-12 px-8 py-4 bg-stone-50 text-[10px] font-black uppercase tracking-widest">
-                  <div className="col-span-6 text-stone-400">メンバー</div>
+            <div className="bg-white rounded-3xl border border-stone-100 shadow-sm">
+              <div className="w-full overflow-hidden">
+                <div className="grid grid-cols-12 px-4 sm:px-8 py-4 bg-stone-50 text-[12px] sm:text-[15px] font-black uppercase tracking-widest">
+                  <div className="col-span-5 sm:col-span-6 text-stone-500">メンバー</div>
                   <div className="col-span-2 text-center text-[#4F5BD5]">学内</div>
                   <div className="col-span-2 text-center text-[#D62976]">学外</div>
-                  <div className="col-span-2 text-right text-stone-400">合計</div>
+                  <div className="col-span-3 sm:col-span-2 text-right text-stone-500">合計</div>
                 </div>
                 <div className="divide-y divide-stone-50">
                   {rankingList.map((m) => (
-                    <div key={m.id} className="grid grid-cols-12 px-8 py-5 items-center hover:bg-stone-50/50">
-                      <div className="col-span-6 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center font-black text-stone-400 text-xs">{m.full_name?.charAt(0)}</div>
-                        <div>
-                          <p className="font-bold text-stone-900 text-sm">{m.full_name}</p>
-                          <p className="text-[11px] text-stone-400">{m.mssv}</p>
+                    <div key={m.id} className="grid grid-cols-12 px-4 sm:px-8 py-4 sm:py-5 items-center hover:bg-stone-50/50">
+                      <div className="col-span-5 sm:col-span-6 flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-100 flex items-center justify-center font-black text-stone-400 text-[10px] sm:text-xs shrink-0">{m.full_name?.charAt(0)}</div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-stone-900 text-[12px] sm:text-sm truncate">{m.full_name}</p>
+                          <p className="text-[10px] sm:text-[11px] text-stone-400 truncate">{m.mssv}</p>
                         </div>
                       </div>
-                      <div className="col-span-2 text-center font-black text-[#4F5BD5]">{m.internal_count}</div>
-                      <div className="col-span-2 text-center font-black text-[#D62976]">{m.external_count}</div>
-                      <div className="col-span-2 text-right font-black text-stone-900">{m.total_count}</div>
+                      <div className="col-span-2 text-center font-black text-[#4F5BD5] text-sm sm:text-base">{m.internal_count}</div>
+                      <div className="col-span-2 text-center font-black text-[#D62976] text-sm sm:text-base">{m.external_count}</div>
+                      <div className="col-span-3 sm:col-span-2 text-right font-black text-stone-900 text-sm sm:text-base">{m.total_count}</div>
                     </div>
                   ))}
                 </div>
