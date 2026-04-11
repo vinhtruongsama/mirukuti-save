@@ -101,7 +101,7 @@ export default function AwardsAdmin() {
 
       const { data: regData, error: rError } = await supabase
         .from('registrations')
-        .select('user_id, attendance_status, activity:activities(id, title_ja, location_type, academic_year_id, event_date)')
+        .select('user_id, attendance_status, activity:activities(id, title, location_type, academic_year_id, date)')
         .eq('attendance_status', 'present');
       if (rError) throw rError;
 
@@ -138,9 +138,9 @@ export default function AwardsAdmin() {
             
             mem.activities.push({
               id: activityId,
-              title_ja: r.activity.title_ja,
+              title_ja: r.activity.title,
               location_type: type as 'internal' | 'external',
-              event_date: r.activity.event_date
+              event_date: r.activity.date
             });
           }
         }
