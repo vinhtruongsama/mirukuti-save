@@ -77,9 +77,9 @@ export default function InquiryModal({ isOpen, onClose }: InquiryModalProps) {
             {/* Close Button */}
             <button
               onClick={handleClose}
-              className="absolute top-5 right-5 w-10 h-10 bg-stone-100 hover:bg-rose-50 hover:text-rose-500 rounded-2xl flex items-center justify-center transition-all"
+              className="absolute top-5 right-5 w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center transition-all active:scale-90 shadow-sm"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 stroke-[2.5px]" />
             </button>
 
             <div className="p-8 pt-7">
