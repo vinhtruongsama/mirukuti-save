@@ -92,6 +92,7 @@ export default function AwardsAdmin() {
     try {
       setIsLoading(true);
       // Fetch members and registrations in one flow
+      // 1. Fetch academic year memberships
       const { data: membershipData, error: mError } = await supabase
         .from('club_memberships')
         .select('user:users(id, full_name, full_name_kana, mssv)')
@@ -99,13 +100,27 @@ export default function AwardsAdmin() {
         .is('deleted_at', null);
       if (mError) throw mError;
 
-      const { data: regData, error: rError } = await supabase
-        .from('registrations')
-        .select('user_id, attendance_status, activity:activities(id, title, location_type, academic_year_id, date)')
-        .eq('attendance_status', 'present');
-      if (rError) throw rError;
+      // 2. Fetch all 'present' records from session attendance
+      // We join through registrations to activities to check academic year and location type
+      const { data: attData, error: aError } = await supabase
+        .from('attendance_records')
+        .select(`
+          status,
+          registration:registrations (
+            user_id,
+            activity:activities!inner (
+              id,
+              title,
+              location_type,
+              academic_year_id,
+              date
+            )
+          )
+        `)
+        .eq('status', 'present')
+        .eq('registration.activity.academic_year_id', selectedYear?.id);
 
-      const yearRegs = regData.filter(r => (r.activity as any)?.academic_year_id === selectedYear?.id);
+      if (aError) throw aError;
 
       const statusMap = new Map<string, MemberStatus>();
       (membershipData as any[]).forEach(m => {
@@ -122,25 +137,28 @@ export default function AwardsAdmin() {
         });
       });
 
-      yearRegs.forEach((r: any) => {
-        const mem = statusMap.get(r.user_id);
-        if (mem && r.activity) {
-          const activityId = r.activity.id;
+      (attData as any[] || []).forEach((record) => {
+        const reg = record.registration;
+        if (!reg || !reg.activity) return;
+
+        const mem = statusMap.get(reg.user_id);
+        if (mem) {
+          const activityId = reg.activity.id;
           
           // Check if this activity has already been counted for this member
           const alreadyProcessed = mem.activities.some(a => a.id === activityId);
           
           if (!alreadyProcessed) {
-            const type = r.activity.location_type || 'internal';
+            const type = reg.activity.location_type || 'internal';
             if (type === 'internal') mem.internal_count++;
             else mem.external_count++;
             mem.total_count++;
             
             mem.activities.push({
               id: activityId,
-              title_ja: r.activity.title,
+              title_ja: reg.activity.title,
               location_type: type as 'internal' | 'external',
-              event_date: r.activity.date
+              event_date: reg.activity.date
             });
           }
         }
