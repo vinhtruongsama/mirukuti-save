@@ -25,7 +25,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isTemporaryPassword: false,
 
   setAuth: async (session) => {
-    set({ isLoading: true });
+    // Only show global loading on initial mount (when session is null)
+    // Avoid setting isLoading: true during background refreshes to prevent UI unmounting
+    if (!get().session) set({ isLoading: true });
     
     if (!session?.user) {
       set({ session: null, currentUser: null, memberships: [], currentRole: null, isTemporaryPassword: false, isLoading: false });

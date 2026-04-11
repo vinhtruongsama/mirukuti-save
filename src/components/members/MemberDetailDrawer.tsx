@@ -137,9 +137,8 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
 
   return (
     <>
-      {/* Overlay - Japanese accessibility focus */}
+      {/* Overlay - Outside click disabled to prevent accidental data loss */}
       <div
-        onClick={onClose}
         className="fixed inset-0 bg-stone-900/80 z-[100]"
       />
 
