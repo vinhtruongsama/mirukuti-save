@@ -155,7 +155,7 @@ export default function Login() {
           <div className="flex items-center gap-3 bg-white/60 backdrop-blur-3xl px-6 lg:px-8 h-14 lg:h-16 rounded-[24px] border border-white/60 shadow-xl hover:bg-white/80 transition-all group/logo cursor-pointer">
             <Home className="w-5 h-5 text-black/60 group-hover/logo:text-indigo-600 transition-colors" />
             <div className="w-[1px] h-5 bg-black/10" />
-            <img src="/ミルクティ-text.png" alt="Logo" className="h-4 lg:h-6 w-auto object-contain" />
+            <img src="/ミルクティ-text.png" alt="Logo" className="h-6 lg:h-10 w-auto object-contain" />
           </div>
         </Link>
       </div>
@@ -163,7 +163,7 @@ export default function Login() {
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 h-full overflow-y-auto">
         <div className="w-full max-w-[400px] bg-white/95 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.1)] flex flex-col p-8 sm:p-10 border border-white/50">
           <div className="mb-6 flex flex-col items-center">
-             <img src="/chao.png" alt="Welcome" className="h-[100px] w-auto object-contain drop-shadow-xl" />
+             <img src="/chao.png" alt="Welcome" className="h-[160px] w-auto object-contain drop-shadow-2xl" />
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
