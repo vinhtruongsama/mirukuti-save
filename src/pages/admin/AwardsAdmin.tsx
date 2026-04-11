@@ -111,16 +111,24 @@ export default function AwardsAdmin() {
       yearRegs.forEach((r: any) => {
         const mem = statusMap.get(r.user_id);
         if (mem && r.activity) {
-          const type = r.activity.location_type || 'internal';
-          if (type === 'internal') mem.internal_count++;
-          else mem.external_count++;
-          mem.total_count++;
-          mem.activities.push({
-            id: r.activity.id,
-            title_ja: r.activity.title_ja,
-            location_type: type as 'internal' | 'external',
-            event_date: r.activity.event_date
-          });
+          const activityId = r.activity.id;
+          
+          // Check if this activity has already been counted for this member
+          const alreadyProcessed = mem.activities.some(a => a.id === activityId);
+          
+          if (!alreadyProcessed) {
+            const type = r.activity.location_type || 'internal';
+            if (type === 'internal') mem.internal_count++;
+            else mem.external_count++;
+            mem.total_count++;
+            
+            mem.activities.push({
+              id: activityId,
+              title_ja: r.activity.title_ja,
+              location_type: type as 'internal' | 'external',
+              event_date: r.activity.event_date
+            });
+          }
         }
       });
 
