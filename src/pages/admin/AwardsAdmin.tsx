@@ -289,7 +289,7 @@ export default function AwardsAdmin() {
                       </div>
                       <div className="text-left min-w-0">
                         <span className="block text-[9px] sm:text-[11px] font-black text-stone-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate">{m.full_name_kana}</span>
-                        <h3 className="text-base sm:text-xl font-black text-stone-900 leading-none truncate">{m.full_name}</h3>
+                        <h3 className="text-sm font-black text-stone-900 leading-none truncate">{m.full_name}</h3>
                         <p className="text-[11px] sm:text-[12px] font-medium text-stone-400 mt-1 truncate">{m.mssv || '学籍番号なし'}</p>
                       </div>
                     </div>
@@ -297,11 +297,11 @@ export default function AwardsAdmin() {
                     <div className="flex items-center gap-3 sm:gap-8 shrink-0">
                       <div className="flex items-center gap-3 sm:gap-6">
                         <div className="text-center">
-                          <span className="block text-[9px] sm:text-[10px] font-black text-[#4F5BD5] uppercase tracking-widest mb-0.5 sm:mb-1">学内</span>
+                          <span className="block text-[10px] font-black text-[#4F5BD5] uppercase tracking-widest mb-0.5 sm:mb-1">学内</span>
                           <span className="text-lg sm:text-2xl font-black text-[#4F5BD5]">{m.internal_count}</span>
                         </div>
                         <div className="text-center">
-                          <span className="block text-[9px] sm:text-[10px] font-black text-[#D62976] uppercase tracking-widest mb-0.5 sm:mb-1">学外</span>
+                          <span className="block text-[10px] font-black text-[#D62976] uppercase tracking-widest mb-0.5 sm:mb-1">学外</span>
                           <span className="text-lg sm:text-2xl font-black text-[#D62976]">{m.external_count}</span>
                         </div>
                       </div>
