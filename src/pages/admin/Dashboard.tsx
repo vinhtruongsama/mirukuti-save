@@ -17,11 +17,15 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 
+import { useAuthStore } from '../../store/useAuthStore';
+
 export default function Dashboard() {
   const [showClearModal, setShowClearModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [clearType, setClearType] = useState<'all' | '30days' | '7days'>('30days');
   const queryClient = useQueryClient();
+  const { currentRole } = useAuthStore();
+  const isPresident = currentRole === '部長';
 
   const [displayLimit, setDisplayLimit] = useState(30);
   const [logSearch, setLogSearch] = useState('');
@@ -253,13 +257,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowClearModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm hover:bg-rose-100 transition-all active:scale-95 shrink-0"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span className="hidden sm:inline">履歴を削除</span><span className="sm:hidden">履歴を削除</span>
-          </button>
+          {isPresident && (
+            <button
+              onClick={() => setShowClearModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm hover:bg-rose-100 transition-all active:scale-95 shrink-0"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">履歴を削除</span><span className="sm:hidden">履歴を削除</span>
+            </button>
+          )}
         </div>
 
         {isActivityLoading ? (
@@ -365,7 +371,7 @@ export default function Dashboard() {
       </div>
 
       {/* Clear Logs Modal */}
-      {showClearModal && (
+      {showClearModal && isPresident && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
@@ -426,6 +432,10 @@ export default function Dashboard() {
                 <button
                   disabled={isClearing}
                   onClick={async () => {
+                    if (!isPresident) {
+                      toast.error('この操作を行う権限がありません。');
+                      return;
+                    }
                     setIsClearing(true);
                     try {
                       const cutoff = new Date();
