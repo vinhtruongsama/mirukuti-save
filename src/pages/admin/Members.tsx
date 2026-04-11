@@ -77,7 +77,7 @@ export default function Members() {
   const [onlyNewFilter, setOnlyNewFilter] = useState(false); // Task: New member filter
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [isCompact, setIsCompact] = useState(false); // Task: Density toggle
+  const isCompact = false; // Density toggle UI removed as requested
   const itemsPerPage = isCompact ? 25 : 15;
 
   // Modal / Drawer states
