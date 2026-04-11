@@ -378,20 +378,38 @@ export default function AwardsAdmin() {
                     <div className="col-span-1 flex items-center gap-2">
                       <span className="w-6 h-6 bg-stone-100 rounded-lg flex items-center justify-center text-[11px] font-black text-stone-500">{idx+1}</span>
                     </div>
-                    <div className="col-span-12 sm:col-span-10 grid grid-cols-2 gap-3 sm:gap-4 mt-2 sm:mt-0">
-                      <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#4F5BD5]" />
-                        <input type="number" min={0} value={c.minInternal} onChange={e => updateCondition(c.id, 'minInternal', e.target.value)} className="w-full h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#4F5BD5] rounded-lg text-sm font-black text-stone-900" />
+                    <div className="col-span-12 sm:col-span-10 flex flex-wrap gap-4 sm:gap-8 mt-4 sm:mt-0">
+                      <div className="flex flex-col gap-1.5 min-w-[120px]">
+                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest pl-1">学内活動</label>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#4F5BD5]" />
+                          <input 
+                            type="number" 
+                            min={0} 
+                            value={c.minInternal} 
+                            onChange={e => updateCondition(c.id, 'minInternal', e.target.value)} 
+                            className="w-full sm:w-28 h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#4F5BD5] rounded-lg text-sm font-black text-stone-900" 
+                          />
+                        </div>
                       </div>
-                      <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D62976]" />
-                        <input type="number" min={0} value={c.minExternal} onChange={e => updateCondition(c.id, 'minExternal', e.target.value)} className="w-full h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#D62976] rounded-lg text-sm font-black text-stone-900" />
+                      <div className="flex flex-col gap-1.5 min-w-[120px]">
+                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest pl-1">学外活動</label>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D62976]" />
+                          <input 
+                            type="number" 
+                            min={0} 
+                            value={c.minExternal} 
+                            onChange={e => updateCondition(c.id, 'minExternal', e.target.value)} 
+                            className="w-full sm:w-28 h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#D62976] rounded-lg text-sm font-black text-stone-900" 
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div className="col-span-12 sm:col-span-1 flex justify-end">
+                    <div className="col-span-12 sm:col-span-1 flex items-end justify-end pb-1.5">
                       <button onClick={() => removeCondition(c.id)} className="p-2 text-stone-300 hover:text-rose-500 bg-stone-50 sm:bg-transparent rounded-lg sm:rounded-none w-full sm:w-auto flex items-center justify-center gap-2 sm:block">
                         <X className="w-4 h-4" />
-                        <span className="sm:hidden text-[11px] font-bold">削除</span>
+                        <span className="sm:hidden text-[11px] font-bold">条件を削除</span>
                       </button>
                     </div>
                   </div>
