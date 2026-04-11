@@ -27,7 +27,7 @@ export default function Login() {
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const { 
+  const {
     session,
     setAuth
   } = useAuthStore();
@@ -57,7 +57,7 @@ export default function Login() {
         .maybeSingle();
 
       if (lookupError) throw lookupError;
-      
+
       // Trường hợp không tìm thấy MSSV trong CLB
       if (!userRecord) {
         throw new Error('学籍番号が正しくありません。部員登録がお済みでない場合は、部長までお問い合わせください。');
@@ -65,8 +65,8 @@ export default function Login() {
 
       // 2. Kích hoạt tài khoản Đăng nhập (Auth) tự động nếu chưa có
       // Điều này đảm bảo những người trong Database (mới import) có thể đăng nhập ngay lập tức
-      const { error: provisionError } = await supabase.rpc('admin_ensure_member_auth', { 
-        p_mssv: studentId 
+      const { error: provisionError } = await supabase.rpc('admin_ensure_member_auth', {
+        p_mssv: studentId
       });
 
       if (provisionError) {
@@ -133,7 +133,7 @@ export default function Login() {
       {/* Background Layer */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-tr from-white to-stone-100/50" />
-        
+
         {/* Sky image with safe loading */}
         <img
           src="/sky-login.jpg"
@@ -155,7 +155,7 @@ export default function Login() {
           <div className="flex items-center gap-3 bg-white/60 backdrop-blur-3xl px-6 lg:px-8 h-14 lg:h-16 rounded-[24px] border border-white/60 shadow-xl hover:bg-white/80 transition-all group/logo cursor-pointer">
             <Home className="w-5 h-5 text-black/60 group-hover/logo:text-indigo-600 transition-colors" />
             <div className="w-[1px] h-5 bg-black/10" />
-            <img src="/ミルクティ-text.png" alt="Logo" className="h-6 lg:h-10 w-auto object-contain" />
+            <img src="/ミルクティ-text.png" alt="Logo" className="h-10 lg:h-14 w-auto object-contain" />
           </div>
         </Link>
       </div>
@@ -163,7 +163,7 @@ export default function Login() {
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 h-full overflow-y-auto">
         <div className="w-full max-w-[400px] bg-white/95 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_120px_rgba(0,0,0,0.1)] flex flex-col p-8 sm:p-10 border border-white/50">
           <div className="mb-6 flex flex-col items-center">
-             <img src="/chao.png" alt="Welcome" className="h-[160px] w-auto object-contain drop-shadow-2xl" />
+            <img src="/chao.png" alt="Welcome" className="h-[160px] w-auto object-contain drop-shadow-2xl" />
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -179,22 +179,23 @@ export default function Login() {
               {errors.studentId && <p className="text-rose-500 text-[11px] font-bold mt-1 pl-1">{errors.studentId.message}</p>}
             </div>
 
-              {isAdminMode && (
-                <div className="space-y-2">
-                  <label className="text-[12px] font-black text-stone-400 uppercase tracking-widest pl-1">パスワード</label>
-                  <div className="relative">
-                    <input
-                      {...register('password')}
-                      type={showPassword ? 'text' : 'password'}
-                      className="w-full h-14 bg-stone-50 border border-stone-200 rounded-2xl px-6 pr-14 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 transition-all font-black text-stone-900"
-                      placeholder="******"
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-indigo-600 transition-colors">
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
+            {isAdminMode && (
+              <div className="space-y-2">
+                <label className="text-[12px] font-black text-stone-400 uppercase tracking-widest pl-1">パスワード</label>
+                <div className="relative">
+                  <input
+                    {...register('password')}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="off"
+                    className="w-full h-14 bg-stone-50 border border-stone-200 rounded-2xl px-6 pr-14 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 transition-all font-black text-stone-900"
+                    placeholder="******"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-indigo-600 transition-colors">
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
 
             {loginError && (
               <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3">
