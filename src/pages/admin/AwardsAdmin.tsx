@@ -64,8 +64,22 @@ export default function AwardsAdmin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Tab 2: Ranking / Criteria logic
-  const [conditions, setConditions] = useState<QualCondition[]>(DEFAULT_CONDITIONS);
+  // Tab 2: Ranking / Criteria logic with persistence
+  const [conditions, setConditions] = useState<QualCondition[]>(() => {
+    const saved = localStorage.getItem('award_criteria');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return DEFAULT_CONDITIONS;
+      }
+    }
+    return DEFAULT_CONDITIONS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('award_criteria', JSON.stringify(conditions));
+  }, [conditions]);
   const [rankingView, setRankingView] = useState<'qualified' | 'all'>('qualified');
 
   useEffect(() => {
@@ -174,8 +188,9 @@ export default function AwardsAdmin() {
   function removeCondition(id: string) {
     setConditions(prev => prev.filter(c => c.id !== id));
   }
-  function updateCondition(id: string, field: 'minInternal' | 'minExternal', value: number) {
-    setConditions(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+  function updateCondition(id: string, field: 'minInternal' | 'minExternal', valStr: string) {
+    const value = valStr === '' ? 0 : parseInt(valStr);
+    setConditions(prev => prev.map(c => c.id === id ? { ...c, [field]: isNaN(value) ? 0 : value } : c));
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -348,11 +363,11 @@ export default function AwardsAdmin() {
                     <div className="col-span-10 grid grid-cols-2 gap-4">
                       <div className="relative">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#4F5BD5]" />
-                        <input type="number" value={c.minInternal} onChange={e => updateCondition(c.id, 'minInternal', parseInt(e.target.value)||0)} className="w-full h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#4F5BD5] rounded-lg text-sm font-black text-stone-900" />
+                        <input type="number" min={0} value={c.minInternal} onChange={e => updateCondition(c.id, 'minInternal', e.target.value)} className="w-full h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#4F5BD5] rounded-lg text-sm font-black text-stone-900" />
                       </div>
                       <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#D62976]" />
-                        <input type="number" value={c.minExternal} onChange={e => updateCondition(c.id, 'minExternal', parseInt(e.target.value)||0)} className="w-full h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#D62976] rounded-lg text-sm font-black text-stone-900" />
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D62976]" />
+                        <input type="number" min={0} value={c.minExternal} onChange={e => updateCondition(c.id, 'minExternal', e.target.value)} className="w-full h-10 pl-8 pr-4 bg-stone-50 border-2 border-transparent focus:border-[#D62976] rounded-lg text-sm font-black text-stone-900" />
                       </div>
                     </div>
                     <div className="col-span-1 flex justify-end">
