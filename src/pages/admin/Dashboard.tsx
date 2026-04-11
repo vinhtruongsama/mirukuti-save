@@ -57,35 +57,52 @@ export default function Dashboard() {
           )
         `);
 
-      // 🔍 Enhanced Search Logic (Support Japanese & International Formats)
+      // 🔍 Dynamic Search Logic (Exact Day, Whole Month, or Text)
       if (logSearch.trim()) {
         const term = logSearch.trim();
         let start: Date | null = null;
+        let end: Date | null = null;
+        const currentYear = new Date().getFullYear();
 
-        // 1. Match YYYY年M月D日
-        const jpFullMatch = term.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
-        // 2. Match M月D日 (assume current year)
-        const jpShortMatch = term.match(/^(\d{1,2})月(\d{1,2})日$/);
-        // 3. Match D/M/YYYY or D-M-YYYY or YYYY-MM-DD
-        const intlMatch = term.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+        // 1. Full Day: 2026年4月8日 or 4月8日 or 8/4/2026
+        const jpFullDay = term.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+        const jpShortDay = term.match(/^(\d{1,2})月(\d{1,2})日$/);
+        const intlDay = term.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
 
-        if (jpFullMatch) {
-          const [_, y, m, d] = jpFullMatch;
+        // 2. Full Month: 2026年4月 or 4月 or 4/2026
+        const jpFullMonth = term.match(/^(\d{4})年(\d{1,2})月$/);
+        const jpShortMonth = term.match(/^(\d{1,2})月$/);
+        const intlMonth = term.match(/^(\d{1,2})[\/\-\.](\d{4})$/);
+
+        if (jpFullDay || intlDay) {
+          const [_, d_or_y, m, y_or_d] = jpFullDay || intlDay!;
+          const y = jpFullDay ? d_or_y : y_or_d;
+          const d = jpFullDay ? y_or_d : d_or_y;
           start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
-        } else if (jpShortMatch) {
-          const [_, m, d] = jpShortMatch;
-          const y = new Date().getFullYear();
-          start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
-        } else if (intlMatch) {
-          const [_, d, m, y] = intlMatch;
-          start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+          end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+        } else if (jpShortDay) {
+          const [_, m, d] = jpShortDay;
+          start = new Date(`${currentYear}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+          end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+        } else if (jpFullMonth || intlMonth) {
+          const [_, m_or_y, y_or_m] = jpFullMonth || intlMonth!;
+          const y = jpFullMonth ? m_or_y : y_or_m;
+          const m = jpFullMonth ? y_or_m : m_or_y;
+          start = new Date(`${y}-${m.padStart(2, '0')}-01T00:00:00Z`);
+          end = new Date(y, parseInt(m), 1); // Next month
+        } else if (jpShortMonth) {
+          const [_, m] = jpShortMonth;
+          start = new Date(`${currentYear}-${m.padStart(2, '0')}-01T00:00:00Z`);
+          end = new Date(currentYear, parseInt(m), 1);
         }
 
         if (start && !isNaN(start.getTime())) {
-          const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-          query = query.gte('created_at', start.toISOString()).lt('created_at', end.toISOString());
+          query = query.gte('created_at', start.toISOString());
+          if (end && !isNaN(end.getTime())) {
+            query = query.lt('created_at', end.toISOString());
+          }
         } else {
-          // 4. Fallback to text search on content_name
+          // Fallback to text search
           query = query.ilike('content_name', `%${term}%`);
         }
       }
