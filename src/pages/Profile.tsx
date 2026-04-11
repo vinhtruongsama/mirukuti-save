@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Compass,
   Sparkles,
@@ -309,7 +309,7 @@ export default function Profile() {
               </div>
             ) : historyData && historyData.length > 0 ? (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {historyData.map((reg, idx) => {
+                {historyData.map((reg) => {
                   const activity = reg.activities;
                   return (
                     <div

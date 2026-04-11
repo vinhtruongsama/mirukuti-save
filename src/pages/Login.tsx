@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Home, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
