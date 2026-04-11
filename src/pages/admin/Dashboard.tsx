@@ -53,7 +53,7 @@ export default function Dashboard() {
           )
         `)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(200);
 
       if (error) throw error;
 
