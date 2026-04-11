@@ -22,6 +22,9 @@ export default function Dashboard() {
   const [clearType, setClearType] = useState<'all' | '30days' | '7days'>('30days');
   const queryClient = useQueryClient();
 
+  const [displayLimit, setDisplayLimit] = useState(30);
+  const [logSearch, setLogSearch] = useState('');
+
   // 1. Fetch Stats
   const { data: stats, isLoading: isStatsLoading } = useQuery({
     queryKey: ['admin-stats'],
@@ -39,9 +42,9 @@ export default function Dashboard() {
 
   // 2. Fetch Audit Logs
   const { data: activityFeed, isLoading: isActivityLoading } = useQuery({
-    queryKey: ['admin-audit-logs'],
+    queryKey: ['admin-audit-logs', displayLimit, logSearch],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('admin_audit_logs')
         .select(`
           *,
@@ -51,9 +54,28 @@ export default function Dashboard() {
             full_name_kana,
             club_memberships (role)
           )
-        `)
+        `);
+
+      // 🔍 Better Search Logic
+      if (logSearch.trim()) {
+        const term = logSearch.trim();
+        
+        // 1. Try to parse Vietnamese Date Format (d/m/yyyy)
+        const dateMatch = term.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+        if (dateMatch) {
+          const [_, d, m, y] = dateMatch;
+          const start = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00Z`);
+          const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          query = query.gte('created_at', start.toISOString()).lt('created_at', end.toISOString());
+        } else {
+          // 2. Fallback to text search on content_name
+          query = query.ilike('content_name', `%${term}%`);
+        }
+      }
+
+      const { data, error } = await query
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(displayLimit);
 
       if (error) throw error;
 
@@ -172,16 +194,32 @@ export default function Dashboard() {
 
       {/* 2. Management Activity Feed Content */}
       <div className="w-full bg-white border border-brand-stone-100 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-brand-stone-200/10">
-        <div className="flex items-center justify-between gap-4 mb-12">
-          <div>
-            <h2 className="text-3xl font-black text-stone-900 tracking-tighter">活動の履歴</h2>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+            <h2 className="text-3xl font-black text-stone-900 tracking-tighter shrink-0">活動の履歴</h2>
+            
+            {/* 🔍 Search Input */}
+            <div className="relative flex-1 max-w-md group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-[#4F5BD5] transition-colors" />
+              <input 
+                type="text"
+                placeholder="日付 (例: 12/3/2026) hay keyword..."
+                value={logSearch}
+                onChange={(e) => {
+                  setLogSearch(e.target.value);
+                  setDisplayLimit(30); // Reset limit when searching
+                }}
+                className="w-full pl-12 pr-4 py-3 bg-stone-50 border border-stone-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/20 focus:outline-none transition-all placeholder:text-stone-300"
+              />
+            </div>
           </div>
+
           <button
             onClick={() => setShowClearModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm hover:bg-rose-100 transition-all active:scale-95"
+            className="flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl font-black text-sm hover:bg-rose-100 transition-all active:scale-95 shrink-0"
           >
             <Trash2 className="w-4 h-4" />
-            <span>履歴を削除</span>
+            <span className="hidden sm:inline">履歴 hoặc xóa</span><span className="sm:hidden">Xóa</span>
           </button>
         </div>
 
@@ -271,7 +309,16 @@ export default function Dashboard() {
                   </div>
                 </div>
               ));
-            })()}
+            {activityFeed.length >= displayLimit && (
+              <div className="pt-10 flex justify-center">
+                <button
+                  onClick={() => setDisplayLimit(prev => prev + 30)}
+                  className="px-10 py-4 bg-stone-900 text-white rounded-2xl font-black text-sm hover:bg-stone-800 transition-all active:scale-95 shadow-xl shadow-stone-200"
+                >
+                  さらに読み込む (Load More)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
