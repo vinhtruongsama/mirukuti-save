@@ -31,7 +31,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function Profile() {
-  const { currentUser, currentRole } = useAuthStore();
+  const { currentUser } = useAuthStore();
   const { selectedYear } = useAppStore();
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
@@ -54,20 +54,7 @@ export default function Profile() {
 
   const activeMembership = profileData?.club_memberships?.[0] || null;
 
-  // 2. App Settings (Global Toggle)
-  const { data: appSettings } = useQuery({
-    queryKey: ['app-settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('app_settings').select('*');
-      if (error) throw error;
-      return data.reduce((acc: any, curr) => {
-        acc[curr.key] = curr.value;
-        return acc;
-      }, {});
-    }
-  });
 
-  const isAdmin = currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole);
   // Privacy logic: Current user should ALWAYS see their own full info.
   // The toggle is primarily for what subordinates/members see of others (if we added a directory for them).
   const isFullDisclosure = true; // Since Profile.tsx is only for self
