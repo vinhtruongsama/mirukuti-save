@@ -168,7 +168,6 @@ export default function Members() {
       }, {});
     }
   });
-  const isSeniorAdmin = isPresident || isVicePresident;
   // Members management is for admins only, so we always show full info to them
   // regardless of the toggle on My Page (which is for members)
   const isFullDisclosure = true; 

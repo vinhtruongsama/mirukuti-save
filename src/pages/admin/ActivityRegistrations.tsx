@@ -7,7 +7,6 @@ import { ArrowLeft, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, Me
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
-import { useAuthStore } from '../../store/useAuthStore';
 import { useDebounce } from '../../hooks/useDebounce';
 
 // Helper Map for Status
@@ -228,24 +227,6 @@ export default function ActivityRegistrations() {
   const [selectedSessionIdx, setSelectedSessionIdx] = useState<number | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 400);
 
-  const { currentRole } = useAuthStore();
-
-  // 1. Fetch App Settings
-  const { data: appSettings } = useQuery({
-    queryKey: ['app-settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('app_settings').select('*');
-      if (error) throw error;
-      return data.reduce((acc: any, curr) => {
-        acc[curr.key] = curr.value;
-        return acc;
-      }, {});
-    }
-  });
-
-  const isPresident = currentRole === 'president';
-  const isVicePresident = currentRole === 'vice_president';
-  const isSeniorAdmin = isPresident || isVicePresident;
   // Activitiy registrations are for admins only, so we always show full info to them.
   const isFullDisclosure = true;
 

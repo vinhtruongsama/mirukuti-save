@@ -6,32 +6,14 @@ import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useState, useMemo } from 'react';
-import { useAuthStore } from '../../store/useAuthStore';
 import DeleteConfirmModal from '../../components/members/DeleteConfirmModal';
 
 export default function ArchivedMembers() {
   const queryClient = useQueryClient();
-  const { currentRole } = useAuthStore();
+  const isFullDisclosure = true;
   const { selectedYear } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [memberToDelete, setMemberToDelete] = useState<any>(null);
-
-  // 1. Fetch App Settings
-  const { data: appSettings } = useQuery({
-    queryKey: ['app-settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('app_settings').select('*');
-      if (error) throw error;
-      return data.reduce((acc: any, curr) => {
-        acc[curr.key] = curr.value;
-        return acc;
-      }, {});
-    }
-  });
-
-  const isSeniorAdmin = currentRole === 'president' || currentRole === 'vice_president';
-  // Archived members list is for admins only, so always show full info.
-  const isFullDisclosure = true;
 
   const { data: archivedMembers = [], isLoading } = useQuery({
     queryKey: ['archived-members'],
