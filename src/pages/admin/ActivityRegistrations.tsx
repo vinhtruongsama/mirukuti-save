@@ -246,7 +246,8 @@ export default function ActivityRegistrations() {
   const isPresident = currentRole === 'president';
   const isVicePresident = currentRole === 'vice_president';
   const isSeniorAdmin = isPresident || isVicePresident;
-  const isFullDisclosure = isSeniorAdmin || appSettings?.allow_profile_edit === true;
+  // Activitiy registrations are for admins only, so we always show full info to them.
+  const isFullDisclosure = true;
 
   const { data: activity, isLoading: actLoading } = useQuery({
     queryKey: ['admin-activity-detail', activityId],

@@ -169,7 +169,9 @@ export default function Members() {
     }
   });
   const isSeniorAdmin = isPresident || isVicePresident;
-  const isFullDisclosure = isSeniorAdmin || settings?.allow_profile_edit === true;
+  // Members management is for admins only, so we always show full info to them
+  // regardless of the toggle on My Page (which is for members)
+  const isFullDisclosure = true; 
 
   const toggleEditMutation = useMutation({
     mutationFn: async (currentVal: boolean) => {

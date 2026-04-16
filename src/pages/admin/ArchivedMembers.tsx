@@ -30,7 +30,8 @@ export default function ArchivedMembers() {
   });
 
   const isSeniorAdmin = currentRole === 'president' || currentRole === 'vice_president';
-  const isFullDisclosure = isSeniorAdmin || appSettings?.allow_profile_edit === true;
+  // Archived members list is for admins only, so always show full info.
+  const isFullDisclosure = true;
 
   const { data: archivedMembers = [], isLoading } = useQuery({
     queryKey: ['archived-members'],
