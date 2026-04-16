@@ -220,34 +220,65 @@ export default function Members() {
         if (memError) throw memError;
 
       } else {
-        // Insert logic
-        // 1. NGƯỜI DÙNG CHỈ ĐỊNH ĐỊNH DANH DUY NHẤT LÀ MSSV: Không được phép nối record qua Email!
-        const { data: existingUser } = await supabase.from('users').select('id, deleted_at').eq('mssv', data.mssv).maybeSingle();
+        // --- SMART UPSERT LOGIC (Manual Registration) ---
+        const emailToUse = data.email && data.email.trim() !== '' ? data.email.trim() : null;
+
+        // 1. Check if MSSV exists
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id, email, full_name, deleted_at')
+          .eq('mssv', data.mssv)
+          .maybeSingle();
+
+        // 2. Handle Archived status
+        if (existingUser && existingUser.deleted_at !== null) {
+          toast.error('Thành viên này đang nằm trong Archive. Vui lòng khôi phục từ danh sách đã xóa.');
+          throw new Error('User archived');
+        }
+
+        // 3. Prevent Email hijacking from another user
+        if (emailToUse) {
+          const { data: userWithEmail } = await supabase
+            .from('users')
+            .select('id, mssv, full_name')
+            .eq('email', emailToUse)
+            .maybeSingle();
+
+          if (userWithEmail && userWithEmail.id !== existingUser?.id) {
+            toast.error(`Email này đang được sử dụng bởi [${userWithEmail.mssv} - ${userWithEmail.full_name}]. Không thể gán cho người khác.`);
+            throw new Error('Email conflict');
+          }
+        }
+
         let targetUserId = existingUser?.id;
 
-        // Block if user is in Archive (soft deleted)
-        if (existingUser && existingUser.deleted_at !== null) {
-          throw new Error('このメンバーは削除済みです。「削除済み部員」から復元してください。');
-        }
-
-        if (!targetUserId) {
-          // Đây là thành viên hoàn toàn MỚI (MSSV chưa tồn tại)
-          targetUserId = crypto.randomUUID();
-
-          // Đảm bảo không bao giờ dính lỗi "users_email_key" (chỉ khi có nhập email)
-          const emailToUse = data.email && data.email.trim() !== '' ? data.email.trim() : null;
-
-          const { error: insertUserError } = await supabase.from('users').insert({
-            id: targetUserId, email: emailToUse, mssv: data.mssv,
-            full_name: data.full_name, full_name_kana: data.full_name_kana,
-            gender: data.gender, phone: data.phone, university_email: data.university_email,
-            line_nickname: data.line_nickname, hometown: data.hometown,
-            university_year: data.university_year, // Year for new users
+        // 4. Upsert User (Update details if exists, else create)
+        const { data: savedUser, error: upsertUserError } = await supabase
+          .from('users')
+          .upsert({
+            id: targetUserId || undefined, // Supabase generates ID if undefined
+            mssv: data.mssv,
+            full_name: data.full_name,
+            full_name_kana: data.full_name_kana,
+            gender: data.gender,
+            phone: data.phone,
+            university_email: data.university_email,
+            email: emailToUse,
+            line_nickname: data.line_nickname,
+            hometown: data.hometown,
+            university_year: data.university_year,
             nationality: data.nationality,
-            is_new: true // Ensure manual registrations also get the NEW badge
-          });
-          if (insertUserError) throw insertUserError;
+            is_new: !targetUserId // Only set "new" badge if truly new
+          }, { onConflict: 'mssv' })
+          .select('id')
+          .single();
+
+        if (upsertUserError) {
+          toast.error('Lỗi khi lưu thông tin thành viên: ' + upsertUserError.message);
+          throw upsertUserError;
         }
+
+        targetUserId = savedUser.id;
 
         // Check if membership is archived, we should probably also block, but since the user table error caught it, it's fine.
         // Wait, if the user was active but membership was deleted, we should restore membership.
@@ -312,17 +343,23 @@ export default function Members() {
     try {
       const ws = XLSX.utils.json_to_sheet([]);
 
+      const exportHeaders = ['No', '学籍番号', '氏名', 'フリガナ', '学年', '役割'];
+      if (isFullDisclosure) {
+        exportHeaders.push('性別', '電話番号', '大学メール', 'メール', 'LINEニックネーム', '国籍');
+      }
+
       const headers = [
         ['部員一覧表'],
         [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+        [isFullDisclosure ? '全ての情報を開示' : '制限された情報の開示（氏名・学籍番号のみ）'],
         [''],
-        ['No', '学籍番号', '氏名', 'フリガナ', '学年', '役割', '性別', '電話番号', '大学メール', 'メール', 'LINEニックネーム', '国籍']
+        exportHeaders
       ];
 
       XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
 
       const rowData = filteredData.map((m: any, idx) => {
-        return [
+        const row = [
           idx + 1,
           m.users?.mssv || '',
           m.users?.full_name || '',
@@ -333,13 +370,19 @@ export default function Members() {
               m.role === 'treasurer' ? '会計' :
                 m.role === 'executive' ? '幹部' :
                   m.role === 'alumni' ? '卒業生' : '部員',
-          m.users?.gender === 'male' ? '男性' : m.users?.gender === 'female' ? '女性' : 'その他',
-          m.users?.phone || '',
-          m.users?.university_email || '',
-          m.users?.email || '',
-          m.users?.line_nickname || '',
-          m.users?.nationality || ''
         ];
+
+        if (isFullDisclosure) {
+          row.push(
+            m.users?.gender === 'Male' ? '男性' : m.users?.gender === 'Female' ? '女性' : 'その他',
+            m.users?.phone || '',
+            m.users?.university_email || '',
+            m.users?.email || '',
+            m.users?.line_nickname || '',
+            m.users?.nationality || ''
+          );
+        }
+        return row;
       });
 
       XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A5' });
@@ -577,7 +620,7 @@ export default function Members() {
                 <thead className="bg-stone-50/50 backdrop-blur-md sticky top-0 z-10">
                   <tr>
                     <th className={`px-10 border-b border-stone-100 text-[16px] font-black uppercase tracking-[0.25em] text-stone-700 ${isCompact ? 'py-5' : 'py-7'}`}>氏名</th>
-                    <th className={`px-8 border-b border-stone-100 text-[16px] font-black uppercase tracking-[0.25em] text-stone-700 ${isCompact ? 'py-5' : 'py-7'}`}>学籍番号 & メアド</th>
+                    <th className={`px-8 border-b border-stone-100 text-[16px] font-black uppercase tracking-[0.25em] text-stone-700 ${isCompact ? 'py-5' : 'py-7'}`}>学籍番号 {isFullDisclosure && '& メアド'}</th>
                     <th className={`px-8 border-b border-stone-100 text-[16px] font-black uppercase tracking-[0.25em] text-stone-700 ${isCompact ? 'py-5' : 'py-7'}`}>役割</th>
                     <th className={`px-8 border-b border-stone-100 text-[16px] font-black uppercase tracking-[0.25em] text-stone-700 ${isCompact ? 'py-5' : 'py-7'}`}>学年</th>
                     <th className={`px-10 text-right border-b border-stone-100 text-[16px] font-black uppercase tracking-[0.25em] text-stone-700 ${isCompact ? 'py-5' : 'py-7'}`}>アクション</th>
@@ -614,6 +657,9 @@ export default function Members() {
                             </td>
                             <td className={`px-8 ${isCompact ? 'py-4 text-[14px]' : 'py-8 text-[16px]'}`}>
                               <div className="font-extrabold text-stone-800 mb-1 flex items-center gap-2">{mem.users?.mssv || '無'}</div>
+                              {isFullDisclosure && mem.users?.university_email && (
+                                <div className="text-[10px] font-black text-[#4F5BD5] opacity-50 truncate max-w-[150px]">{mem.users.university_email}</div>
+                              )}
                             </td>
                             <td className={`px-8 ${isCompact ? 'py-4' : 'py-8'}`}>
                               <span className={`px-4 py-1.5 rounded-lg border-2 text-[10px] lg:text-[11px] font-black uppercase tracking-widest transition-all ${mem.role === 'president' ? 'bg-[#D62976]/5 text-[#D62976] border-[#D62976]/10' :

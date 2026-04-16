@@ -68,7 +68,9 @@ export default function Profile() {
   });
 
   const isAdmin = currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole);
-  const isFullDisclosure = isAdmin || appSettings?.allow_profile_edit === true;
+  // Privacy logic: Current user should ALWAYS see their own full info.
+  // The toggle is primarily for what subordinates/members see of others (if we added a directory for them).
+  const isFullDisclosure = true; // Since Profile.tsx is only for self
 
   // 3. Fetch Activity History
   const { data: historyData, isLoading: isHistoryLoading } = useQuery({

@@ -228,20 +228,45 @@ const MemberImport: React.FC<{
 
         let normalized = normalizeData(jsonData);
 
-        // Fetch deleted users to prevent re-importing over them silently
-        const { data: deletedUsers } = await supabase.from('users').select('mssv').not('deleted_at', 'is', null);
-        const deletedMssvs = new Set(deletedUsers?.map(u => u.mssv) || []);
+        // --- PRE-VALIDATION: Fetch existing MSSVs and Emails to detect conflicts ---
+        const { data: allUsers } = await supabase
+          .from('users')
+          .select('mssv, email, full_name, deleted_at');
 
-        normalized = normalized.map(norm => {
-          if (norm._valid && norm.student_id && deletedMssvs.has(norm.student_id)) {
+        const deletedMssvs = new Set(allUsers?.filter(u => u.deleted_at).map(u => u.mssv) || []);
+        const emailToMssvMap = new Map<string, string>(); // email -> mssv
+        const mssvToEmailMap = new Map<string, string>(); // mssv -> email
+
+        allUsers?.forEach(u => {
+          if (u.email) emailToMssvMap.set(u.email.toLowerCase(), u.mssv);
+          if (u.mssv) mssvToEmailMap.set(u.mssv, u.email?.toLowerCase() || "");
+        });
+
+        normalized = normalized.map((norm, idx) => {
+          if (!norm._valid) return norm;
+
+          // 1. Check if in Archive
+          if (deletedMssvs.has(norm.student_id)) {
             norm._valid = false;
-            norm._error = "このメンバーはアーカイブ（ゴミ箱）にあります。復元してください。";
+            norm._error = `行 ${idx + 2}: Thành viên này đang ở trong Archive. Hãy khôi phục thay vì import mới.`;
+            return norm;
           }
+
+          // 2. Check for Email Conflicts (Same email but different MSSV)
+          const rowEmail = (norm.personal_email || norm.university_email || "").toLowerCase().trim();
+          if (rowEmail) {
+            const existingMssv = emailToMssvMap.get(rowEmail);
+            if (existingMssv && existingMssv !== norm.student_id) {
+              norm._valid = false;
+              norm._error = `行 ${idx + 2}: Email [${rowEmail}] đã được sử dụng bởi MSSV [${existingMssv}].`;
+            }
+          }
+
           return norm;
         });
 
         setData(normalized);
-        toast.success(`${jsonData.length}件を読み込みました`);
+        toast.success(`${jsonData.length} kiện đã được xử lý`);
       } catch (err) {
         toast.error('ファイルエラー: ' + (err as Error).message);
       }

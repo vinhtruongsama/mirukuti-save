@@ -356,11 +356,15 @@ export default function ActivityRegistrations() {
         }
       }
 
-      headersRow.push('大学メール', '電話番号', '備考');
+      if (isFullDisclosure) {
+        headersRow.push('大学メール', '電話番号');
+      }
+      headersRow.push('備考');
 
       const headers = [
         [`活動名：${activity.title}${sessionInfo}`],
         [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+        [isFullDisclosure ? '全ての情報を開示' : '制限された情報の開示（氏名・学籍番号のみ）'],
         [''],
         headersRow
       ];
@@ -393,9 +397,10 @@ export default function ActivityRegistrations() {
         } else {
           row.push(STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中');
         }
-        // Task kix1: Adding Email and Phone before Remarks
-        row.push(r.users?.university_email || r.users?.email || '-');
-        row.push(r.users?.phone || '-');
+        if (isFullDisclosure) {
+          row.push(r.users?.university_email || r.users?.email || '-');
+          row.push(r.users?.phone || '-');
+        }
         row.push(r.admin_note || '');
         return row;
       });
