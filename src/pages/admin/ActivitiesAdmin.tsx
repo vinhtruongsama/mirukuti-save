@@ -305,8 +305,8 @@ export default function ActivitiesAdmin() {
         {/* Search Bar Row: Occupying Full Width since Stats are removed */}
         <div className="relative group flex gap-4">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D62976]/5 to-[#4F5BD5]/5 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-          <div className="relative flex-1 flex items-center bg-white border border-gray-100 rounded-2xl p-1 shadow-sm">
-            <Search className="ml-4 w-4 h-4 text-gray-300" />
+          <div className="relative flex-1 flex items-center bg-white border-2 border-gray-400 rounded-2xl p-1 shadow-sm">
+            <Search className="ml-4 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="活動を検索..."

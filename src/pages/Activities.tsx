@@ -190,7 +190,7 @@ export default function Activities() {
                 placeholder="活動名・場所を検索..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-16 pr-8 py-4 bg-white/60 backdrop-blur-xl border border-brand-stone-700/10 rounded-[1.2rem] text-brand-stone-700 placeholder-brand-stone-300 focus:outline-none focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_15px_40px_-5px_rgba(79,91,213,0.1)] transition-all duration-500 font-bold text-[15px] tracking-tight placeholder:italic"
+                className="w-full pl-16 pr-8 py-4 bg-white/60 backdrop-blur-xl border-2 border-brand-stone-400 rounded-[1.2rem] text-brand-stone-700 placeholder:text-brand-stone-300 focus:outline-none focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_15px_40px_-5px_rgba(79,91,213,0.1)] transition-all duration-500 font-bold text-[15px] tracking-tight placeholder:italic"
               />
               {/* Decorative Search Accent */}
               <div className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-brand-stone-50 text-brand-stone-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-brand-stone-100 hidden sm:block">

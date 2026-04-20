@@ -312,7 +312,7 @@ export default function AwardsAdmin() {
               placeholder="学籍番号、氏名、カタカナで検索..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setLimit(30); }}
-              className="w-full h-16 pl-14 pr-6 bg-white border-2 border-stone-100 focus:border-[#4F5BD5] rounded-3xl text-[15px] font-medium transition-all outline-none"
+              className="w-full h-16 pl-14 pr-6 bg-white border-2 border-stone-400 focus:border-[#4F5BD5] rounded-3xl text-[15px] font-bold text-stone-900 transition-all outline-none"
             />
           </div>
 

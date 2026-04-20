@@ -164,16 +164,16 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">氏名 (Full Name) <span className="text-rose-500">*</span></span>
-                      <input id="full_name" {...register('full_name')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black" />
+                      <input id="full_name" {...register('full_name')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border-2 border-stone-100 focus:border-[#4F5BD5] focus:bg-white transition-all text-black" />
                       {errors.full_name && <p className="text-red-500 text-[10px] font-black ml-2">{errors.full_name.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">フリガナ (Kana)</span>
-                      <input id="full_name_kana" {...register('full_name_kana')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black" />
+                      <input id="full_name_kana" {...register('full_name_kana')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border-2 border-stone-100 focus:border-[#4F5BD5] focus:bg-white transition-all text-black" />
                     </div>
                     <div className="space-y-2">
                        <span className="text-[13px] font-bold text-stone-500 pl-1">性別 (Gender)</span>
-                       <select id="gender" {...register('gender')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#4F5BD5]/20 focus:bg-white transition-all text-black">
+                       <select id="gender" {...register('gender')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border-2 border-stone-100 focus:border-[#4F5BD5] focus:bg-white transition-all text-black">
                          <option value="">未設定</option>
                          <option value="Male">男性 (Male)</option>
                          <option value="Female">女性 (Female)</option>
@@ -189,7 +189,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">学籍番号 (Student ID) <span className="text-rose-500">*</span></span>
-                      <input id="mssv" {...register('mssv')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-[#D62976]/20 focus:bg-white transition-all text-black" />
+                      <input id="mssv" {...register('mssv')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border-2 border-stone-100 focus:border-[#D62976] focus:bg-white transition-all text-black" />
                       {errors.mssv && <p className="text-red-500 text-[10px] font-black ml-2">{errors.mssv.message}</p>}
                     </div>
                     <div className="space-y-2">
@@ -198,7 +198,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                         id="role"
                         {...register('role')}
                         disabled={!isPresident && !isVicePresident}
-                        className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#D62976]/20 text-black disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border-2 border-stone-100 focus:border-[#D62976] focus:bg-white text-black disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="president">部長</option>
                         <option value="vice_president">副部長</option>
@@ -210,7 +210,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                     </div>
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">学年 (Grade)</span>
-                      <select id="university_year" {...register('university_year', { valueAsNumber: true })} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-[#D62976]/20 text-black">
+                      <select id="university_year" {...register('university_year', { valueAsNumber: true })} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none appearance-none cursor-pointer border-2 border-stone-100 focus:border-[#D62976] focus:bg-white text-black">
                         <option value={1}>1年生</option>
                         <option value={2}>2年生</option>
                         <option value={3}>3年生</option>
@@ -231,7 +231,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                           })}
                           type="text"
                           placeholder="管理者ログイン用に設定"
-                          className={`w-full h-14 bg-amber-50/50 rounded-2xl font-black px-6 outline-none border transition-all text-amber-900 placeholder:text-amber-700/30 ${errors.password ? 'border-rose-400 bg-rose-50/30' : 'border-amber-200/50 focus:border-amber-400 focus:bg-amber-50'
+                          className={`w-full h-14 bg-amber-50/50 rounded-2xl font-black px-6 outline-none border-2 transition-all text-amber-900 placeholder:text-amber-700/30 ${errors.password ? 'border-rose-400 bg-rose-50/30' : 'border-amber-100 focus:border-amber-400 focus:bg-amber-50'
                             }`}
                         />
                         {errors.password && (
@@ -255,22 +255,22 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">連絡用メール (Contact Email)</span>
-                      <input id="email" {...register('email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                      <input id="email" {...register('email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border-2 border-stone-100 focus:border-emerald-400 focus:bg-white transition-all text-black" />
                       {errors.email && <p className="text-red-500 text-[10px] font-black ml-2">{errors.email.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <span className="text-[13px] font-bold text-stone-500 pl-1">大学メール (University Email) <span className="text-rose-500">*</span></span>
-                      <input id="university_email" {...register('university_email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                      <input id="university_email" {...register('university_email')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border-2 border-stone-100 focus:border-emerald-400 focus:bg-white transition-all text-black" />
                       {errors.university_email && <p className="text-red-500 text-[10px] font-black ml-2">{errors.university_email.message}</p>}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <span className="text-[13px] font-bold text-stone-500 pl-1">電話番号 (Phone)</span>
-                        <input id="phone" {...register('phone')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                        <input id="phone" {...register('phone')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border-2 border-stone-100 focus:border-emerald-400 focus:bg-white transition-all text-black" />
                       </div>
                       <div className="space-y-2">
                         <span className="text-[13px] font-bold text-stone-500 pl-1">LINE名</span>
-                        <input id="line_nickname" {...register('line_nickname')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black" />
+                        <input id="line_nickname" {...register('line_nickname')} className="w-full h-14 bg-stone-50 rounded-2xl px-6 font-bold outline-none border-2 border-stone-100 focus:border-emerald-400 focus:bg-white transition-all text-black" />
                       </div>
                       <div className="space-y-2">
                         <span className="text-[13px] font-bold text-stone-500 pl-1">国籍 (Nationality)</span>
@@ -278,7 +278,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
                           <select 
                             id="nationality" 
                             {...register('nationality')} 
-                            className="w-full h-12 sm:h-14 bg-stone-50 rounded-2xl px-5 sm:px-6 text-[13px] sm:text-[14px] font-bold outline-none appearance-none cursor-pointer border border-transparent focus:border-emerald-100 focus:bg-white transition-all text-black pr-12"
+                            className="w-full h-12 sm:h-14 bg-stone-50 rounded-2xl px-5 sm:px-6 text-[13px] sm:text-[14px] font-bold outline-none appearance-none cursor-pointer border-2 border-stone-100 focus:border-emerald-400 focus:bg-white transition-all text-black pr-12"
                           >
                             <option value="">未設定</option>
                             <option value="日本">日本 (Japan)</option>

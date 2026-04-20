@@ -550,7 +550,7 @@ export default function Members() {
               placeholder="名前、フリガナ、学籍番号で検索..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-14 lg:h-16 pl-14 pr-10 bg-stone-50 border-2 border-stone-200 focus:border-[#D62976] focus:bg-white rounded-3xl text-[14px] lg:text-[15px] font-bold text-stone-900 focus:outline-none placeholder:text-stone-400 transition-all shadow-sm group-hover:border-stone-300"
+              className="w-full h-14 lg:h-16 pl-14 pr-10 bg-stone-50 border-2 border-stone-400 focus:border-[#D62976] focus:bg-white rounded-3xl text-[14px] lg:text-[15px] font-bold text-stone-900 focus:outline-none placeholder:text-stone-400 transition-all shadow-sm"
             />
           </div>
 
