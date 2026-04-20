@@ -44,6 +44,8 @@ export default function Activities() {
         .select('*')
         .eq('academic_year_id', selectedYear.id)
         .is('deleted_at', null)
+        .order('is_pinned', { ascending: false })
+        .order('pinned_at', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;

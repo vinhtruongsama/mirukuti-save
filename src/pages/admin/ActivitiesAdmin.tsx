@@ -58,6 +58,7 @@ export default function ActivitiesAdmin() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [pinFilter, setPinFilter] = useState<boolean>(false);
 
 
 
@@ -100,8 +101,11 @@ export default function ActivitiesAdmin() {
       const lower = debouncedSearch.toLowerCase();
       result = result.filter(a => a.title.toLowerCase().includes(lower) || a.location.toLowerCase().includes(lower));
     }
+    if (pinFilter) {
+      result = result.filter(a => a.is_pinned);
+    }
     return result;
-  }, [activities, debouncedSearch]);
+  }, [activities, debouncedSearch, pinFilter]);
 
   // 3. Save Mutation (Upload Image -> Insert/Update DB)
   const saveMutation = useMutation({
@@ -299,9 +303,9 @@ export default function ActivitiesAdmin() {
         </div>
 
         {/* Search Bar Row: Occupying Full Width since Stats are removed */}
-        <div className="relative group">
+        <div className="relative group flex gap-4">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D62976]/5 to-[#4F5BD5]/5 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-          <div className="relative flex items-center bg-white border border-gray-100 rounded-2xl p-1 shadow-sm">
+          <div className="relative flex-1 flex items-center bg-white border border-gray-100 rounded-2xl p-1 shadow-sm">
             <Search className="ml-4 w-4 h-4 text-gray-300" />
             <input
               type="text"
@@ -311,6 +315,16 @@ export default function ActivitiesAdmin() {
               className="w-full px-4 py-2 bg-transparent text-gray-900 rounded-xl text-[13px] font-black focus:outline-none placeholder:text-gray-200 uppercase tracking-widest"
             />
           </div>
+          <button
+            onClick={() => setPinFilter(!pinFilter)}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border-2 shadow-sm",
+              pinFilter ? "bg-[#4F5BD5] text-white border-[#4F5BD5]" : "bg-white text-gray-400 border-gray-100 hover:border-[#4F5BD5]/20 hover:text-[#4F5BD5]"
+            )}
+          >
+            <Pin className={cn("w-3.5 h-3.5", pinFilter && "fill-current")} />
+            固定済みのみ
+          </button>
         </div>
 
         {isLoading ? (
@@ -364,25 +378,27 @@ export default function ActivitiesAdmin() {
                     );
                   })()}
 
-                  {/* Pin Badge */}
-                  {act.is_pinned && (
-                    <div className="absolute top-6 right-6 w-10 h-10 bg-[#4F5BD5] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#4F5BD5]/30 z-10 scale-100 group-hover:scale-110 transition-transform">
-                      <Pin className="w-5 h-5 fill-current" />
-                    </div>
-                  )}
+                  {/* Pin Badge - Always visible and clickable */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePinMutation.mutate({ id: act.id, isPinned: !act.is_pinned });
+                    }}
+                    className={cn(
+                      "absolute top-6 right-6 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all z-20 active:scale-90",
+                      act.is_pinned
+                        ? "bg-[#4F5BD5] text-white shadow-[#4F5BD5]/30"
+                        : "bg-white/90 text-gray-400 border border-white/50 backdrop-blur-md opacity-0 group-hover:opacity-100"
+                    )}
+                    title={act.is_pinned ? '固定を解除' : 'トップに固定'}
+                  >
+                    <Pin className={cn("w-5 h-5", act.is_pinned && "fill-current")} />
+                  </button>
 
                   {/* Floating Action Overlay on Hover */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3">
                     <button onClick={() => openForm(act)} className="px-6 py-4 bg-white rounded-2xl flex items-center justify-center gap-3 text-gray-900 hover:scale-105 active:scale-95 transition-all shadow-xl font-black text-[14px] uppercase tracking-widest">
                       <Edit2 className="w-4 h-4" /> 編集する
-                    </button>
-                    <button
-                      onClick={() => togglePinMutation.mutate({ id: act.id, isPinned: !act.is_pinned })}
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-xl active:scale-90 ${act.is_pinned ? 'bg-[#4F5BD5] text-white hover:bg-white hover:text-[#4F5BD5]' : 'bg-white text-gray-900 hover:bg-[#4F5BD5] hover:text-white'
-                        }`}
-                      title={act.is_pinned ? '固定を解除' : 'トップに固定'}
-                    >
-                      {act.is_pinned ? <PinOff className="w-6 h-6" /> : <Pin className="w-6 h-6" />}
                     </button>
                   </div>
                 </div>
