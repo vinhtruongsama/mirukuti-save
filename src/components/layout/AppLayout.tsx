@@ -77,16 +77,16 @@ export const AppLayout = () => {
                     to={nav.path}
                     className={`relative px-4 lg:px-5 py-3 transition-all duration-500 group rounded-[1.2rem] flex items-center gap-2 lg:gap-3 overflow-hidden ${isActive
                         ? 'text-[#4F5BD5] bg-[#4F5BD5]/5 shadow-[0_10px_20px_rgba(79,91,213,0.05)]'
-                        : 'text-brand-stone-400 hover:text-brand-stone-900 hover:bg-brand-stone-50'
+                        : 'text-stone-600 hover:text-brand-stone-900 hover:bg-brand-stone-50'
                       }`}
                   >
                     <Icon className={`w-[18px] h-[18px] transition-all duration-500 ${isActive ? 'scale-110 -rotate-6' : 'group-hover:scale-110 group-hover:-rotate-6 text-brand-stone-300 group-hover:text-brand-stone-900'}`} />
 
                     <div className="flex flex-col items-start leading-none gap-1">
-                      <span className="text-[13px] lg:text-[14px] font-black tracking-tight">
+                      <span className="text-[14px] lg:text-[15px] font-black tracking-tight">
                         {nav.label}
                       </span>
-                      <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-opacity duration-500 ${isActive ? 'opacity-60' : 'opacity-20 group-hover:opacity-40'}`}>
+                      <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-opacity duration-500 ${isActive ? 'opacity-80' : 'opacity-40 group-hover:opacity-60'}`}>
                         {subtitles[nav.label] || 'Module'}
                       </span>
                     </div>
@@ -158,7 +158,7 @@ export const AppLayout = () => {
                       <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#D62976] rounded-full shadow-[0_0_6px_rgba(214,41,118,0.6)]" />
                     )}
                   </div>
-                  <span className={`text-[9px] font-black tracking-tight leading-none ${isActive ? 'text-[#4F5BD5]' : 'text-stone-400'}`}>
+                  <span className={`text-[10px] font-black tracking-tight leading-none ${isActive ? 'text-[#4F5BD5]' : 'text-stone-600'}`}>
                     {nav.label}
                   </span>
                 </Link>

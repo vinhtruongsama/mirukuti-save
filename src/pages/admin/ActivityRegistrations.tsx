@@ -26,7 +26,7 @@ const STATUS_COLOR_THEME = {
 // -------------------------------------------------------------
 // CHILD COMPONENT: Simple Registration Item
 // -------------------------------------------------------------
-function RegistrationItem({ reg, activityId, currentSessionIdx, totalSessions }: { reg: any, activityId: string, currentSessionIdx: number | null, totalSessions: number }) {
+function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { reg: any, activityId: string, currentSessionIdx: number | null, sessions: any[] }) {
   const queryClient = useQueryClient();
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState(reg.admin_note || '');
@@ -118,53 +118,79 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, totalSessions }:
   });
 
   return (
-    <div className="bg-white border border-gray-100 rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:shadow-[0_10px_40px_rgba(0,0,0,0.04)] hover:border-gray-200 transition-all group">
+    <div className="bg-white border border-stone-100 rounded-[2rem] p-5 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(79,91,213,0.08)] hover:border-indigo-100 transition-all duration-500 group relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-[#4F5BD5] opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
         {/* User Info Section */}
-        <div className="flex items-center gap-4 flex-1">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <p className="text-lg font-black text-[#0f172a] tracking-tight truncate uppercase">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h3 className="text-base sm:text-lg font-black text-[#0f172a] tracking-tight uppercase leading-none">
                 {reg.users ? (reg.users.full_name_kana || reg.users.full_name) : '退会済みユーザー'}
-              </p>
-              {reg.users?.mssv && (
-                <span className="text-[10px] font-black tracking-widest text-[#4F5BD5] bg-[#4F5BD5]/5 px-2 py-0.5 rounded-lg border border-[#4F5BD5]/10">
-                  {reg.users.mssv}
-                </span>
-              )}
+              </h3>
+
+              <div className="flex items-center gap-2">
+                {reg.users?.mssv && (
+                  <span className="text-[10px] font-bold tracking-wider text-indigo-500 bg-indigo-50/50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                    {reg.users.mssv}
+                  </span>
+                )}
+                {reg.users?.line_nickname && (
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-[#06C755] bg-[#06C755]/5 px-2 py-1 rounded-lg border border-[#06C755]/10 lowercase">
+                    @{reg.users.line_nickname}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                申し込み: {format(new Date(reg.registered_at), 'MM/dd')}
-              </span>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-400">
+              {/* Sessions */}
               {Array.isArray(reg.selected_sessions) && reg.selected_sessions.length > 0 && (
-                <>
-                  <div className="h-1 w-1 bg-gray-200 rounded-full" />
+                <div className="flex items-center gap-1.5 bg-indigo-50/30 px-3 py-1.5 rounded-xl border border-[#4F5BD5]/20">
                   <div className="flex items-center gap-1">
-                    {reg.selected_sessions.map((sIdx: number) => (
-                      <span key={sIdx} className="text-[9px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
-                        Vol.{sIdx + 1}
+                    {/* Deduplicate session times for cleaner display */}
+                    {Array.from(new Set(reg.selected_sessions.map((sIdx: number) => {
+                      const s = sessions?.[sIdx];
+                      if (!s) return 'N/A';
+                      return s.end_time ? `${s.start_time}-${s.end_time}` : `${s.start_time} ~`;
+                    }))).map((time: any, idx) => (
+                      <span key={idx} className="text-[10px] font-black text-[#4F5BD5] uppercase tracking-tighter">
+                        {time}{idx < Array.from(new Set(reg.selected_sessions.map((sIdx: number) => {
+                          const s = sessions?.[sIdx];
+                          if (!s) return 'N/A';
+                          return s.end_time ? `${s.start_time}-${s.end_time}` : `${s.start_time} ~`;
+                        }))).length - 1 ? ' • ' : ''}
                       </span>
                     ))}
                   </div>
-                </>
+                </div>
               )}
-              <div className="h-1 w-1 bg-gray-200 rounded-full" />
+
+              {/* Registration Date */}
+              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-stone-500">
+                <span className="w-1 h-1 rounded-full bg-stone-200" />
+                <span>申込: {format(new Date(reg.registered_at), 'MM/dd')}</span>
+              </div>
+
+              {/* Memo Button */}
               <button
                 onClick={() => setShowNote(!showNote)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${reg.admin_note ? 'bg-rose-50 text-rose-500 border border-rose-100' : 'text-gray-400 hover:text-gray-900'
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${reg.admin_note
+                    ? 'bg-rose-50/50 text-rose-500 border-rose-100 shadow-sm'
+                    : 'bg-stone-50/30 text-stone-500 border-stone-100 hover:text-stone-600 hover:bg-stone-50'
                   }`}
               >
-                <MessageSquare className="w-3 h-3" />
-                {reg.admin_note ? 'メモをみる' : 'メモをかく'}
+                <MessageSquare className="w-3.5 h-3.5" />
+                {reg.admin_note ? 'メモを確認' : 'メモを追加'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons Section - Show when a specific Vol is selected OR when the activity has NO sessions at all */}
-        {(currentSessionIdx !== null || totalSessions === 0) && (
+        {/* Action Buttons Section - Show when a specific session is selected OR when the activity has NO sessions at all */}
+        {(currentSessionIdx !== null || !sessions?.length) && (
           <div className="flex flex-row items-center gap-1.5 w-full lg:w-auto">
             {[
               { id: 'present', label: '出席', color: 'present', icon: CheckCircle2 },
@@ -206,7 +232,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, totalSessions }:
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Write observations here..."
+                placeholder="メモを記入!"
                 className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-sm font-bold text-[#0f172a] focus:bg-white focus:border-[#4F5BD5]/20 outline-none transition-all placeholder:text-gray-300 resize-none h-20"
               />
             </div>
@@ -225,6 +251,7 @@ export default function ActivityRegistrations() {
   const { id: activityId } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSessionIdx, setSelectedSessionIdx] = useState<number | null>(null);
+
   const debouncedSearch = useDebounce(searchTerm, 400);
 
   // Activitiy registrations are for admins only, so we always show full info to them.
@@ -254,7 +281,7 @@ export default function ActivityRegistrations() {
         .from('registrations')
         .select(`
           id, attendance_status, admin_note, registered_at, selected_sessions,
-          users:user_id (id, mssv, full_name, full_name_kana, email, phone),
+          users:user_id (id, mssv, full_name, full_name_kana, email, phone, line_nickname),
           attendance_records (session_index, status)
         `)
         .eq('activity_id', activityId)
@@ -271,6 +298,20 @@ export default function ActivityRegistrations() {
     },
     enabled: !!activityId
   });
+
+  // Calculate session counts
+  const sessionCounts = useMemo(() => {
+    if (!registrations) return {};
+    const counts: Record<number, number> = {};
+    registrations.forEach(reg => {
+      if (Array.isArray(reg.selected_sessions)) {
+        reg.selected_sessions.forEach((sIdx: number) => {
+          counts[sIdx] = (counts[sIdx] || 0) + 1;
+        });
+      }
+    });
+    return counts;
+  }, [registrations]);
 
 
   const filteredRegs = useMemo(() => {
@@ -308,7 +349,7 @@ export default function ActivityRegistrations() {
 
       // Meta Information & Headers
       const sessionInfo = selectedSessionIdx !== null
-        ? ` (Vol.${selectedSessionIdx + 1} - ${activity.sessions[selectedSessionIdx].start_time})`
+        ? ` (${activity.sessions[selectedSessionIdx].start_time})`
         : ' (全日程一括)';
 
       const headersRow = ['No', '氏名', '学籍番号'];
@@ -414,7 +455,7 @@ export default function ActivityRegistrations() {
       // Filename construction: [ActivityTitle]の出欠（年月日）
       const safeTitle = activity.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 50);
       const datePart = format(new Date(), 'yyyyMMdd');
-      const sessionFilePart = selectedSessionIdx !== null ? `_Vol${selectedSessionIdx + 1}` : '';
+      const sessionFilePart = selectedSessionIdx !== null ? `_S${selectedSessionIdx + 1}` : '';
 
       XLSX.writeFile(wb, `${safeTitle}の出欠（${datePart}）${sessionFilePart}.xlsx`);
 
@@ -433,7 +474,7 @@ export default function ActivityRegistrations() {
     return (
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <Loader2 className="w-10 h-10 text-[#4F5BD5] animate-spin" />
-        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Syncing Records...</p>
+        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">データを同期中...</p>
       </div>
     );
   }
@@ -454,7 +495,7 @@ export default function ActivityRegistrations() {
           onClick={exportToExcel}
           className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gray-900 hover:bg-[#4F5BD5] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
         >
-          <Download className="w-4 h-4" /> Export Excel
+          <Download className="w-4 h-4" /> Excelエクスポート
         </button>
       </div>
 
@@ -492,12 +533,12 @@ export default function ActivityRegistrations() {
           {activity?.sessions?.length > 1 && (
             <button
               onClick={() => setSelectedSessionIdx(null)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === null
-                ? 'bg-gray-900 border-gray-900 text-white shadow-lg'
-                : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+              className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === null
+                ? 'bg-gray-900 border-gray-900 text-white font-black shadow-lg shadow-gray-200'
+                : 'bg-white border-gray-300 text-gray-400 font-bold hover:border-gray-400'
                 }`}
             >
-              すべて
+              すべて ({registrations?.length || 0}人)
             </button>
           )}
 
@@ -508,12 +549,12 @@ export default function ActivityRegistrations() {
                 <button
                   key={idx}
                   onClick={() => setSelectedSessionIdx(idx)}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === idx
-                    ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20'
-                    : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                  className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === idx
+                    ? 'bg-rose-500 border-rose-500 text-white font-black shadow-lg shadow-rose-500/20'
+                    : 'bg-white border-gray-300 text-gray-400 font-bold hover:border-gray-400'
                     }`}
                 >
-                  Vol.{idx + 1} ({session.start_time})
+                  {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'} ({sessionCounts[idx] || 0}人)
                 </button>
               ))}
             </>
@@ -526,7 +567,7 @@ export default function ActivityRegistrations() {
         {filteredRegs.length === 0 ? (
           <div className="text-center py-20 bg-white border border-gray-100 rounded-3xl">
             <UserX className="w-8 h-8 text-gray-100 mx-auto mb-4" />
-            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No members found</p>
+            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">登録メンバーがいません</p>
           </div>
         ) : (
           filteredRegs.map((reg) => (
@@ -535,7 +576,7 @@ export default function ActivityRegistrations() {
               reg={reg}
               activityId={activityId!}
               currentSessionIdx={selectedSessionIdx}
-              totalSessions={activity?.sessions?.length || 0}
+              sessions={activity?.sessions || []}
             />
           ))
         )}

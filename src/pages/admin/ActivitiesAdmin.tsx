@@ -31,7 +31,7 @@ const activitySchema = z.object({
   sessions: z.array(z.object({
     date: z.string().min(1, '日付'),
     start_time: z.string().min(1, '開始時間'),
-    end_time: z.string().min(1, '終了時間'),
+    end_time: z.string().optional().nullable(),
     capacity: z.number().min(0).optional().nullable().or(z.nan()),
   })).optional(),
   status: z.enum(['open', 'closed', 'draft']),
@@ -58,7 +58,6 @@ export default function ActivitiesAdmin() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [pinFilter, setPinFilter] = useState<boolean>(false);
 
 
 
@@ -101,11 +100,8 @@ export default function ActivitiesAdmin() {
       const lower = debouncedSearch.toLowerCase();
       result = result.filter(a => a.title.toLowerCase().includes(lower) || a.location.toLowerCase().includes(lower));
     }
-    if (pinFilter) {
-      result = result.filter(a => a.is_pinned);
-    }
     return result;
-  }, [activities, debouncedSearch, pinFilter]);
+  }, [activities, debouncedSearch]);
 
   // 3. Save Mutation (Upload Image -> Insert/Update DB)
   const saveMutation = useMutation({
@@ -315,16 +311,6 @@ export default function ActivitiesAdmin() {
               className="w-full px-4 py-2 bg-transparent text-gray-900 rounded-xl text-[13px] font-black focus:outline-none placeholder:text-gray-200 uppercase tracking-widest"
             />
           </div>
-          <button
-            onClick={() => setPinFilter(!pinFilter)}
-            className={cn(
-              "flex items-center gap-2 px-6 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border-2 shadow-sm",
-              pinFilter ? "bg-[#4F5BD5] text-white border-[#4F5BD5]" : "bg-white text-gray-400 border-gray-100 hover:border-[#4F5BD5]/20 hover:text-[#4F5BD5]"
-            )}
-          >
-            <Pin className={cn("w-3.5 h-3.5", pinFilter && "fill-current")} />
-            固定済みのみ
-          </button>
         </div>
 
         {isLoading ? (
@@ -877,6 +863,7 @@ export default function ActivitiesAdmin() {
                                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
                                   <input
                                     type="time"
+                                    placeholder="未定"
                                     {...register(`sessions.${index}.end_time` as const)}
                                     className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
                                   />

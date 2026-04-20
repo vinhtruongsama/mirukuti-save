@@ -183,18 +183,18 @@ export default function Activities() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-10">
             {/* Minimalist Search Area */}
             <div className="relative flex-1 max-w-2xl group w-full">
-              <div className="absolute inset-0 bg-gradient-to-r from-[#4F5BD5]/20 to-[#D62976]/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-700 -z-10" />
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-stone-300 group-focus-within:text-[#4F5BD5] transition-all duration-300" />
-              <input
-                type="text"
-                placeholder="活動名・場所を検索..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-16 pr-8 py-4 bg-white/60 backdrop-blur-xl border-2 border-brand-stone-400 rounded-[1.2rem] text-brand-stone-700 placeholder:text-brand-stone-300 focus:outline-none focus:bg-white focus:border-[#4F5BD5]/30 focus:shadow-[0_15px_40px_-5px_rgba(79,91,213,0.1)] transition-all duration-500 font-bold text-[15px] tracking-tight placeholder:italic"
-              />
-              {/* Decorative Search Accent */}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-brand-stone-50 text-brand-stone-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-brand-stone-100 hidden sm:block">
-                Enter
+              {/* Sync with Admin Glow Effect */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 rounded-[2.5rem] blur opacity-0 group-hover:opacity-100 transition duration-500 -z-10" />
+              
+              <div className="relative flex items-center bg-white border-2 border-gray-400 rounded-[2.5rem] p-1.5 shadow-sm transition-all duration-300 group-focus-within:border-[#4F5BD5]/50 group-focus-within:shadow-[0_15px_350px_-5px_rgba(79,91,213,0.15)] overflow-hidden">
+                <Search className="ml-5 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-[#4F5BD5]" />
+                <input
+                  type="text"
+                  placeholder="活動名・場所を検索..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-5 py-3.5 bg-transparent text-gray-900 text-[15px] font-black focus:outline-none placeholder:text-stone-400 uppercase tracking-widest"
+                />
               </div>
             </div>
 
@@ -208,9 +208,9 @@ export default function Activities() {
                 <button
                   key={filter.id}
                   onClick={() => setFilterMode(filter.id as any)}
-                  className={`px-7 py-2.5 rounded-[1rem] font-black text-[11px] tracking-[0.15em] transition-all duration-500 whitespace-nowrap uppercase ${filterMode === filter.id
+                  className={`px-7 py-2.5 rounded-[1rem] font-black text-[13px] tracking-[0.15em] transition-all duration-500 whitespace-nowrap uppercase ${filterMode === filter.id
                     ? 'bg-white text-[#4F5BD5] shadow-[0_8px_20px_-3px_rgba(79,91,213,0.15)] scale-[1.02] border border-[#4F5BD5]/5'
-                    : 'text-brand-stone-400 hover:text-brand-stone-700'
+                    : 'text-stone-500 hover:text-brand-stone-700'
                     }`}
                 >
                   {filter.label}
@@ -284,7 +284,7 @@ export default function Activities() {
                           <div className="px-3 py-1.5 bg-indigo-50/50 rounded-xl flex items-center gap-2 border border-indigo-100/30 shrink-0">
                             <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                             <span className="text-[12px] font-black text-indigo-900 tracking-tight">
-                              {activity.date ? format(new Date(activity.date), 'd/M (E)', { locale: jaLocale }) : '---'}
+                              {activity.date ? format(new Date(activity.date), 'M月d日(E)', { locale: jaLocale }) : '---'}
                             </span>
                           </div>
 
@@ -363,7 +363,7 @@ export default function Activities() {
                       <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">開催日時</span>
                         <span className="text-sm font-black text-brand-stone-900">
-                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'd/M (E)', { locale: jaLocale }) : '---'}
+                          {selectedActivity.date ? format(new Date(selectedActivity.date), 'M月d日(E)', { locale: jaLocale }) : '---'}
                         </span>
                       </div>
                     </div>
@@ -386,7 +386,7 @@ export default function Activities() {
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
                         <span className="text-[14px] text-brand-stone-400 font-black uppercase tracking-[0.2em] mb-0.5 truncate">募集終了</span>
-                        <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'd/M (E)', { locale: jaLocale })}</span>
+                        <span className="text-sm font-black text-brand-stone-900 truncate">{format(new Date(selectedActivity.registration_deadline), 'M月d日(E)', { locale: jaLocale })}</span>
                       </div>
                     </div>
                   </div>
@@ -461,24 +461,26 @@ export default function Activities() {
                                   onClick={() => canToggle && toggleSession(idx)}
                                   className={`group p-5 rounded-[1.5rem] border-2 transition-all duration-500 flex items-center gap-6 ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
                                     } ${isSelected
-                                      ? 'bg-white text-brand-emerald-500 border-brand-emerald-500 shadow-xl shadow-brand-emerald-500/10'
-                                      : 'bg-stone-50/50 border-stone-500 hover:border-brand-stone-600'
+                                      ? 'bg-white text-brand-emerald-500 border-brand-emerald-600 shadow-xl shadow-brand-emerald-500/10 scale-[1.01]'
+                                      : 'bg-stone-100 border-stone-500 hover:border-brand-stone-600'
                                     }`}
                                 >
-                                  {/* Checkbox Replacement for Vol.X */}
-                                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all shrink-0 ${isSelected
-                                    ? 'bg-brand-emerald-500 text-white border-brand-emerald-500'
-                                    : 'bg-white text-stone-200 border-stone-100'
-                                    }`}>
-                                    <CheckCircle2 className={`w-6 h-6 transition-transform ${isSelected ? 'scale-100' : 'scale-0'}`} />
+                                  {/* Check Icon (No Frame) */}
+                                  <div className="shrink-0">
+                                    <CheckCircle2
+                                      className={`w-7 h-7 transition-all duration-500 ${isSelected
+                                        ? 'text-brand-emerald-500 scale-110'
+                                        : 'text-stone-300 scale-100 opacity-20'
+                                        }`}
+                                    />
                                   </div>
 
                                   <div className="flex-1">
-                                    <p className={`text-[13px] font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-600/60' : 'text-stone-400'}`}>
-                                      {format(new Date(session.date), "yyyy.MM.dd (EEE)", { locale: jaLocale })}
+                                    <p className={`text-[12px] font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-900' : 'text-stone-600'}`}>
+                                      {format(new Date(session.date), "yyyy年M月d日(E)", { locale: jaLocale })}
                                     </p>
-                                    <p className={`text-lg font-black ${isSelected ? 'text-brand-emerald-700' : 'text-brand-stone-900'}`}>
-                                      {session.start_time} - {session.end_time}
+                                    <p className={`text-lg font-black ${isSelected ? 'text-brand-emerald-900' : 'text-brand-stone-900'}`}>
+                                      {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'}
                                     </p>
                                   </div>
                                 </div>
