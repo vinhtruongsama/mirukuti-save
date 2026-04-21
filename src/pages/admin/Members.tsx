@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
@@ -344,15 +344,27 @@ export default function Members() {
     try {
       const ws = XLSX.utils.json_to_sheet([]);
 
-      const exportHeaders = ['No', '学籍番号', '氏名', 'フリガナ', '学年', '役割'];
-      if (isFullDisclosure) {
-        exportHeaders.push('性別', '電話番号', '大学メール', 'メール', 'LINEニックネーム', '国籍');
-      }
+      // New Standardized Headers (In Requested Order)
+      // NO, 学籍番号, 氏名, フリガナ, LINEニックネーム, 性別, 国籍, 学年, 役割, 電話番号, 大学のメール, 連絡メール
+      const exportHeaders = [
+        'NO', 
+        '学籍番号', 
+        '氏名', 
+        'フリガナ', 
+        'LINEニックネーム', 
+        '性別', 
+        '国籍', 
+        '学年', 
+        '役割', 
+        '電話番号', 
+        '大学のメール', 
+        '連絡メール'
+      ];
 
       const headers = [
         ['部員一覧表'],
         [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
-        [isFullDisclosure ? '全ての情報を開示' : '制限された情報の開示（氏名・学籍番号のみ）'],
+        ['全ての情報を開示'],
         [''],
         exportHeaders
       ];
@@ -360,54 +372,70 @@ export default function Members() {
       XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
 
       const rowData = filteredData.map((m: any, idx) => {
-        const row = [
-          idx + 1,
-          m.users?.mssv || '',
-          m.users?.full_name || '',
-          m.users?.full_name_kana || '',
-          m.users?.university_year || '',
-          m.role === 'president' ? '部長' :
+        const gradeLabel = getGradeBadge(m.users?.university_year).label;
+        const roleLabel = m.role === 'president' ? '部長' :
             m.role === 'vice_president' ? '副部長' :
               m.role === 'treasurer' ? '会計' :
                 m.role === 'executive' ? '幹部' :
-                  m.role === 'alumni' ? '卒業生' : '部員',
-        ];
+                  m.role === 'alumni' ? '卒業生' : '部員';
+        const genderLabel = m.users?.gender === 'Male' ? '男' : m.users?.gender === 'Female' ? '女' : 'その他';
 
-        if (isFullDisclosure) {
-          row.push(
-            m.users?.gender === 'Male' ? '男性' : m.users?.gender === 'Female' ? '女性' : 'その他',
-            m.users?.phone || '',
-            m.users?.university_email || '',
-            m.users?.email || '',
-            m.users?.line_nickname || '',
-            m.users?.nationality || ''
-          );
-        }
-        return row;
+        return [
+          idx + 1, // NO
+          m.users?.mssv || '', // 学籍番号
+          m.users?.full_name || '', // 氏名
+          m.users?.full_name_kana || '', // フリガナ
+          m.users?.line_nickname || '', // LINEニックネーム
+          genderLabel, // 性別
+          m.users?.nationality || '', // 国籍
+          gradeLabel, // 学年
+          roleLabel, // 役割
+          m.users?.phone || '', // 電話番号
+          m.users?.university_email || '', // 大学のメール
+          m.users?.email || '', // 連絡メール
+        ];
       });
 
-      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A5' });
+      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A6' });
+
+      // --- APPLY STYLING TO HEADERS (Row 5) ---
+      for (let i = 0; i < 12; i++) {
+        const cellRef = XLSX.utils.encode_cell({ r: 4, c: i });
+        if (ws[cellRef]) {
+          ws[cellRef].s = {
+            font: { bold: true, sz: 12 },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            fill: { fgColor: { rgb: "BDD7EE" } }, // Light Blue
+            border: {
+              top: { style: 'thin' },
+              bottom: { style: 'thin' },
+              left: { style: 'thin' },
+              right: { style: 'thin' }
+            }
+          };
+        }
+      }
 
       // Add Total Row
-      const totalRowOrigin = `A${rowData.length + 5}`;
+      const totalRowOrigin = `A${rowData.length + 6}`;
       XLSX.utils.sheet_add_aoa(ws, [
         ['合計:', filteredData.length]
       ], { origin: totalRowOrigin });
 
-      // Column widths
+      // Improved Column widths
       ws['!cols'] = [
-        { wch: 6 },  // No
-        { wch: 15 }, // MSSV
-        { wch: 20 }, // Full Name
-        { wch: 30 }, // Furigana
-        { wch: 5 }, // Grade
-        { wch: 5 }, // Role
-        { wch: 10 }, // Gender
-        { wch: 15 }, // Phone
-        { wch: 35 }, // Uni Email
-        { wch: 35 }, // Personal Email
-        { wch: 20 }, // LINE Nickname
-        { wch: 15 }  // Nationality
+        { wch: 6 },  // NO
+        { wch: 15 }, // 学籍番号
+        { wch: 25 }, // 氏名
+        { wch: 25 }, // フリガナ
+        { wch: 20 }, // LINEニックネーム
+        { wch: 8 },  // 性別
+        { wch: 15 }, // 国籍
+        { wch: 10 }, // 学年
+        { wch: 12 }, // 役割
+        { wch: 15 }, // 電話番号
+        { wch: 35 }, // 大学のメール
+        { wch: 35 }  // 連絡メール
       ];
 
       const wb = XLSX.utils.book_new();
@@ -429,10 +457,10 @@ export default function Members() {
     const validYear = (year === 0 || year) ? year : 1; // 0 (alumni) is a valid year
     switch (validYear) {
       case 0: return { bg: 'bg-stone-50', text: 'text-stone-400', border: 'border-stone-100', label: '卒業生' };
-      case 1: return { bg: 'bg-[#06C755]/10', text: 'text-[#06C755]', border: 'border-[#06C755]/20', label: '1年生' }; // LINE Green
-      case 2: return { bg: 'bg-[#4F5BD5]/10', text: 'text-[#4F5BD5]', border: 'border-[#4F5BD5]/20', label: '2年生' }; // Blue
-      case 3: return { bg: 'bg-rose-500/10', text: 'text-rose-500', border: 'border-rose-500/20', label: '3年生' }; // Red
-      case 4: return { bg: 'bg-purple-500/10', text: 'text-purple-500', border: 'border-purple-500/20', label: '4年生' }; // Purple
+      case 1: return { bg: 'bg-[#06C755]/10', text: 'text-[#06C755]', border: 'border-[#06C755]/20', label: '１年生' }; // LINE Green
+      case 2: return { bg: 'bg-[#4F5BD5]/10', text: 'text-[#4F5BD5]', border: 'border-[#4F5BD5]/20', label: '２年生' }; // Blue
+      case 3: return { bg: 'bg-rose-500/10', text: 'text-rose-500', border: 'border-rose-500/20', label: '３年生' }; // Red
+      case 4: return { bg: 'bg-purple-500/10', text: 'text-purple-500', border: 'border-purple-500/20', label: '４年生' }; // Purple
       default: return { bg: 'bg-stone-50', text: 'text-stone-500', border: 'border-stone-100', label: `${validYear}年生` };
     }
   };

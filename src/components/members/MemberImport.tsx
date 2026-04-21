@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 
 // 2. Third-party Libraries
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner'; // 'sonner' is preferred in this project for premium look
 import { motion, AnimatePresence } from 'framer-motion';
@@ -34,6 +34,7 @@ const COLUMN_MAPPING: Record<string, string> = {
   'LINEニックネーム': 'line_name',
   'LINE': 'line_name',
   'LINE ID': 'line_name',
+  '役割': 'role',
   '電話番号': 'phone',
   '大学のメール': 'university_email',
   '大学メール': 'university_email',
@@ -127,6 +128,14 @@ const MemberImport: React.FC<{
           if (value.includes('男')) normalized.gender = '男';
           else if (value.includes('女')) normalized.gender = '女';
           else normalized.gender = value;
+        } else if (mappedKey === 'role') {
+          // Map Japanese role to DB enum
+          if (value.includes('部長')) normalized.role = 'president';
+          else if (value.includes('副部長')) normalized.role = 'vice_president';
+          else if (value.includes('会計')) normalized.role = 'treasurer';
+          else if (value.includes('幹部')) normalized.role = 'executive';
+          else if (value.includes('卒業生')) normalized.role = 'alumni';
+          else normalized.role = 'member';
         } else if (['full_name', 'furigana', 'student_id', 'line_name', 'university_email', 'personal_email', 'nationality', 'academic_year'].includes(mappedKey)) {
           normalized[mappedKey] = value;
         }
@@ -153,37 +162,57 @@ const MemberImport: React.FC<{
    * Creates and downloads a pre-formatted Excel template with correct headers and sample data.
    */
   const handleDownloadTemplate = () => {
-    // Standardized headers with specific order (Task: Custom Column Order)
+    // Standardized headers (In Requested Order)
     const headers = [
       'NO',
+      '学籍番号',
       '氏名',
       'フリガナ',
-      '学籍番号',
-      '学年',
+      'LINEニックネーム',
       '性別',
       '国籍',
-      'LINEニックネーム',
+      '学年',
+      '役割',
       '電話番号',
       '大学のメール',
       '連絡メール'
     ];
 
-    // Sample Data Row (Task: Provide a clear example)
+    // Sample Data Row (Matching User's Example)
     const sampleRow = [
-      1,                       // NO
-      '太郎',                  // 氏名
-      'ヤマダ タロウ',          // フリガナ
-      '33123456',              // 学籍番号
-      '1',                     // 学年
-      '男',                    // 性別
-      '日本',                  // 国籍
-      'たろう',                 // LINEニックネーム
-      '08012341234',           // 電話番号
-      'taro@red.umds.ac.jp',   // 大学のメール
-      'taro@gmail.com',        // 連絡メール
+      1,                                     // NO
+      '5xxxxxxx',                            // 学籍番号
+      'ミルクティ太郎',                    // 氏名
+      'ミルクティタロウ',                   // フリガナ
+      'みるくてぃ',                                 // LINEニックネーム
+      '男',                                   // 性別
+      'ベトナム',                              // 国籍
+      '１年生',                               // 学年
+      '部員',                                 // 役割
+      'xxx-xxx-xxxx',                         // 電話番号
+      'xxxx@red.umds.ac.jp',      // 大学のメール
+      'xxxx@gmail.com',             // 連絡メール
     ];
 
     const worksheet = XLSX.utils.aoa_to_sheet([headers, sampleRow]);
+
+    // --- APPLY STYLING TO HEADERS (Row 1) ---
+    for (let i = 0; i < headers.length; i++) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: i });
+      if (worksheet[cellRef]) {
+        worksheet[cellRef].s = {
+          font: { bold: true, sz: 12 },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          fill: { fgColor: { rgb: "BDD7EE" } }, // Light Blue
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+          }
+        };
+      }
+    }
 
     // Auto-size columns (Approximate width based on headers)
     const wscols = headers.map(h => ({ wch: h.length * 2.5 + 10 }));
@@ -332,9 +361,9 @@ const MemberImport: React.FC<{
           .eq('academic_year_id', academic_year_id)
           .maybeSingle();
 
-        const newRole = (existingMembership && ['president', 'vice_president', 'treasurer', 'executive', 'admin'].includes(existingMembership.role))
+        const newRole = (row as any).role || ((existingMembership && ['president', 'vice_president', 'treasurer', 'executive', 'admin'].includes(existingMembership.role))
           ? existingMembership.role
-          : 'member';
+          : 'member');
 
         const { error: memError } = await supabase
           .from('club_memberships')
@@ -458,9 +487,9 @@ const MemberImport: React.FC<{
                         </td>
                         <td className="px-8 py-5">
                           {(row as any)._canLogin ? (
-                             <span className="px-2 py-1 bg-indigo-50 text-indigo-500 text-[10px] font-black rounded-md border border-indigo-100 italic">LOGIN OK</span>
+                            <span className="px-2 py-1 bg-indigo-50 text-indigo-500 text-[10px] font-black rounded-md border border-indigo-100 italic">LOGIN OK</span>
                           ) : (
-                             <span className="px-2 py-1 bg-amber-50 text-amber-500 text-[10px] font-black rounded-md border border-amber-100 italic whitespace-nowrap">NO EMAIL (NO LOGIN)</span>
+                            <span className="px-2 py-1 bg-amber-50 text-amber-500 text-[10px] font-black rounded-md border border-amber-100 italic whitespace-nowrap">NO EMAIL (NO LOGIN)</span>
                           )}
                         </td>
                         <td className="px-8 py-5 font-mono font-black text-slate-800 text-center tracking-tight">{row.student_id || '—'}</td>
