@@ -352,9 +352,8 @@ export default function ActivityRegistrations() {
         ? ` (${activity.sessions[selectedSessionIdx].start_time})`
         : ' (全日程一括)';
 
-      const headersRow = ['No', '学籍番号', '氏名', 'フリガナ', 'LINEニックネーム'];
 
-      const sessionHeaderStartIndex = headersRow.length;
+      const headersRow = ['No', '学籍番号', '氏名', 'フリガナ', 'LINEニックネーム'];
 
       if (selectedSessionIdx !== null && activity.sessions?.[selectedSessionIdx]) {
         const s = activity.sessions[selectedSessionIdx];
