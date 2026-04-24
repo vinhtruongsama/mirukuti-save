@@ -20,20 +20,28 @@ export default function ActivityDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('activities')
-        .select('*, registrations(count), academic_years(name)')
+        .select('*, academic_years(name)')
         .eq('id', id)
         .is('deleted_at', null)
         .single();
 
       if (error) throw error;
 
-      const registeredCount = data.registrations?.[0]?.count || 0;
+      // 2. Fetch REAL occupancy counts (bypassing RLS via RPC)
+      const { data: occupancy, error: occError } = await supabase
+        .rpc('get_session_occupancy', { target_activity_id: id });
+
+      if (occError) console.error('Occupancy fetch error:', occError);
+
+      const registeredCount = data.registered_count || 0;
+      const sessionCounts = occupancy || {};
+
       const isClosed =
         data.status === 'closed' ||
         isPast(new Date(data.registration_deadline)) ||
         (data.capacity && registeredCount >= data.capacity);
 
-      return { ...data, registeredCount, isClosed };
+      return { ...data, registeredCount, sessionCounts, isClosed };
     },
     enabled: !!id,
   });
@@ -62,6 +70,15 @@ export default function ActivityDetail() {
 
   const toggleSession = (idx: number) => {
     if (myRegistration) return;
+
+    // Check if session is full
+    const session = activity?.sessions?.[idx];
+    const currentCount = activity?.sessionCounts?.[idx] || 0;
+    if (session?.capacity && currentCount >= session.capacity && !activeSessions.includes(idx)) {
+      toast.error('この時間帯は定員に達しています。');
+      return;
+    }
+
     setSelectedSessions((prev: number[]) =>
       prev.includes(idx) ? prev.filter((i: number) => i !== idx) : [...prev, idx]
     );
@@ -76,20 +93,42 @@ export default function ActivityDetail() {
         throw new Error('内容を確認し、同意チェックを入れてください。');
       }
 
-      const { count, error: countError } = await supabase
+      // Final check for latest registration data to prevent race conditions
+      const { data: latestRegs, error: fetchError } = await supabase
         .from('registrations')
-        .select('*', { count: 'exact', head: true })
+        .select('selected_sessions')
         .eq('activity_id', id);
 
-      if (countError) throw countError;
-      if (activity.capacity && (count || 0) >= activity.capacity) {
+      if (fetchError) throw fetchError;
+
+      // 1. Check Global Activity Capacity
+      if (activity.capacity && (latestRegs?.length || 0) >= activity.capacity) {
         throw new Error('定員に達したため、申し込みを締め切りました。');
+      }
+
+      // 2. Check Per-Session Capacity
+      if (activity.sessions?.length > 0) {
+        // Calculate current occupancy from latest data
+        const latestCounts: Record<number, number> = {};
+        latestRegs?.forEach((reg: any) => {
+          reg.selected_sessions?.forEach((sIdx: number) => {
+            latestCounts[sIdx] = (latestCounts[sIdx] || 0) + 1;
+          });
+        });
+
+        // Validate each selected session against its specific capacity
+        for (const sIdx of selectedSessions) {
+          const session = activity.sessions[sIdx];
+          if (session?.capacity && (latestCounts[sIdx] || 0) >= session.capacity) {
+            throw new Error(`「${format(new Date(session.date), "MM/dd")} ${session.start_time}」の枠は既に満員です。選択を解除してください。`);
+          }
+        }
       }
 
       const { error } = await supabase.from('registrations').insert({
         activity_id: id,
         user_id: currentUser!.id,
-        attendance_status: 'applied',
+        attendance_status: 'pending',
         selected_sessions: selectedSessions
       });
 
@@ -270,39 +309,66 @@ export default function ActivityDetail() {
                 <h3 className="text-xl font-black text-gray-900 uppercase tracking-[0.2em]">参加時間帯</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {activity.sessions.map((session: any, idx: number) => (
-                  <button
-                    key={idx}
-                    onClick={() => toggleSession(idx)}
-                    disabled={!!myRegistration}
-                    className={cn(
-                      "p-6 rounded-[2rem] border-2 transition-all duration-500 text-left relative overflow-hidden group flex items-center gap-6",
-                      activeSessions.includes(idx)
-                        ? "bg-white text-indigo-600 border-indigo-600 shadow-xl shadow-indigo-200/20"
-                        : "bg-white border-gray-400 text-gray-900 hover:border-indigo-400 hover:shadow-lg",
-                      myRegistration && "opacity-80 cursor-default"
-                    )}
-                  >
-                    {/* Checkbox Replacement for Vol.X */}
-                    <div className={cn(
-                      "w-10 h-10 rounded-lg flex items-center justify-center border-2 transition-all shrink-0",
-                      activeSessions.includes(idx)
-                        ? "bg-indigo-600 text-white border-indigo-600"
-                        : "bg-white text-transparent border-stone-400"
-                    )}>
-                      <CheckCircle2 className={cn("w-5 h-5 transition-transform", activeSessions.includes(idx) ? "scale-100" : "scale-0")} />
-                    </div>
+                {activity.sessions.map((session: any, idx: number) => {
+                  const currentCount = activity.sessionCounts?.[idx] || 0;
+                  const isFull = session.capacity && currentCount >= session.capacity;
+                  const isSelected = activeSessions.includes(idx);
 
-                    <div className="relative z-10 flex-1">
-                      <p className="text-xl font-black uppercase tracking-tight mb-0.5">
-                        {format(new Date(session.date), "MM/dd (EEE)", { locale: jaLocale })}
-                      </p>
-                      <p className={cn("text-base font-medium", activeSessions.includes(idx) ? "text-indigo-600/60" : "text-gray-500")}>
-                        {session.start_time} - {session.end_time}
-                      </p>
-                    </div>
-                  </button>
-                ))}
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => toggleSession(idx)}
+                      disabled={!!myRegistration || (isFull && !isSelected)}
+                      className={cn(
+                        "p-6 rounded-[2rem] border-2 transition-all duration-500 text-left relative overflow-hidden group flex items-center gap-6",
+                        isSelected
+                          ? "bg-white text-indigo-600 border-indigo-600 shadow-xl shadow-indigo-200/20"
+                          : isFull
+                            ? "bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed opacity-60"
+                            : "bg-white border-gray-400 text-gray-900 hover:border-indigo-400 hover:shadow-lg",
+                        myRegistration && "opacity-80 cursor-default"
+                      )}
+                    >
+                      {/* Full Badge */}
+                      {isFull && !isSelected && (
+                        <div className="absolute top-0 right-0 px-4 py-1.5 bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-bl-2xl">
+                          満員
+                        </div>
+                      )}
+
+                      {/* Checkbox Replacement for Vol.X */}
+                      <div className={cn(
+                        "w-10 h-10 rounded-lg flex items-center justify-center border-2 transition-all shrink-0",
+                        isSelected
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : isFull
+                            ? "bg-gray-100 text-gray-200 border-gray-200"
+                            : "bg-white text-transparent border-stone-400"
+                      )}>
+                        <CheckCircle2 className={cn("w-5 h-5 transition-transform", isSelected ? "scale-100" : "scale-0")} />
+                      </div>
+
+                      <div className="relative z-10 flex-1">
+                        <p className="text-xl font-black uppercase tracking-tight mb-0.5">
+                          {format(new Date(session.date), "MM/dd (EEE)", { locale: jaLocale })}
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <p className={cn("text-base font-medium", isSelected ? "text-indigo-600/60" : "text-gray-500")}>
+                            {session.start_time} - {session.end_time}
+                          </p>
+                          {session.capacity && !isFull && (
+                            <span className={cn(
+                              "text-[10px] font-black px-2 py-0.5 rounded-full border",
+                              isFull ? "bg-rose-50 border-rose-100 text-rose-500" : "bg-gray-50 border-gray-100 text-gray-400"
+                            )}>
+                              {currentCount}/{session.capacity}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

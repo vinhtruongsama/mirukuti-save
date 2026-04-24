@@ -39,7 +39,9 @@ export default function Activities() {
     queryKey: ['activities', selectedYear?.id],
     queryFn: async () => {
       if (!selectedYear) return [];
-      const { data, error } = await supabase
+
+      // 1. Fetch activities (Basic info + metadata)
+      const { data: acts, error: actError } = await supabase
         .from('activities')
         .select('*')
         .eq('academic_year_id', selectedYear.id)
@@ -48,8 +50,24 @@ export default function Activities() {
         .order('pinned_at', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (actError) throw actError;
+
+      // 2. Fetch REAL occupancy counts (bypassing RLS via RPC)
+      const { data: occupancyData, error: occError } = await supabase
+        .rpc('get_all_session_occupancy', { target_year_id: selectedYear.id });
+
+      if (occError) {
+        console.error('Occupancy fetch error:', occError);
+      }
+
+      // 3. Merge occupancy data into activities
+      return (acts || []).map(act => {
+        const occMatch = occupancyData?.find((o: any) => o.activity_id === act.id);
+        return {
+          ...act,
+          sessionCounts: occMatch?.occupancy || {}
+        };
+      });
     },
     enabled: !!selectedYear,
   });
@@ -86,7 +104,41 @@ export default function Activities() {
         if (error) throw error;
         return { type: 'cancel' };
       } else {
-        // Register
+        // Register (with latest capacity check)
+        const { data: latestRegs, error: fetchError } = await supabase
+          .from('registrations')
+          .select('selected_sessions')
+          .eq('activity_id', activityId);
+
+        if (fetchError) throw fetchError;
+
+        const act = activities.find(a => a.id === activityId);
+        if (!act) throw new Error('Activity not found');
+
+        // 1. Global Capacity Check
+        if (act.capacity && (latestRegs?.length || 0) >= act.capacity) {
+          throw new Error('定員に達したため、申し込みを締め切りました。');
+        }
+
+        // 2. Per-Session Capacity Check
+        if (act.sessions?.length > 0) {
+          const latestCounts: Record<number, number> = {};
+          latestRegs?.forEach((reg: any) => {
+            reg.selected_sessions?.forEach((sIdx: number | string) => {
+              const idxNum = typeof sIdx === 'string' ? parseInt(sIdx) : sIdx;
+              latestCounts[idxNum] = (latestCounts[idxNum] || 0) + 1;
+            });
+          });
+
+          for (const sIdx of selectedSessions) {
+            const session = act.sessions[sIdx];
+            if (session?.capacity && (latestCounts[sIdx] || 0) >= session.capacity) {
+              const datePart = format(new Date(session.date), "M/d");
+              throw new Error(`「${datePart} ${session.start_time}」の枠は既に満員です。`);
+            }
+          }
+        }
+
         const { error } = await supabase
           .from('registrations')
           .insert({
@@ -115,7 +167,12 @@ export default function Activities() {
   const currentActivities = useMemo(() => {
     return activities.map(act => {
       const isPastYear = selectedYear ? !selectedYear.is_current : false;
+      // ALWAYS use the database-managed registered_count for the overall display
+      // to avoid RLS filtering issues with the registrations join.
       const registeredCount = act.registered_count || 0;
+
+      // sessionCounts is already merged in the queryFn via RPC
+      const sessionCounts = act.sessionCounts || {};
 
       let computedStatus: 'OPEN' | 'CLOSED' = act.status === 'closed' ? 'CLOSED' : 'OPEN';
 
@@ -128,6 +185,7 @@ export default function Activities() {
       return {
         ...act,
         computedStatus,
+        sessionCounts,
         registered: registeredCount,
         displayText: act.title,
         displayLocation: act.location,
@@ -185,7 +243,7 @@ export default function Activities() {
             <div className="relative flex-1 max-w-2xl group w-full">
               {/* Sync with Admin Glow Effect */}
               <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 rounded-[2.5rem] blur opacity-0 group-hover:opacity-100 transition duration-500 -z-10" />
-              
+
               <div className="relative flex items-center bg-white border-2 border-gray-400 rounded-[2.5rem] p-1.5 shadow-sm transition-all duration-300 group-focus-within:border-[#4F5BD5]/50 group-focus-within:shadow-[0_15px_350px_-5px_rgba(79,91,213,0.15)] overflow-hidden">
                 <Search className="ml-5 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-[#4F5BD5]" />
                 <input
@@ -452,25 +510,38 @@ export default function Activities() {
                             const activeSessions = isRegistered ? (userRegMap as Record<string, any[]>)[activityId] || [] : selectedSessions;
 
                             return selectedActivity.sessions.map((session: any, idx: number) => {
+                              const currentCount = selectedActivity.sessionCounts?.[idx] || 0;
+                              const isFull = session.capacity && currentCount >= session.capacity;
                               const isSelected = activeSessions.includes(idx);
-                              const canToggle = !isRegistered;
+                              const canToggle = !isRegistered && (!isFull || isSelected);
 
                               return (
                                 <div
                                   key={idx}
                                   onClick={() => canToggle && toggleSession(idx)}
-                                  className={`group p-5 rounded-[1.5rem] border-2 transition-all duration-500 flex items-center gap-6 ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                                  className={`group p-5 rounded-[1.5rem] border-2 transition-all duration-500 flex items-center gap-6 relative overflow-hidden ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
                                     } ${isSelected
                                       ? 'bg-white text-brand-emerald-500 border-brand-emerald-600 shadow-xl shadow-brand-emerald-500/10 scale-[1.01]'
-                                      : 'bg-stone-100 border-stone-500 hover:border-brand-stone-600'
+                                      : isFull
+                                        ? 'bg-stone-50 border-stone-200 text-stone-300'
+                                        : 'bg-stone-100 border-stone-500 hover:border-brand-stone-600'
                                     }`}
                                 >
+                                  {/* Full Badge */}
+                                  {isFull && !isSelected && (
+                                    <div className="absolute top-0 right-0 px-3 py-1 bg-rose-700 text-white text-[13px] font-black uppercase tracking-widest rounded-bl-xl">
+                                      満員
+                                    </div>
+                                  )}
+
                                   {/* Check Icon (No Frame) */}
                                   <div className="shrink-0">
                                     <CheckCircle2
                                       className={`w-7 h-7 transition-all duration-500 ${isSelected
                                         ? 'text-brand-emerald-500 scale-110'
-                                        : 'text-stone-300 scale-100 opacity-20'
+                                        : isFull
+                                          ? 'text-stone-200'
+                                          : 'text-stone-300 scale-100 opacity-20'
                                         }`}
                                     />
                                   </div>
@@ -479,9 +550,17 @@ export default function Activities() {
                                     <p className={`text-[12px] font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-900' : 'text-stone-600'}`}>
                                       {format(new Date(session.date), "yyyy年M月d日(E)", { locale: jaLocale })}
                                     </p>
-                                    <p className={`text-lg font-black ${isSelected ? 'text-brand-emerald-900' : 'text-brand-stone-900'}`}>
-                                      {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'}
-                                    </p>
+                                    <div className="flex items-center gap-3">
+                                      <p className={`text-lg font-black ${isSelected ? 'text-brand-emerald-900' : 'text-brand-stone-900'}`}>
+                                        {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'}
+                                      </p>
+                                      {session.capacity && !isFull && (
+                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${isFull ? "bg-rose-50 border-rose-100 text-rose-500" : "bg-white border-stone-200 text-stone-400"
+                                          }`}>
+                                          {currentCount}/{session.capacity}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               );

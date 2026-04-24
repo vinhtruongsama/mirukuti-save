@@ -13,7 +13,8 @@ import {
   Loader2,
   X,
   AlertTriangle,
-  FileCheck2
+  FileCheck2,
+  Download
 } from 'lucide-react';
 
 /**
@@ -527,33 +528,27 @@ const MemberImport: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* 3. Logic Tips Card */}
-      <div className="mt-8 p-6 lg:p-10 bg-stone-50 rounded-[2.5rem] lg:rounded-[3.5rem] flex flex-col items-center gap-8 lg:gap-10 shadow-sm relative overflow-hidden border border-stone-100">
-        <div className="space-y-4 lg:space-y-5 text-center px-2">
-          <h3 className="text-[20px] lg:text-[24px] font-black tracking-tight text-[#4F5BD5]">準備インポート</h3>
-          <div className="space-y-1">
-            <p className="text-stone-400 font-bold text-[13px] lg:text-[15px] leading-relaxed">
-              以下の項目が含まれているか確認してください：
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {['氏名', 'フリガナ', '学籍番号', '学年', '性別', '国籍', '連絡メール', '電話番号', 'LINEニックネーム', '大学のメール'].map((field) => (
-                <span key={field} className="px-3 py-1 bg-white border border-stone-200 rounded-lg text-stone-900 text-[12px] lg:text-[14px] font-black shadow-sm">
-                  {field}
-                </span>
-              ))}
-            </div>
-            <p className="text-[#D62976] text-[11px] lg:text-[13px] font-black opacity-90 pt-2 bg-rose-50/50 py-3 rounded-2xl border border-rose-100/50">
-              ※ 学籍番号と氏名は必須項目です。メールアドレスがない場合はログインができません。それ以外は空欄でもインポート可能です。
-            </p>
-          </div>
+      {/* 3. Direct Action Card - Download & Import */}
+      <div className="mt-8 p-8 lg:p-14 bg-gradient-to-br from-stone-50 to-white rounded-[2.5rem] lg:rounded-[3.5rem] flex flex-col items-center gap-8 shadow-sm relative overflow-hidden border border-stone-100">
+        <div className="space-y-3 text-center px-2">
+          <h3 className="text-[22px] lg:text-[28px] font-black tracking-tight text-stone-900">
+            インポートの準備
+          </h3>
+          <p className="text-stone-400 font-bold text-[14px] lg:text-[16px] leading-relaxed max-w-md mx-auto">
+            初めての方はサンプルファイルをダウンロードして、<br className="hidden sm:block" />
+            内容を書き換えてからアップロードしてください。
+          </p>
         </div>
-        <div className="w-full lg:w-auto">
+        
+        <div className="w-full lg:w-auto flex flex-col items-center gap-4">
           <button
             onClick={handleDownloadTemplate}
-            className="w-full lg:w-auto px-8 py-5 bg-white text-stone-900 border border-stone-200 rounded-[2rem] font-black tracking-tight text-[14px] lg:text-[16px] hover:bg-stone-50 transition-all shadow-sm active:scale-95"
+            className="w-full lg:w-auto px-12 py-5 bg-stone-900 text-white rounded-[2rem] font-black tracking-widest text-[14px] lg:text-[15px] hover:bg-black transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3"
           >
+            <Download className="w-5 h-5" />
             サンプルファイルをダウンロード
           </button>
+          <span className="text-[11px] font-black text-[#D62976] uppercase tracking-[0.2em] italic">※ 学籍番号と氏名は必須です</span>
         </div>
       </div>
 

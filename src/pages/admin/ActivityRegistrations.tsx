@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
 import { ArrowLeft, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -178,8 +178,8 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
               <button
                 onClick={() => setShowNote(!showNote)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${reg.admin_note
-                    ? 'bg-rose-50/50 text-rose-500 border-rose-100 shadow-sm'
-                    : 'bg-stone-50/30 text-stone-500 border-stone-100 hover:text-stone-600 hover:bg-stone-50'
+                  ? 'bg-rose-50/50 text-rose-500 border-rose-100 shadow-sm'
+                  : 'bg-stone-50/30 text-stone-500 border-stone-100 hover:text-stone-600 hover:bg-stone-50'
                   }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
@@ -281,7 +281,7 @@ export default function ActivityRegistrations() {
         .from('registrations')
         .select(`
           id, attendance_status, admin_note, registered_at, selected_sessions,
-          users:user_id (id, mssv, full_name, full_name_kana, email, phone, line_nickname),
+          users:user_id (id, mssv, full_name, full_name_kana, email, phone, line_nickname, university_email),
           attendance_records (session_index, status)
         `)
         .eq('activity_id', activityId)
@@ -352,23 +352,28 @@ export default function ActivityRegistrations() {
         ? ` (${activity.sessions[selectedSessionIdx].start_time})`
         : ' (全日程一括)';
 
-      const headersRow = ['No', '氏名', '学籍番号'];
+      const headersRow = ['No', '学籍番号', '氏名', 'フリガナ', 'LINEニックネーム'];
+
+      const sessionHeaderStartIndex = headersRow.length;
 
       if (selectedSessionIdx !== null && activity.sessions?.[selectedSessionIdx]) {
         const s = activity.sessions[selectedSessionIdx];
         const datePart = format(new Date(s.date), 'M月d日');
-        headersRow.push(`${datePart} (${s.start_time})`);
+        const timePart = s.end_time ? `${s.start_time}-${s.end_time}` : s.start_time;
+        headersRow.push(`${datePart} (${timePart})`);
       } else if (activity.sessions?.length === 1) {
         const s = activity.sessions[0];
         const datePart = format(new Date(s.date), 'M月d日');
-        headersRow.push(`${datePart} (${s.start_time})`);
+        const timePart = s.end_time ? `${s.start_time}-${s.end_time}` : s.start_time;
+        headersRow.push(`${datePart} (${timePart})`);
       } else if (activity.sessions?.length > 1) {
         activity.sessions.forEach((s: any) => {
           const datePart = format(new Date(s.date), 'M月d日');
-          headersRow.push(`${datePart} (${s.start_time})`);
+          const timePart = s.end_time ? `${s.start_time}-${s.end_time}` : s.start_time;
+          headersRow.push(`${datePart} (${timePart})`);
         });
       } else {
-        // NO SESSIONS CASE: use main activity date
+        // NO SESSIONS CASE
         try {
           const d = new Date(activity.date);
           const datePart = format(d, 'M月d日');
@@ -394,15 +399,33 @@ export default function ActivityRegistrations() {
 
       XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
 
+      // Apply styling to the header row (Row 5 - index 4)
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_cell({ r: 4, c: C });
+        if (!ws[address]) continue;
+        ws[address].s = {
+          fill: { fgColor: { rgb: "4472C4" } }, // Professional Blue
+          font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "thin", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+      }
+
       // Member Data
       const rowData = filteredRegs.map((r: any, idx) => {
         const row: any[] = [
           idx + 1,
-          r.users ? (r.users.full_name_kana || r.users.full_name) : '退会済みユーザー',
-          r.users?.mssv || 'N/A'
+          r.users?.mssv || 'N/A',
+          r.users?.full_name || 'N/A',
+          r.users?.full_name_kana || '-',
+          r.users?.line_nickname ? `${r.users.line_nickname}` : '未設定'
         ];
-
-        // (Task kix1) Hometown/Nationality removed as requested
 
         if (selectedSessionIdx !== null) {
           const sStatus = r.attendance_records?.find((ar: any) => ar.session_index === selectedSessionIdx)?.status;
@@ -421,30 +444,32 @@ export default function ActivityRegistrations() {
           row.push(STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中');
         }
         if (isFullDisclosure) {
-          row.push(r.users?.university_email || r.users?.email || '-');
+          row.push(r.users?.university_email || '-');
           row.push(r.users?.phone || '-');
         }
         row.push(r.admin_note || '');
         return row;
       });
 
-      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A5' });
+      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A6' });
 
       // Column Widths for better readability
       const colWidths = [
         { wch: 6 },  // No
-        { wch: 30 }, // 氏名
         { wch: 15 }, // 学籍番号
+        { wch: 25 }, // 氏名
+        { wch: 25 }, // フリガナ
+        { wch: 20 }, // LINE
       ];
 
       // Add widths for attendance columns
-      if (selectedSessionIdx !== null || !activity.sessions?.length) {
-        colWidths.push({ wch: 20 });
-      } else {
-        activity.sessions.forEach(() => {
-          colWidths.push({ wch: 15 });
-        });
+      const sessionCount = activity.sessions?.length || 1;
+      for (let i = 0; i < sessionCount; i++) {
+        colWidths.push({ wch: 30 });
       }
+
+      colWidths.push({ wch: 35 }); // Email
+      colWidths.push({ wch: 15 }); // Phone
       colWidths.push({ wch: 40 }); // 備考
 
       ws['!cols'] = colWidths;
@@ -551,10 +576,12 @@ export default function ActivityRegistrations() {
                   onClick={() => setSelectedSessionIdx(idx)}
                   className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === idx
                     ? 'bg-rose-500 border-rose-500 text-white font-black shadow-lg shadow-rose-500/20'
-                    : 'bg-white border-gray-300 text-gray-400 font-bold hover:border-gray-400'
+                    : session.capacity && (sessionCounts[idx] || 0) >= session.capacity
+                      ? 'bg-rose-50 border-rose-200 text-rose-500 font-black'
+                      : 'bg-white border-gray-300 text-gray-400 font-bold hover:border-gray-400'
                     }`}
                 >
-                  {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'} ({sessionCounts[idx] || 0}人)
+                  {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'} ({sessionCounts[idx] || 0}{session.capacity ? `/${session.capacity}` : ''}人)
                 </button>
               ))}
             </>
