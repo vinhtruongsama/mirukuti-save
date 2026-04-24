@@ -4,6 +4,7 @@ import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, isPast } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import { Search, Plus, Edit2, CalendarDays, Loader2, Camera, Activity, X, Compass, Clock, Users, Calendar, Pin, PinOff, Trash2, Check, ChevronDown } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Select from '@radix-ui/react-select';
@@ -545,7 +546,7 @@ export default function ActivitiesAdmin() {
                             readOnly
                             value={(() => {
                               const val = watch('date');
-                              return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                              return val ? format(new Date(val), 'yyyy年M月d日(E)', { locale: ja }) : '';
                             })()}
                             placeholder="DD/MM/YYYY"
                             className="w-full bg-white/50 border border-pink-200/50 text-[#0f172a] rounded-[1.5rem] px-4 py-3 text-sm font-black focus:bg-white focus:border-[#D62976]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#D62976]/40"
@@ -584,7 +585,7 @@ export default function ActivitiesAdmin() {
                             readOnly
                             value={(() => {
                               const val = watch('registration_deadline');
-                              return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                              return val ? format(new Date(val), 'yyyy年M月d日(E)', { locale: ja }) : '';
                             })()}
                             placeholder="DD/MM/YYYY"
                             className="w-full bg-white/50 border border-indigo-200/50 text-[#0f172a] rounded-[1.5rem] px-4 py-3 text-sm font-black focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#4F5BD5]/40"
@@ -621,7 +622,7 @@ export default function ActivitiesAdmin() {
                             readOnly
                             value={(() => {
                               const val = watch('cancellation_deadline');
-                              return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                              return val ? format(new Date(val), 'yyyy年M月d日(E)', { locale: ja }) : '';
                             })()}
                             placeholder="DD/MM/YYYY"
                             className="w-full bg-white/50 border border-amber-200/50 text-[#0f172a] rounded-[1.5rem] px-4 py-3 text-sm font-black focus:bg-white focus:border-amber-500/30 outline-none transition-all shadow-sm cursor-pointer hover:border-amber-500/40"
@@ -813,7 +814,7 @@ export default function ActivitiesAdmin() {
                                     readOnly
                                     value={(() => {
                                       const val = watch(`sessions.${index}.date`);
-                                      return val ? format(new Date(val), 'dd/MM/yyyy') : '';
+                                      return val ? format(new Date(val), 'yyyy年M月d日(E)', { locale: ja }) : '';
                                     })()}
                                     placeholder="DD/MM/YYYY"
                                     className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer"
@@ -845,32 +846,35 @@ export default function ActivitiesAdmin() {
                                 </div>
                               </div>
 
-                              {/* Row 2: Start & End */}
-                              <div className="space-y-2 col-span-1">
-                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">開始</label>
-                                <div className="relative">
-                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
-                                  <input
-                                    type="text"
-                                    placeholder="11:00"
-                                    {...register(`sessions.${index}.start_time` as const)}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
-                                  />
+                                <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
+                                  {/* Start */}
+                                  <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">開始</label>
+                                    <div className="relative">
+                                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                      <input
+                                        type="text"
+                                        placeholder="11:00"
+                                        {...register(`sessions.${index}.start_time` as const)}
+                                        className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                      />
+                                    </div>
+                                  </div>
+                                  {/* End */}
+                                  <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">終了</label>
+                                    <div className="relative">
+                                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                      <input
+                                        type="text"
+                                        placeholder="15:00"
+                                        {...register(`sessions.${index}.end_time` as const)}
+                                        className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              <div className="space-y-2 col-span-1">
-                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">終了</label>
-                                <div className="relative">
-                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
-                                  <input
-                                    type="text"
-                                    placeholder="15:00"
-                                    {...register(`sessions.${index}.end_time` as const)}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
-                                  />
-                                </div>
-                              </div>
-                            </div>
                           </motion.div>
                         ))}
 
