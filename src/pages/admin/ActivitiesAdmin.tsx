@@ -19,6 +19,8 @@ import { useDebounce } from '../../hooks/useDebounce';
 import ActivityDeleteConfirmModal from '../../components/admin/ActivityDeleteConfirmModal';
 
 // --- ZOD SCHEMA ---
+const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
 const activitySchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1, 'タイトルを入力してください'),
@@ -31,8 +33,8 @@ const activitySchema = z.object({
   capacity: z.number().min(0, '0以上の数値を入力してください').optional().nullable().or(z.nan()),
   sessions: z.array(z.object({
     date: z.string().min(1, '日付'),
-    start_time: z.string().min(1, '開始時間'),
-    end_time: z.string().optional().nullable(),
+    start_time: z.string().regex(timeRegex, 'HH:mm形式'),
+    end_time: z.string().regex(timeRegex, 'HH:mm形式').optional().nullable().or(z.literal('')),
     capacity: z.number().min(0).optional().nullable().or(z.nan()),
   })).optional(),
   status: z.enum(['open', 'closed', 'draft']),
@@ -856,9 +858,15 @@ export default function ActivitiesAdmin() {
                                         type="text"
                                         placeholder="11:00"
                                         {...register(`sessions.${index}.start_time` as const)}
-                                        className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                        className={cn(
+                                          "w-full bg-gray-50 border text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm",
+                                          errors.sessions?.[index]?.start_time ? "border-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]" : "border-gray-100"
+                                        )}
                                       />
                                     </div>
+                                    {errors.sessions?.[index]?.start_time && (
+                                      <p className="text-[10px] text-rose-500 font-bold px-2">{errors.sessions[index].start_time?.message}</p>
+                                    )}
                                   </div>
                                   {/* End */}
                                   <div className="space-y-2">
@@ -869,9 +877,15 @@ export default function ActivitiesAdmin() {
                                         type="text"
                                         placeholder="15:00"
                                         {...register(`sessions.${index}.end_time` as const)}
-                                        className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                        className={cn(
+                                          "w-full bg-gray-50 border text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm",
+                                          errors.sessions?.[index]?.end_time ? "border-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]" : "border-gray-100"
+                                        )}
                                       />
                                     </div>
+                                    {errors.sessions?.[index]?.end_time && (
+                                      <p className="text-[10px] text-rose-500 font-bold px-2">{errors.sessions[index].end_time?.message}</p>
+                                    )}
                                   </div>
                                 </div>
                               </div>
