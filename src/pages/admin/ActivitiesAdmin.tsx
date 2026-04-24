@@ -548,7 +548,7 @@ export default function ActivitiesAdmin() {
                               return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                             })()}
                             placeholder="DD/MM/YYYY"
-                            className="w-full bg-white/50 border border-pink-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-[#D62976]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#D62976]/40"
+                            className="w-full bg-white/50 border border-pink-200/50 text-[#0f172a] rounded-[1.5rem] px-4 py-3 text-sm font-black focus:bg-white focus:border-[#D62976]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#D62976]/40"
                           />
                           <input
                             type="date"
@@ -587,7 +587,7 @@ export default function ActivitiesAdmin() {
                               return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                             })()}
                             placeholder="DD/MM/YYYY"
-                            className="w-full bg-white/50 border border-indigo-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#4F5BD5]/40"
+                            className="w-full bg-white/50 border border-indigo-200/50 text-[#0f172a] rounded-[1.5rem] px-4 py-3 text-sm font-black focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer hover:border-[#4F5BD5]/40"
                           />
                           <input
                             type="date"
@@ -624,7 +624,7 @@ export default function ActivitiesAdmin() {
                               return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                             })()}
                             placeholder="DD/MM/YYYY"
-                            className="w-full bg-white/50 border border-amber-200/50 text-[#0f172a] rounded-[1.5rem] px-6 py-4 text-sm font-black focus:bg-white focus:border-amber-500/30 outline-none transition-all shadow-sm cursor-pointer hover:border-amber-500/40"
+                            className="w-full bg-white/50 border border-amber-200/50 text-[#0f172a] rounded-[1.5rem] px-4 py-3 text-sm font-black focus:bg-white focus:border-amber-500/30 outline-none transition-all shadow-sm cursor-pointer hover:border-amber-500/40"
                           />
                           <input
                             type="date"
@@ -803,7 +803,7 @@ export default function ActivitiesAdmin() {
                               <X className="w-5 h-5" />
                             </button>
 
-                            <div className="grid grid-cols-2 gap-4 md:gap-6 items-end">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 items-end">
                               {/* Row 1: Date & Capacity */}
                               <div className="space-y-2 col-span-1">
                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">日付</label>
@@ -816,7 +816,7 @@ export default function ActivitiesAdmin() {
                                       return val ? format(new Date(val), 'dd/MM/yyyy') : '';
                                     })()}
                                     placeholder="DD/MM/YYYY"
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer"
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3 text-sm font-bold focus:bg-white focus:border-[#4F5BD5]/30 outline-none transition-all shadow-sm cursor-pointer"
                                   />
                                   <input
                                     type="date"
@@ -840,7 +840,7 @@ export default function ActivitiesAdmin() {
                                     min="0"
                                     placeholder="無制限"
                                     {...register(`sessions.${index}.capacity` as const, { valueAsNumber: true })}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
                                   />
                                 </div>
                               </div>
@@ -851,9 +851,10 @@ export default function ActivitiesAdmin() {
                                 <div className="relative">
                                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
                                   <input
-                                    type="time"
+                                    type="text"
+                                    placeholder="11:00"
                                     {...register(`sessions.${index}.start_time` as const)}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
                                   />
                                 </div>
                               </div>
@@ -862,10 +863,10 @@ export default function ActivitiesAdmin() {
                                 <div className="relative">
                                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 shadow-sm" />
                                   <input
-                                    type="time"
-                                    placeholder="未定"
+                                    type="text"
+                                    placeholder="15:00"
                                     {...register(`sessions.${index}.end_time` as const)}
-                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                    className="w-full bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl pl-12 pr-4 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
                                   />
                                 </div>
                               </div>
