@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive, Download } from 'lucide-react';
+import { Search, Eye, UserPlus, FileUp, FilterX, ChevronLeft, ChevronRight, Shield, LayoutGrid, Archive, Download, Mail, Wrench, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import XLSX from 'xlsx-js-style';
@@ -15,6 +15,7 @@ import { cn } from '../../lib/utils';
 import { MemberDirectorySkeleton } from '../../components/members/MemberDirectorySkeleton';
 import MemberDetailDrawer from '../../components/members/MemberDetailDrawer';
 import MemberImport from '../../components/members/MemberImport';
+import SendMailModal from '../../components/members/SendMailModal';
 
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -81,7 +82,25 @@ export default function Members() {
 
   // Modal / Drawer states
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isMailModalOpen, setIsMailModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
+
+  // Tools Dropdown state
+  const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
+  const toolsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(event.target as Node)) {
+        setIsToolsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // --- DATA FETCHING (Supabase) ---
   const {
@@ -483,40 +502,75 @@ export default function Members() {
         <div className="w-full lg:w-auto flex flex-wrap items-center justify-end gap-3 lg:gap-4 order-last lg:order-none mt-4 lg:mt-0">
           {canEditMembers && (
             <>
-              <button
-                onClick={exportToExcel}
-                className="h-12 lg:h-14 flex-2 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-[#4F5BD5] rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-indigo-50 active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Download size={16} className="text-[#4F5BD5]" />
-                <span>EXCEL</span>
-              </button>
+              {/* TOOLS DROPDOWN */}
+              <div className="relative" ref={toolsDropdownRef}>
+                <button
+                  onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
+                  className="h-12 lg:h-14 px-6 lg:px-8 bg-white border border-stone-200 hover:border-stone-950 text-stone-800 rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all duration-300 hover:shadow-md active:scale-95 flex items-center justify-center gap-2 group"
+                >
+                  <Wrench size={16} className="text-stone-600 group-hover:rotate-45 transition-transform duration-300" />
+                  <span>ツール</span>
+                  <ChevronDown size={14} className={cn("text-stone-400 transition-transform duration-300", isToolsDropdownOpen && "rotate-180")} />
+                </button>
 
-              <button
-                onClick={() => setIsImportOpen(true)}
-                className="h-12 lg:h-14 flex-2 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-stone-600 rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-stone-50 active:scale-95 flex items-center justify-center gap-2"
-              >
-                <FileUp size={16} className="text-stone-500" />
-                <span>インポート</span>
-              </button>
+                {isToolsDropdownOpen && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-md border border-stone-200/85 rounded-[1.5rem] shadow-xl shadow-stone-200/30 py-2.5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        setIsMailModalOpen(true);
+                      }}
+                      className="w-full px-5 py-3 text-left text-[12px] lg:text-[13px] font-bold text-stone-700 hover:text-[#D62976] hover:bg-pink-50/50 transition-colors flex items-center gap-3"
+                    >
+                      <Mail size={16} className="text-[#D62976]" />
+                      <span>メール送信</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        exportToExcel();
+                      }}
+                      className="w-full px-5 py-3 text-left text-[12px] lg:text-[13px] font-bold text-stone-700 hover:text-[#4F5BD5] hover:bg-indigo-50/50 transition-colors flex items-center gap-3"
+                    >
+                      <Download size={16} className="text-[#4F5BD5]" />
+                      <span>EXCEL</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        setIsImportOpen(true);
+                      }}
+                      className="w-full px-5 py-3 text-left text-[12px] lg:text-[13px] font-bold text-stone-700 hover:text-emerald-600 hover:bg-emerald-50/50 transition-colors flex items-center gap-3"
+                    >
+                      <FileUp size={16} className="text-emerald-500" />
+                      <span>インポート</span>
+                    </button>
+
+                    <div className="h-px bg-stone-100 my-1" />
+
+                    <Link
+                      to="/admin/members/archived"
+                      onClick={() => setIsToolsDropdownOpen(false)}
+                      className="w-full px-5 py-3 text-left text-[12px] lg:text-[13px] font-bold text-stone-700 hover:text-rose-600 hover:bg-rose-50/50 transition-colors flex items-center gap-3 group"
+                    >
+                      <Archive size={16} className="text-stone-500 group-hover:text-rose-500 transition-colors" />
+                      <span>解除された部員</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={() => { setSelectedMember({ users: {}, role: 'member', university_year: 1 }); }}
-                className="h-12 lg:h-14 flex-1 sm:flex-none px-6 lg:px-10 bg-[#4F5BD5] text-white rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-lg shadow-[#4F5BD5]/20 hover:bg-[#3d4bb5] transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="h-12 lg:h-14 px-6 lg:px-10 bg-[#4F5BD5] text-white rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-lg shadow-[#4F5BD5]/20 hover:bg-[#3d4bb5] transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 <UserPlus size={18} />
                 <span>登録</span>
               </button>
             </>
           )}
-
-          <Link
-            to="/admin/members/archived"
-            className="h-12 lg:h-14 flex-1 sm:flex-none px-4 lg:px-8 bg-white border border-stone-100 text-stone-600 rounded-2xl lg:rounded-[1.8rem] text-[12px] lg:text-[13px] font-black shadow-sm transition-all hover:bg-stone-50 active:scale-95 flex items-center justify-center gap-2 group"
-            title="アーカイブ管理"
-          >
-            <Archive size={16} className="text-stone-900 group-hover:text-rose-500 transition-colors" />
-            <span>解除された部員</span>
-          </Link>
         </div>
       </header>
 
@@ -886,6 +940,11 @@ export default function Members() {
           queryClient.invalidateQueries({ queryKey: ['admin-members'] });
           queryClient.invalidateQueries({ queryKey: ['archived-members'] });
         }}
+      />
+
+      <SendMailModal
+        isOpen={isMailModalOpen}
+        onClose={() => setIsMailModalOpen(false)}
       />
 
       {/* Edit Form Modal is now integrated into MemberDetailDrawer */}

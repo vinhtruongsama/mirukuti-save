@@ -23,7 +23,7 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-serif);
+    font-family: var(--font-sans);
     line-height: 1.4;
   }
 
