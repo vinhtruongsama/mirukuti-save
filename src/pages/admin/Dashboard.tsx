@@ -183,7 +183,8 @@ export default function Dashboard() {
           timestamp: new Date(log.created_at),
           icon: config.icon,
           color: config.color,
-          type: config.type
+          type: config.type,
+          actionType: log.action_type
         };
       });
     },
@@ -335,11 +336,45 @@ export default function Dashboard() {
                               </div>
 
                               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-stone-500 leading-snug">
-                                <span>{item.action}</span>
-                                <span className="text-stone-300">/</span>
-                                <span className="text-stone-900 bg-stone-100 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-tight">
-                                  by {item.actor}
-                                </span>
+                                {(() => {
+                                  if (item.actionType === 'registration_new') {
+                                    return (
+                                      <span>
+                                        が<span className="font-bold text-stone-800">{item.target}</span>に登録しました。
+                                      </span>
+                                    );
+                                  } else if (item.actionType === 'registration_delete') {
+                                    return (
+                                      <span>
+                                        が<span className="font-bold text-stone-800">{item.target}</span>をキャンセルしました。
+                                      </span>
+                                    );
+                                  } else if (item.actionType === 'member_new') {
+                                    return (
+                                      <>
+                                        <span>が入部しました</span>
+                                        <span className="text-stone-600 font-bold ml-1">「{item.actor}」</span>
+                                      </>
+                                    );
+                                  } else if (item.actionType === 'membership_update') {
+                                    return (
+                                      <>
+                                        <span>の情報を更新しました</span>
+                                        <span className="text-stone-600 font-bold ml-1">「{item.actor}」</span>
+                                      </>
+                                    );
+                                  } else {
+                                    return (
+                                      <>
+                                        <span>{item.action}</span>
+                                        <span className="text-stone-300">/</span>
+                                        <span className="text-stone-900 bg-stone-100 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-tight">
+                                          by {item.actor}
+                                        </span>
+                                      </>
+                                    );
+                                  }
+                                })()}
                                 {item.summary && (
                                   <>
                                     <span className="text-stone-300">/</span>
