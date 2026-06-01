@@ -27,12 +27,14 @@ const Login = lazy(() => import('./pages/Login'));
 const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 const Activities = lazy(() => import('./pages/Activities'));
 const ActivityDetail = lazy(() => import('./pages/ActivityDetail'));
+const SurveyResponse = lazy(() => import('./pages/SurveyResponse'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AdminLayout = lazy(() => import('./components/layout/AdminLayout'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const Members = lazy(() => import('./pages/admin/Members'));
 const ActivitiesAdmin = lazy(() => import('./pages/admin/ActivitiesAdmin'));
 const ActivityRegistrations = lazy(() => import('./pages/admin/ActivityRegistrations'));
+const SurveysAdmin = lazy(() => import('./pages/admin/SurveysAdmin'));
 const ArchivedMembers = lazy(() => import('./pages/admin/ArchivedMembers'));
 const AwardsAdmin = lazy(() => import('./pages/admin/AwardsAdmin'));
 const InquiriesAdmin = lazy(() => import('./pages/admin/InquiriesAdmin'));
@@ -98,6 +100,7 @@ function App() {
                   <Route path="/change-password" element={<ChangePassword />} />
                   <Route path="/activities" element={<Activities />} />
                   <Route path="/activities/:id" element={<ActivityDetail />} />
+                  <Route path="/surveys/:id" element={<SurveyResponse />} />
                 </Route>
               </Route>
 
@@ -110,6 +113,7 @@ function App() {
                     <Route path="/admin/members/archived" element={<ArchivedMembers />} />
                     <Route path="/admin/activities" element={<ActivitiesAdmin />} />
                     <Route path="/admin/activities/:id" element={<ActivityRegistrations />} />
+                    <Route path="/admin/surveys" element={<SurveysAdmin />} />
                     <Route path="/admin/awards" element={<AwardsAdmin />} />
                     <Route path="/admin/inquiries" element={<InquiriesAdmin />} />
                   </Route>

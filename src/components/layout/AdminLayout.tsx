@@ -15,6 +15,7 @@ import {
   Home,
   MessageCircle,
   Menu,
+  ClipboardList,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -27,6 +28,7 @@ const ADMIN_NAVIGATION = [
   { name: 'ダッシュボード', to: '/admin', icon: LayoutDashboard },
   { name: 'メンバー管理', to: '/admin/members', icon: Users },
   { name: 'ボランティア活動', to: '/admin/activities', icon: CalendarDays },
+  { name: 'アンケート', to: '/admin/surveys', icon: ClipboardList },
   { name: '表彰・資格', to: '/admin/awards', icon: Trophy },
   { name: '問い合わせ', to: '/admin/inquiries', icon: MessageCircle },
 ];

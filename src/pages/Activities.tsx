@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, MapPin, Users, Info, ArrowRight, X, Clock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Search, Calendar, MapPin, Users, Info, ArrowRight, X, Clock, AlertCircle, Loader2, CheckCircle2, ClipboardList, Sparkles } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -10,6 +10,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import type { Survey } from '../types/survey';
 
 export default function Activities() {
   const navigate = useNavigate();
@@ -89,6 +90,32 @@ export default function Activities() {
   });
 
   const userRegistrations = Object.keys(userRegMap);
+  const { data: activitySurveys = [] } = useQuery({
+    queryKey: ['activity-surveys', selectedYear?.id, currentUser?.id, userRegistrations.join(',')],
+    queryFn: async () => {
+      if (!selectedYear || !currentUser) return [];
+      const { data, error } = await supabase
+        .from('surveys')
+        .select('id, title, activity_id, status, response_mode, target_config, academic_year_id, created_at, updated_at')
+        .eq('academic_year_id', selectedYear.id)
+        .eq('status', 'open')
+        .not('activity_id', 'is', null);
+      if (error) throw error;
+      return (data || []) as Survey[];
+    },
+    enabled: !!selectedYear && !!currentUser,
+  });
+
+  const surveysByActivity = useMemo(() => {
+    const map = new Map<string, Survey[]>();
+    activitySurveys.forEach((survey) => {
+      if (!survey.activity_id) return;
+      const list = map.get(survey.activity_id) || [];
+      list.push(survey);
+      map.set(survey.activity_id, list);
+    });
+    return map;
+  }, [activitySurveys]);
 
   const toggleRegistrationMutation = useMutation({
     mutationFn: async ({ activityId, isRegistered }: { activityId: string, isRegistered: boolean }) => {
@@ -288,6 +315,7 @@ export default function Activities() {
             <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-32">
               {currentActivities.map((activity, index) => {
                 const isOpen = activity.computedStatus === 'OPEN';
+                const surveysForActivity = surveysByActivity.get(activity.id) || [];
 
                 return (
                   <motion.div
@@ -320,6 +348,14 @@ export default function Activities() {
                           </span>
                         )}
                       </div>
+                      {surveysForActivity.length > 0 && (
+                        <div className="absolute top-4 right-4">
+                          <div className="px-3 py-2 bg-white/95 backdrop-blur-md text-[#D62976] rounded-full shadow-lg flex items-center gap-2 border border-pink-100 animate-pulse">
+                            <ClipboardList className="w-4 h-4" />
+                            <span className="text-[11px] font-black tracking-widest">アンケート</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-6 flex flex-col flex-1">
@@ -354,6 +390,15 @@ export default function Activities() {
                           </div>
                         </div>
                       </div>
+                      {surveysForActivity.length > 0 && (
+                        <button
+                          onClick={() => navigate(`/surveys/${surveysForActivity[0].id}`)}
+                          className="mb-4 w-full px-4 py-3 rounded-2xl bg-pink-50 text-[#D62976] border border-pink-100 font-black text-[12px] tracking-widest flex items-center justify-center gap-2 hover:bg-[#D62976] hover:text-white transition-all"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          アンケートに回答
+                        </button>
+                      )}
                       <button
                         onClick={() => setSelectedActivity(activity as any)}
                         className="w-full group/btn relative flex items-center justify-center gap-3 px-6 py-4 bg-brand-stone-900 text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] overflow-hidden transition-all duration-500 shadow-[0_10px_20px_rgba(0,0,0,0.1)] active:scale-[0.97] hover:-translate-y-1 mt-auto"
@@ -465,8 +510,8 @@ export default function Activities() {
 
                 <div className="pt-2 md:pt-4 space-y-10 md:space-y-12">
                   {/* Body: Activity Content */}
-                  <div className="space-y-12">
-                    <div className="space-y-5">
+                    <div className="space-y-12">
+                      <div className="space-y-5">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
                         <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">内容</h3>
@@ -492,8 +537,30 @@ export default function Activities() {
                             </div>
                           </div>
                         )}
+                        </div>
                       </div>
-                    </div>
+
+                      {(surveysByActivity.get(selectedActivity.id) || []).length > 0 && (
+                        <div className="p-5 md:p-6 rounded-[2rem] bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 border border-pink-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white text-[#D62976] flex items-center justify-center shadow-sm shrink-0">
+                              <ClipboardList className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="text-[12px] font-black text-[#D62976] tracking-[0.25em] uppercase mb-1">Survey</p>
+                              <h3 className="text-lg md:text-xl font-black text-stone-900">この活動に関するアンケートがあります</h3>
+                              <p className="text-sm font-bold text-stone-500 mt-1">回答内容は管理者に送信されます。</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => navigate(`/surveys/${(surveysByActivity.get(selectedActivity.id) || [])[0].id}`)}
+                            className="h-12 px-6 rounded-2xl bg-[#D62976] text-white font-black text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-pink-200 active:scale-95 transition-all"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            回答する
+                          </button>
+                        </div>
+                      )}
 
                     {/* NEW: Schedule Section in Modal */}
                     {selectedActivity.sessions && Array.isArray(selectedActivity.sessions) && selectedActivity.sessions.length > 0 && (

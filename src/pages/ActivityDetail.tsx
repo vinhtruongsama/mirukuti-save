@@ -3,17 +3,20 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isPast } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
-import { MapPin, Clock, Users, AlertCircle, CheckCircle2, ChevronRight, Loader2, Edit2, X } from 'lucide-react';
+import { MapPin, Clock, Users, AlertCircle, CheckCircle2, ChevronRight, Loader2, Edit2, X, ClipboardList, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
+import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
+import type { Survey } from '../types/survey';
 
 export default function ActivityDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const { currentUser, session } = useAuthStore();
+  const { selectedYear } = useAppStore();
 
   const { data: activity, isLoading: isActivityLoading } = useQuery({
     queryKey: ['activity', id],
@@ -61,6 +64,21 @@ export default function ActivityDetail() {
       return data;
     },
     enabled: !!id && !!currentUser,
+  });
+
+  const { data: activitySurveys = [] } = useQuery({
+    queryKey: ['activity-detail-surveys', id, currentUser?.id, !!myRegistration],
+    queryFn: async () => {
+      if (!id || !currentUser) return [];
+      const { data, error } = await supabase
+        .from('surveys')
+        .select('id, title, description, activity_id, status, response_mode, target_config, academic_year_id, created_at, updated_at')
+        .eq('activity_id', id)
+        .eq('status', 'open');
+      if (error) throw error;
+      return (data || []) as Survey[];
+    },
+    enabled: !!id && !!currentUser && !!selectedYear,
   });
 
   const [agreed, setAgreed] = useState(false);
@@ -301,6 +319,28 @@ export default function ActivityDetail() {
               </p>
             </div>
           </div>
+
+          {activitySurveys.length > 0 && (
+            <div className="mb-16 p-6 sm:p-8 rounded-[2.5rem] bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 border border-pink-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-xl shadow-pink-100/40">
+              <div className="flex items-start gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-white text-[#D62976] flex items-center justify-center shadow-sm shrink-0">
+                  <ClipboardList className="w-7 h-7" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-black text-[#D62976] tracking-[0.3em] uppercase mb-2">Survey</p>
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">アンケートにご協力ください</h3>
+                  <p className="text-sm font-bold text-gray-500 mt-2">{activitySurveys[0].title}</p>
+                </div>
+              </div>
+              <Link
+                to={`/surveys/${activitySurveys[0].id}`}
+                className="h-14 px-8 rounded-2xl bg-[#D62976] text-white font-black text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-pink-200 active:scale-95 transition-all"
+              >
+                <Sparkles className="w-4 h-4" />
+                回答する
+              </Link>
+            </div>
+          )}
 
           {activity.sessions && activity.sessions.length > 0 && (
             <div className="mb-20">
