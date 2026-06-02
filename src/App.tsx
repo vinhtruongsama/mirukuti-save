@@ -100,8 +100,11 @@ function App() {
                   <Route path="/change-password" element={<ChangePassword />} />
                   <Route path="/activities" element={<Activities />} />
                   <Route path="/activities/:id" element={<ActivityDetail />} />
-                  <Route path="/surveys/:id" element={<SurveyResponse />} />
                 </Route>
+              </Route>
+
+              <Route element={<RequireAuth />}>
+                <Route path="/surveys/:id" element={<SurveyResponse />} />
               </Route>
 
               {/* Admin & Executive Fullscreen Layout */}
