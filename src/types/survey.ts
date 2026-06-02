@@ -2,13 +2,9 @@ export type SurveyStatus = 'draft' | 'open' | 'closed';
 export type SurveyResponseMode = 'single_editable' | 'single_locked' | 'multiple';
 export type SurveyQuestionType =
   | 'short_text'
-  | 'long_text'
+  | 'number'
   | 'single_choice'
-  | 'multiple_choice'
-  | 'dropdown'
-  | 'rating'
-  | 'date'
-  | 'time';
+  | 'multiple_choice';
 
 export interface SurveyTargetConfig {
   require_activity_registration?: boolean;
@@ -47,8 +43,6 @@ export interface SurveyQuestion {
   options: {
     choices?: string[];
     choice_limits?: Array<number | null>;
-    min?: number;
-    max?: number;
   };
 }
 

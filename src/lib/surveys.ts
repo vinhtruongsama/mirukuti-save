@@ -20,13 +20,9 @@ export const SURVEY_YEAR_OPTIONS = [
 
 export const SURVEY_QUESTION_TYPES: Array<{ value: SurveyQuestion['type']; label: string }> = [
   { value: 'short_text', label: '短文' },
-  { value: 'long_text', label: '長文' },
+  { value: 'number', label: '数' },
   { value: 'single_choice', label: '単一選択' },
   { value: 'multiple_choice', label: '複数選択' },
-  { value: 'dropdown', label: 'ドロップダウン' },
-  { value: 'rating', label: '評価' },
-  { value: 'date', label: '日付' },
-  { value: 'time', label: '時刻' },
 ];
 
 export const RESPONSE_MODE_LABELS: Record<Survey['response_mode'], string> = {
@@ -42,7 +38,7 @@ export const STATUS_LABELS: Record<Survey['status'], string> = {
 };
 
 export const isChoiceQuestion = (type: SurveyQuestion['type']) =>
-  type === 'single_choice' || type === 'multiple_choice' || type === 'dropdown';
+  type === 'single_choice' || type === 'multiple_choice';
 
 export const isSurveyEligibleForMembership = (
   survey: Pick<Survey, 'target_config' | 'activity_id'>,
