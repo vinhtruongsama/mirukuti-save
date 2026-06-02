@@ -67,9 +67,9 @@ export default function ActivityDetail() {
   });
 
   const { data: activitySurveys = [] } = useQuery({
-    queryKey: ['activity-detail-surveys', id, currentUser?.id, !!myRegistration],
+    queryKey: ['activity-detail-surveys', id, !!myRegistration],
     queryFn: async () => {
-      if (!id || !currentUser) return [];
+      if (!id) return [];
       const { data, error } = await supabase
         .from('surveys')
         .select('id, title, description, activity_id, status, response_mode, target_config, academic_year_id, created_at, updated_at')
@@ -78,7 +78,7 @@ export default function ActivityDetail() {
       if (error) throw error;
       return (data || []) as Survey[];
     },
-    enabled: !!id && !!currentUser && !!selectedYear,
+    enabled: !!id && !!selectedYear,
   });
 
   const [agreed, setAgreed] = useState(false);

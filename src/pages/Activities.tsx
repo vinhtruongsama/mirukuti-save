@@ -10,11 +10,12 @@ import { useAppStore } from '../store/useAppStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
-import type { Survey } from '../types/survey';
+import type { Survey, SurveyResponse as SurveySubmission } from '../types/survey';
+import { isSurveyEligibleForMembership } from '../lib/surveys';
 
 export default function Activities() {
   const navigate = useNavigate();
-  const { currentUser } = useAuthStore();
+  const { currentUser, memberships } = useAuthStore();
   const { selectedYear } = useAppStore();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +24,7 @@ export default function Activities() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
   const [showScheduleWarning, setShowScheduleWarning] = useState(false);
+  const [isSurveyCenterOpen, setIsSurveyCenterOpen] = useState(false);
 
   const toggleSession = (idx: number) => {
     setSelectedSessions(prev =>
@@ -90,21 +92,35 @@ export default function Activities() {
   });
 
   const userRegistrations = Object.keys(userRegMap);
-  const { data: activitySurveys = [] } = useQuery({
-    queryKey: ['activity-surveys', selectedYear?.id, currentUser?.id, userRegistrations.join(',')],
+  const currentMembership = useMemo(
+    () => memberships.find((membership) => membership.academic_year_id === selectedYear?.id) || null,
+    [memberships, selectedYear?.id]
+  );
+
+  const { data: openSurveys = [] } = useQuery({
+    queryKey: ['activity-surveys', selectedYear?.id, userRegistrations.join(',')],
     queryFn: async () => {
-      if (!selectedYear || !currentUser) return [];
+      if (!selectedYear) return [];
       const { data, error } = await supabase
         .from('surveys')
-        .select('id, title, activity_id, status, response_mode, target_config, academic_year_id, created_at, updated_at')
+        .select('id, title, description, activity_id, status, response_mode, target_config, academic_year_id, created_at, updated_at')
         .eq('academic_year_id', selectedYear.id)
-        .eq('status', 'open')
-        .not('activity_id', 'is', null);
+        .eq('status', 'open');
       if (error) throw error;
       return (data || []) as Survey[];
     },
-    enabled: !!selectedYear && !!currentUser,
+    enabled: !!selectedYear,
   });
+
+  const activitySurveys = useMemo(() => {
+    return openSurveys.filter((survey) =>
+      isSurveyEligibleForMembership(
+        survey,
+        currentMembership,
+        !!(survey.activity_id && userRegistrations.includes(survey.activity_id))
+      )
+    );
+  }, [currentMembership, openSurveys, userRegistrations]);
 
   const surveysByActivity = useMemo(() => {
     const map = new Map<string, Survey[]>();
@@ -116,6 +132,75 @@ export default function Activities() {
     });
     return map;
   }, [activitySurveys]);
+
+  const { data: surveyResponses = [] as SurveySubmission[] } = useQuery({
+    queryKey: ['activity-survey-responses', currentUser?.id, activitySurveys.map((survey) => survey.id).join(',')],
+    queryFn: async () => {
+      if (!currentUser || activitySurveys.length === 0) return [];
+      const surveyIds = activitySurveys.map((survey) => survey.id);
+      const { data, error } = await supabase
+        .from('survey_responses')
+        .select('id, survey_id, user_id, submitted_at, updated_at')
+        .eq('user_id', currentUser.id)
+        .in('survey_id', surveyIds)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as SurveySubmission[];
+    },
+    enabled: !!currentUser && activitySurveys.length > 0,
+  });
+
+  const activityMap = useMemo(() => {
+    return new Map(activities.map((activity: any) => [activity.id, activity]));
+  }, [activities]);
+
+  const surveyResponseMap = useMemo(() => {
+    const map = new Map<string, SurveySubmission>();
+    surveyResponses.forEach((response) => {
+      if (!map.has(response.survey_id)) {
+        map.set(response.survey_id, response);
+      }
+    });
+    return map;
+  }, [surveyResponses]);
+
+  const surveyHighlights = useMemo(() => {
+    return activitySurveys
+      .map((survey) => {
+        const activity = survey.activity_id ? activityMap.get(survey.activity_id) : null;
+        const response = surveyResponseMap.get(survey.id);
+        const hasAnswered = !!response;
+        const actionLabel =
+          !hasAnswered ? '回答が必要' :
+            survey.response_mode === 'single_locked' ? '回答済み' :
+              survey.response_mode === 'single_editable' ? '回答を更新できます' :
+                '追加回答できます';
+
+        return {
+          survey,
+          activity,
+          response,
+          hasAnswered,
+          actionLabel,
+        };
+      })
+      .sort((a, b) => {
+        if (a.hasAnswered !== b.hasAnswered) return a.hasAnswered ? 1 : -1;
+        return new Date(b.survey.updated_at).getTime() - new Date(a.survey.updated_at).getTime();
+      });
+  }, [activityMap, activitySurveys, surveyResponseMap]);
+
+  const pendingSurveyCount = useMemo(
+    () => surveyHighlights.filter((item) => !item.hasAnswered).length,
+    [surveyHighlights]
+  );
+
+  const surveyCardLabel =
+    surveyHighlights.length === 0
+      ? '現在募集中のフォームはありません'
+      : pendingSurveyCount > 0
+        ? `${pendingSurveyCount}件のフォームが回答待ちです`
+        : '回答済みフォームを確認できます';
 
   const toggleRegistrationMutation = useMutation({
     mutationFn: async ({ activityId, isRegistered }: { activityId: string, isRegistered: boolean }) => {
@@ -251,7 +336,8 @@ export default function Activities() {
               <h1 className="text-3xl md:text-5xl font-black text-brand-stone-900 mb-2 tracking-tighter">ボランティア活動</h1>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-xl px-6 md:px-8 py-3 md:py-5 rounded-[1.5rem] md:rounded-[2rem] border border-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] flex items-center gap-4 md:gap-5 group hover:scale-[1.02] transition-all duration-500 w-fit">
+            <div className="flex flex-col sm:flex-row gap-4 md:gap-5 w-full md:w-auto md:justify-end">
+              <div className="bg-white/80 backdrop-blur-xl px-6 md:px-8 py-3 md:py-5 rounded-[1.5rem] md:rounded-[2rem] border border-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] flex items-center gap-4 md:gap-5 group hover:scale-[1.02] transition-all duration-500 w-fit">
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-[#4F5BD5]/10 to-[#D62976]/10 flex items-center justify-center shrink-0">
                 <Calendar className="w-5 h-5 md:w-6 md:h-6 text-[#4F5BD5]" />
               </div>
@@ -261,6 +347,27 @@ export default function Activities() {
                   {currentActivities.length} <span className="text-xs md:text-sm text-brand-stone-400 font-bold ml-1">件の活動</span>
                 </p>
               </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => surveyHighlights.length > 0 && setIsSurveyCenterOpen(true)}
+                disabled={surveyHighlights.length === 0}
+                className={`bg-white/80 backdrop-blur-xl px-6 md:px-8 py-3 md:py-5 rounded-[1.5rem] md:rounded-[2rem] border shadow-[0_10px_40px_rgba(0,0,0,0.04)] flex items-center gap-4 md:gap-5 transition-all duration-500 text-left w-full sm:max-w-[320px] ${surveyHighlights.length > 0
+                  ? 'border-pink-100 hover:scale-[1.02] hover:shadow-[0_18px_45px_rgba(214,41,118,0.12)]'
+                  : 'border-white opacity-70 cursor-not-allowed'
+                  }`}
+              >
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-[#D62976]/10 to-[#4F5BD5]/10 flex items-center justify-center shrink-0">
+                  <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-[#D62976]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.25em] mb-0.5">Survey Form</p>
+                  <p className="text-brand-stone-900 font-black text-sm md:text-base leading-tight">
+                    {surveyCardLabel}
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
 
@@ -424,6 +531,83 @@ export default function Activities() {
           )}
         </AnimatePresence>
       </div>
+
+      <Dialog.Root open={isSurveyCenterOpen} onOpenChange={setIsSurveyCenterOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-stone-900/60 backdrop-blur-lg z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <Dialog.Content className={`fixed left-[50%] top-[50%] z-50 w-[94%] md:w-full max-w-2xl max-h-[85vh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] bg-white p-5 md:p-8 shadow-2xl rounded-[2rem] md:rounded-[2.5rem] ${customFontClass} scrollbar-hide`}>
+            <div className="space-y-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Dialog.Title className="text-2xl md:text-3xl font-black text-stone-900 tracking-tight">アンケートフォーム</Dialog.Title>
+                  <p className="text-sm font-bold text-stone-400 mt-2">
+                    {surveyHighlights.length > 0
+                      ? `現在確認できるフォームは ${surveyHighlights.length} 件あります。`
+                      : '現在確認できるフォームはありません。'}
+                  </p>
+                </div>
+                <Dialog.Close className="w-11 h-11 rounded-2xl bg-stone-100 hover:bg-stone-200 transition-colors flex items-center justify-center text-stone-500 shrink-0">
+                  <X className="w-5 h-5" />
+                </Dialog.Close>
+              </div>
+
+              <div className="space-y-3">
+                {surveyHighlights.map((item) => (
+                  <button
+                    key={item.survey.id}
+                    type="button"
+                    onClick={() => {
+                      setIsSurveyCenterOpen(false);
+                      navigate(`/surveys/${item.survey.id}`);
+                    }}
+                    className="w-full p-5 rounded-[1.75rem] border border-stone-100 bg-stone-50/70 hover:bg-white hover:border-pink-100 hover:shadow-[0_18px_35px_rgba(214,41,118,0.08)] transition-all text-left"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#D62976]/10 to-[#4F5BD5]/10 text-[#D62976] flex items-center justify-center shrink-0">
+                        <ClipboardList className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className={`px-3 py-1 rounded-full text-[11px] font-black tracking-[0.2em] uppercase ${item.hasAnswered
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-pink-50 text-[#D62976]'
+                            }`}>
+                            {item.actionLabel}
+                          </span>
+                          {item.activity?.title && (
+                            <span className="text-[11px] font-black text-stone-400 tracking-[0.18em] uppercase">Activity Survey</span>
+                          )}
+                        </div>
+                        <h3 className="text-base md:text-lg font-black text-stone-900 leading-tight">
+                          {item.survey.title}
+                        </h3>
+                        {item.activity?.title && (
+                          <p className="text-sm font-bold text-stone-500 mt-2">
+                            {item.activity.title}
+                          </p>
+                        )}
+                        {item.survey.description && (
+                          <p className="text-sm text-stone-400 font-medium mt-2 line-clamp-2 whitespace-pre-wrap">
+                            {item.survey.description}
+                          </p>
+                        )}
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-stone-400 shrink-0 mt-1" />
+                    </div>
+                  </button>
+                ))}
+
+                {surveyHighlights.length === 0 && (
+                  <div className="p-8 rounded-[1.75rem] bg-stone-50 text-center">
+                    <ClipboardList className="w-8 h-8 text-stone-300 mx-auto mb-3" />
+                    <p className="text-sm font-black text-stone-500">今は回答が必要なフォームはありません。</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* Detail Dialog */}
       <Dialog.Root open={!!selectedActivity} onOpenChange={(open) => {

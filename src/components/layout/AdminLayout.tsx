@@ -10,7 +10,6 @@ import {
   CalendarDays,
   LogOut,
   X,
-  ChevronRight,
   Trophy,
   Home,
   MessageCircle,
@@ -61,22 +60,6 @@ export default function AdminLayout() {
 
   return (
     <div className="flex h-screen bg-[#F8F9FA] overflow-hidden font-sans relative">
-
-      {/* Re-opening Trigger: Red Triangle / Chevron */}
-      <AnimatePresence>
-        {!isSidebarVisible && (
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            onClick={() => setIsSidebarVisible(true)}
-            className="absolute left-0 top-32 z-50 w-8 h-20 bg-[#D62976] hover:w-10 transition-all flex items-center justify-start pl-1 shadow-xl shadow-[#D62976]/20 active:scale-95 group"
-            style={{ clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }}
-          >
-            <ChevronRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
-          </motion.button>
-        )}
-      </AnimatePresence>
 
       {/* Mobile Sidebar Backdrop Overlay */}
       <AnimatePresence>
@@ -187,7 +170,7 @@ export default function AdminLayout() {
               {/* Hamburger menu button for sidebar (visible on all screens) */}
               <button
                 onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-stone-50 border border-stone-100 text-stone-500 hover:bg-[#4F5BD5]/5 hover:text-[#4F5BD5] hover:border-[#4F5BD5]/20 transition-all active:scale-90"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#D62976]/10 border border-[#D62976]/20 text-[#D62976] hover:bg-[#D62976] hover:text-white hover:border-[#D62976] hover:shadow-[0_10px_24px_-10px_rgba(214,41,118,0.6)] transition-all active:scale-90"
                 title="メニューを開く"
               >
                 <Menu className="w-5 h-5" />
