@@ -117,10 +117,11 @@ export default function Activities() {
       isSurveyEligibleForMembership(
         survey,
         currentMembership,
-        !!(survey.activity_id && userRegistrations.includes(survey.activity_id))
+        !!(survey.activity_id && userRegistrations.includes(survey.activity_id)),
+        currentUser?.university_year
       )
     );
-  }, [currentMembership, openSurveys, userRegistrations]);
+  }, [currentMembership, currentUser?.university_year, openSurveys, userRegistrations]);
 
   const surveysByActivity = useMemo(() => {
     const map = new Map<string, Survey[]>();
@@ -189,18 +190,6 @@ export default function Activities() {
         return new Date(b.survey.updated_at).getTime() - new Date(a.survey.updated_at).getTime();
       });
   }, [activityMap, activitySurveys, surveyResponseMap]);
-
-  const pendingSurveyCount = useMemo(
-    () => surveyHighlights.filter((item) => !item.hasAnswered).length,
-    [surveyHighlights]
-  );
-
-  const surveyCardLabel =
-    surveyHighlights.length === 0
-      ? '現在募集中のフォームはありません'
-      : pendingSurveyCount > 0
-        ? `${pendingSurveyCount}件のフォームが回答待ちです`
-        : '回答済みフォームを確認できます';
 
   const toggleRegistrationMutation = useMutation({
     mutationFn: async ({ activityId, isRegistered }: { activityId: string, isRegistered: boolean }) => {
@@ -348,26 +337,6 @@ export default function Activities() {
                 </p>
               </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => surveyHighlights.length > 0 && setIsSurveyCenterOpen(true)}
-                disabled={surveyHighlights.length === 0}
-                className={`bg-white/80 backdrop-blur-xl px-6 md:px-8 py-3 md:py-5 rounded-[1.5rem] md:rounded-[2rem] border shadow-[0_10px_40px_rgba(0,0,0,0.04)] flex items-center gap-4 md:gap-5 transition-all duration-500 text-left w-full sm:max-w-[320px] ${surveyHighlights.length > 0
-                  ? 'border-pink-100 hover:scale-[1.02] hover:shadow-[0_18px_45px_rgba(214,41,118,0.12)]'
-                  : 'border-white opacity-70 cursor-not-allowed'
-                  }`}
-              >
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-[#D62976]/10 to-[#4F5BD5]/10 flex items-center justify-center shrink-0">
-                  <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-[#D62976]" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.25em] mb-0.5">Survey Form</p>
-                  <p className="text-brand-stone-900 font-black text-sm md:text-base leading-tight">
-                    {surveyCardLabel}
-                  </p>
-                </div>
-              </button>
             </div>
           </div>
 
@@ -539,7 +508,7 @@ export default function Activities() {
             <div className="space-y-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Dialog.Title className="text-2xl md:text-3xl font-black text-stone-900 tracking-tight">アンケートフォーム</Dialog.Title>
+                  <Dialog.Title className="text-xl md:text-xl font-black text-stone-900 tracking-tight">アンケートフォーム</Dialog.Title>
                   <p className="text-sm font-bold text-stone-400 mt-2">
                     {surveyHighlights.length > 0
                       ? `現在確認できるフォームは ${surveyHighlights.length} 件あります。`

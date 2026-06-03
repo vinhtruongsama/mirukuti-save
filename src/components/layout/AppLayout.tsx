@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Activity, User, ShieldCheck, LogIn, LogOut, MessageCircle } from 'lucide-react';
+import { Home, Activity, User, ShieldCheck, LogIn, LogOut, MessageCircle, ClipboardList } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import InquiryModal from '../ui/InquiryModal';
@@ -22,11 +22,13 @@ export const AppLayout = () => {
   };
 
   const isLoginPage = location.pathname === '/login';
+  const isProfilePage = location.pathname.startsWith('/profile');
 
   const navItems = [
     { path: '/', label: 'ホーム', icon: Home },
     ...(currentUser ? [
       { path: '/activities', label: '活動', icon: Activity },
+      { path: '/surveys', label: 'フォーム', icon: ClipboardList },
       { path: '/profile', label: 'マイページ', icon: User }
     ] : []),
     ...(currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole)
@@ -46,7 +48,7 @@ export const AppLayout = () => {
   return (
     <div className="min-h-screen bg-brand-stone-50 font-sans selection:bg-brand-emerald-500/30">
       {!isLoginPage && (
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-brand-stone-200/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition-all duration-500">
+        <header className={`${isProfilePage ? 'hidden md:block' : ''} sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-brand-stone-200/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition-all duration-500`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[4rem] sm:h-[4.5rem] flex items-center justify-between">
 
             {/* Left Section: Logo */}
@@ -87,7 +89,7 @@ export const AppLayout = () => {
                         {nav.label}
                       </span>
                       <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-opacity duration-500 ${isActive ? 'opacity-80' : 'opacity-40 group-hover:opacity-60'}`}>
-                        {subtitles[nav.label] || 'Module'}
+                        {nav.path === '/surveys' ? 'Survey' : subtitles[nav.label] || 'Module'}
                       </span>
                     </div>
 

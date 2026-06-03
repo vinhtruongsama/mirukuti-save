@@ -44,19 +44,20 @@ export const isSurveyEligibleForMembership = (
   survey: Pick<Survey, 'target_config' | 'activity_id'>,
   membership?: ClubMembership | null,
   isRegisteredForActivity = false,
+  userUniversityYear?: number | null,
 ) => {
   const target = survey.target_config || {};
   if (target.require_activity_registration && survey.activity_id && !isRegisteredForActivity) {
     return false;
   }
 
-  if (!membership) return false;
-
   const roles = target.roles || [];
-  if (roles.length > 0 && !roles.includes(membership.role)) return false;
+  if (roles.length > 0 && !membership) return false;
+  if (roles.length > 0 && !roles.includes(membership?.role || '')) return false;
 
-  const years = target.years || [];
-  if (years.length > 0 && !years.includes(membership.university_year ?? -1)) return false;
+  const years = (target.years || []).map((year) => Number(year));
+  const memberYear = membership?.university_year ?? userUniversityYear ?? -1;
+  if (years.length > 0 && !years.includes(Number(memberYear))) return false;
 
   return true;
 };
@@ -66,4 +67,15 @@ export const formatAnswerValue = (value: unknown) => {
   if (value === null || value === undefined || value === '') return '-';
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+};
+
+export const hashSurveyPassword = async (value: string) => {
+  const normalized = value.trim();
+  if (!normalized) return '';
+
+  const encoded = new TextEncoder().encode(normalized);
+  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 };

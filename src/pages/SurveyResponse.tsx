@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { AlertCircle, ChevronLeft, Loader2, Send } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronLeft, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
-import { formatAnswerValue } from '../lib/surveys';
+import { formatAnswerValue, hashSurveyPassword } from '../lib/surveys';
 import { useAuthStore } from '../store/useAuthStore';
 import type { Survey, SurveyAnswer, SurveyQuestion, SurveyResponse as SurveyResponseType } from '../types/survey';
 
@@ -31,6 +31,8 @@ export default function SurveyResponse() {
   const { currentUser } = useAuthStore();
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [optionCounts, setOptionCounts] = useState<Record<string, number>>({});
+  const [surveyPassword, setSurveyPassword] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['survey-response', id, currentUser?.id],
@@ -93,6 +95,9 @@ export default function SurveyResponse() {
   const isLocked = !!latestResponse && survey?.response_mode === 'single_locked';
   const canEditExisting = !!latestResponse && survey?.response_mode === 'single_editable';
   const canSubmit = survey?.status === 'open' && !isLocked;
+  const requiredPassword = survey?.target_config?.password?.trim() || '';
+  const requiredPasswordHash = survey?.target_config?.password_hash?.trim() || '';
+  const requiresPassword = requiredPassword.length > 0 || requiredPasswordHash.length > 0;
 
   const missingRequired = useMemo(
     () => questions.filter((q) => q.required && isEmptyAnswer(answers[q.id])),
@@ -104,6 +109,16 @@ export default function SurveyResponse() {
       if (!survey || !currentUser) throw new Error('Unauthorized');
       if (!canSubmit) throw new Error('このフォームは送信できません');
       if (missingRequired.length > 0) throw new Error('必須項目を入力してください');
+
+      if (requiresPassword) {
+        if (!surveyPassword.trim()) throw new Error('パスワードを入力してください');
+        if (requiredPassword) {
+          if (surveyPassword.trim() !== requiredPassword) throw new Error('パスワードが正しくありません');
+        } else {
+          const hashedPassword = await hashSurveyPassword(surveyPassword.trim());
+          if (hashedPassword !== requiredPasswordHash) throw new Error('パスワードが正しくありません');
+        }
+      }
 
       let responseId = latestResponse?.id;
 
@@ -148,10 +163,12 @@ export default function SurveyResponse() {
       }
     },
     onSuccess: () => {
-      toast.success('フォームを送信しました');
+      setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ['survey-response', id] });
       queryClient.invalidateQueries({ queryKey: ['activity-surveys'] });
       queryClient.invalidateQueries({ queryKey: ['activity-detail-surveys'] });
+      queryClient.invalidateQueries({ queryKey: ['surveys-page-open'] });
+      queryClient.invalidateQueries({ queryKey: ['surveys-page-responses'] });
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -326,6 +343,35 @@ export default function SurveyResponse() {
     );
   }
 
+  if (submitted) {
+    return (
+      <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(90deg,#ff6a00_0%,#ff9218_64%,#ffbf47_100%)] px-5 py-8">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-[220px] top-[210px] h-[700px] w-[420px] rounded-[60px] bg-white/6 rotate-[13deg]" />
+          <div className="absolute right-[-120px] top-[180px] h-[900px] w-[310px] rounded-[200px] border-[2px] border-white/14" />
+          <div className="absolute left-[250px] bottom-[-150px] h-[530px] w-[530px] rounded-full border border-white/12" />
+        </div>
+
+        <div className="relative mx-auto flex min-h-[calc(100vh-64px)] max-w-[980px] items-center justify-center">
+          <motion.section
+            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="w-full rounded-[24px] bg-[#f8f2ea] px-10 py-5 text-center shadow-[0_18px_50px_rgba(128,73,16,0.22)] sm:px-12 sm:py-16"
+          >
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#e9fbf4] text-[#0f9d58] shadow-[0_12px_32px_rgba(15,157,88,0.16)]">
+              <CheckCircle2 className="h-11 w-11" />
+            </div>
+            <p className="mt-1 text-[15px] font-bold tracking-[0.22em] text-[#d93025]">THANK YOU</p>
+            <p className="mx-auto mt-4 max-w-[560px] text-[18px] leading-[1.8] text-stone-900 sm:text-[18px]">
+              回答内容を受け付けました。
+            </p>
+           
+          </motion.section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(90deg,#ff6a00_0%,#ff9218_64%,#ffbf47_100%)]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -398,15 +444,30 @@ export default function SurveyResponse() {
               <div className="pt-[12px]">
                 {missingRequired.length > 0 && (
                   <div className="mb-[18px] rounded-[4px] border border-[#f3d2a2] bg-[#fff5df] px-[16px] py-[11px] text-[14px] text-[#8a4a00]">
-                    未入力の必須項目: {missingRequired.map((q) => q.label).join(' / ')}
+                    未入力項目: {missingRequired.map((q) => q.label).join(' / ')}
+                  </div>
+                )}
+                {requiresPassword && (
+                  <div className="mb-[18px] max-w-[420px]">
+                    <label className="mb-[8px] block text-[14px] font-medium text-[#202124]">パスワード</label>
+                    <input
+                      type="password"
+                      value={surveyPassword}
+                      onChange={(e) => setSurveyPassword(e.target.value)}
+                      placeholder="回答用パスワードを入力"
+                      className={cn(inputClassName, 'h-[42px]')}
+                    />
+                    <p className="mt-[8px] text-[13px] text-stone-500">
+                      このフォームを送信するにはパスワードの入力が必要です。
+                    </p>
                   </div>
                 )}
                 <button
                   onClick={() => submitMutation.mutate()}
-                  disabled={!canSubmit || submitMutation.isPending || missingRequired.length > 0}
+                  disabled={!canSubmit || submitMutation.isPending || missingRequired.length > 0 || (requiresPassword && !surveyPassword.trim())}
                   className={cn(
                     'inline-flex h-[42px] min-w-[112px] items-center justify-center gap-[8px] rounded-[4px] px-[18px] text-[14px] font-medium transition',
-                    !canSubmit || submitMutation.isPending || missingRequired.length > 0
+                    !canSubmit || submitMutation.isPending || missingRequired.length > 0 || (requiresPassword && !surveyPassword.trim())
                       ? 'cursor-not-allowed bg-stone-300 text-stone-500'
                       : 'bg-[#0f9d58] text-white hover:bg-[#0c8a4c]'
                   )}

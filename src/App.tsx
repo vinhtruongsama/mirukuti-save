@@ -27,6 +27,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 const Activities = lazy(() => import('./pages/Activities'));
 const ActivityDetail = lazy(() => import('./pages/ActivityDetail'));
+const Surveys = lazy(() => import('./pages/Surveys'));
 const SurveyResponse = lazy(() => import('./pages/SurveyResponse'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AdminLayout = lazy(() => import('./components/layout/AdminLayout'));
@@ -100,11 +101,9 @@ function App() {
                   <Route path="/change-password" element={<ChangePassword />} />
                   <Route path="/activities" element={<Activities />} />
                   <Route path="/activities/:id" element={<ActivityDetail />} />
+                  <Route path="/surveys" element={<Surveys />} />
+                  <Route path="/surveys/:id" element={<SurveyResponse />} />
                 </Route>
-              </Route>
-
-              <Route element={<RequireAuth />}>
-                <Route path="/surveys/:id" element={<SurveyResponse />} />
               </Route>
 
               {/* Admin & Executive Fullscreen Layout */}

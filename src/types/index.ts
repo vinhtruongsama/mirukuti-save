@@ -8,6 +8,7 @@ export interface User {
   line_nickname?: string | null;
   phone?: string | null;
   university_email?: string | null;
+  university_year?: 0 | 1 | 2 | 3 | 4 | null;
   line_id?: string | null;
   hometown?: string | null;
   nationality?: string | null;

@@ -8,6 +8,8 @@ import {
   ArrowUp,
   Clock3,
   Download,
+  Eye,
+  EyeOff,
   LayoutGrid,
   List,
   Loader2,
@@ -30,6 +32,7 @@ import {
   SURVEY_QUESTION_TYPES,
   SURVEY_YEAR_OPTIONS,
   formatAnswerValue,
+  hashSurveyPassword,
   isChoiceQuestion,
 } from '../../lib/surveys';
 import type { Survey, SurveyQuestion, SurveyResponse } from '../../types/survey';
@@ -81,7 +84,10 @@ type SurveyDraft = {
     require_activity_registration: boolean;
     roles: string[];
     years: number[];
+    password?: string | null;
+    password_hash?: string | null;
   };
+  password: string;
   questions: Array<{
     id?: string;
     type: SurveyQuestion['type'];
@@ -119,7 +125,10 @@ const emptyDraft = (): SurveyDraft => ({
     require_activity_registration: false,
     roles: [],
     years: [],
+    password: null,
+    password_hash: null,
   },
+  password: '',
   questions: [emptyQuestion()],
 });
 
@@ -134,7 +143,10 @@ const normalizeSurvey = (survey: Survey, questions: SurveyQuestion[]): SurveyDra
     require_activity_registration: !!survey.target_config?.require_activity_registration,
     roles: survey.target_config?.roles || [],
     years: survey.target_config?.years || [],
+    password: survey.target_config?.password || null,
+    password_hash: survey.target_config?.password_hash || null,
   },
+  password: survey.target_config?.password || '',
   questions: questions
     .sort((a, b) => a.position - b.position)
     .map((q) => {
@@ -167,6 +179,7 @@ export default function SurveysAdmin() {
   const [galleryView, setGalleryView] = useState<'grid' | 'list'>('grid');
   const [mobileResponseView, setMobileResponseView] = useState<'answered' | 'unanswered'>('unanswered');
   const [confirmDeleteQuestionIndex, setConfirmDeleteQuestionIndex] = useState<number | null>(null);
+  const [showSurveyPassword, setShowSurveyPassword] = useState(false);
   const questionRefs = useRef<Array<HTMLDivElement | null>>([]);
   const pendingScrollIndexRef = useRef<number | null>(null);
   const initialDraftSnapshotRef = useRef(serializeDraft(emptyDraft()));
@@ -318,6 +331,7 @@ export default function SurveysAdmin() {
       const nextDraft = emptyDraft();
       setDraft(nextDraft);
       initialDraftSnapshotRef.current = serializeDraft(nextDraft);
+      setShowSurveyPassword(false);
       setActiveQuestionIndex(0);
       setEditorStep('setup');
       setEditorOpen(true);
@@ -339,8 +353,9 @@ export default function SurveysAdmin() {
     const nextDraft = normalizeSurvey(survey, (data || []) as SurveyQuestion[]);
     setDraft(nextDraft);
     initialDraftSnapshotRef.current = serializeDraft(nextDraft);
+    setShowSurveyPassword(false);
     setActiveQuestionIndex(0);
-    setEditorStep('build');
+    setEditorStep('setup');
     setActiveSurveyId(survey.id);
     setEditorOpen(true);
     setActiveTab('builder');
@@ -368,9 +383,11 @@ export default function SurveysAdmin() {
       });
       if (!draft.title.trim()) throw new Error('タイトルを入力してください');
       if (cleanQuestions.length === 0) throw new Error('質問を1つ以上作成してください');
-
       if (invalidChoiceQuestion) throw new Error('選択式の質問には選択肢を2つ以上入力してください');
       if (invalidChoiceLimit) throw new Error('選択肢の上限は1以上の数値で入力してください（空欄は無制限）');
+
+      const cleanPassword = draft.password.trim();
+      const passwordHash = cleanPassword ? await hashSurveyPassword(cleanPassword) : null;
 
       const surveyPayload = {
         academic_year_id: selectedYear.id,
@@ -379,7 +396,13 @@ export default function SurveysAdmin() {
         description: draft.description.trim() || null,
         status: draft.status,
         response_mode: draft.response_mode,
-        target_config: draft.target_config,
+        target_config: {
+          require_activity_registration: draft.target_config.require_activity_registration,
+          roles: draft.target_config.roles,
+          years: draft.target_config.years,
+          password: cleanPassword || null,
+          password_hash: passwordHash,
+        },
         created_by: currentUser?.id || null,
         updated_at: new Date().toISOString(),
       };
@@ -429,17 +452,36 @@ export default function SurveysAdmin() {
         }
       }
 
-      return surveyId;
+      return { surveyId, cleanPassword, passwordHash };
     },
-    onSuccess: (surveyId) => {
+    onSuccess: ({ surveyId, cleanPassword, passwordHash }) => {
       toast.success('アンケートを保存しました');
-      initialDraftSnapshotRef.current = serializeDraft(draft);
+      initialDraftSnapshotRef.current = serializeDraft({
+        ...draft,
+        password: cleanPassword,
+        target_config: {
+          ...draft.target_config,
+          password: cleanPassword || null,
+          password_hash: passwordHash,
+        },
+      });
+      setDraft((prev) => ({
+        ...prev,
+        password: cleanPassword,
+        target_config: {
+          ...prev.target_config,
+          password: cleanPassword || null,
+          password_hash: passwordHash,
+        },
+      }));
       setEditorOpen(false);
       setActiveSurveyId(surveyId || null);
       queryClient.invalidateQueries({ queryKey: ['admin-surveys'] });
       queryClient.invalidateQueries({ queryKey: ['admin-survey-questions'] });
       queryClient.invalidateQueries({ queryKey: ['activity-surveys'] });
       queryClient.invalidateQueries({ queryKey: ['activity-detail-surveys'] });
+      queryClient.invalidateQueries({ queryKey: ['surveys-page-open'] });
+      queryClient.invalidateQueries({ queryKey: ['surveys-page-responses'] });
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -459,6 +501,8 @@ export default function SurveysAdmin() {
       queryClient.invalidateQueries({ queryKey: ['admin-survey-responses'] });
       queryClient.invalidateQueries({ queryKey: ['activity-surveys'] });
       queryClient.invalidateQueries({ queryKey: ['activity-detail-surveys'] });
+      queryClient.invalidateQueries({ queryKey: ['surveys-page-open'] });
+      queryClient.invalidateQueries({ queryKey: ['surveys-page-responses'] });
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -682,8 +726,9 @@ export default function SurveysAdmin() {
     } else {
       parts.push('学年: 全て');
     }
+    parts.push(`パスワード: ${draft.password.trim() || draft.target_config.password_hash ? '必要' : 'なし'}`);
     return parts.join(' / ');
-  }, [activities, draft.activity_id, draft.target_config.years]);
+  }, [activities, draft.activity_id, draft.password, draft.target_config.password_hash, draft.target_config.years]);
 
   useEffect(() => {
     if (!editorOpen) return;
@@ -896,7 +941,7 @@ export default function SurveysAdmin() {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); openEditor(survey); }}
-                            className="h-9 w-full rounded-xl bg-gradient-to-r from-[#D62976] to-[#6C5CE7] px-3 sm:min-w-[88px] sm:px-4 text-[10px] sm:text-[12px] font-black text-white shadow-[0_10px_24px_-12px_rgba(108,92,231,0.7)]"
+                            className="h-9 w-full rounded-xl bg-gradient-to-r from-[#D62976] to-[#6C5CE7] px-3 sm:min-w-[88px] sm:px-4 text-[13px] sm:text-[15px] font-black text-white shadow-[0_10px_24px_-12px_rgba(108,92,231,0.7)]"
                           >
                             編集
                           </button>
@@ -953,7 +998,7 @@ export default function SurveysAdmin() {
                   </button>
                   <button
                     onClick={() => openEditor(activeSurvey)}
-                    className="h-10 rounded-xl bg-gradient-to-r from-[#D62976] to-[#6C5CE7] px-3 text-white font-black text-[12px] flex items-center justify-center gap-2 shadow-[0_10px_24px_-12px_rgba(108,92,231,0.7)]"
+                    className="h-10 rounded-xl bg-gradient-to-r from-[#D62976] to-[#6C5CE7] px-3 text-white font-black text-[15px] flex items-center justify-center gap-2 shadow-[0_10px_24px_-12px_rgba(108,92,231,0.7)]"
                   >
                     <Settings2 className="w-4 h-4" /> 編集
                   </button>
@@ -1158,6 +1203,28 @@ export default function SurveysAdmin() {
                             <option key={year.value} value={year.value}>{year.label}</option>
                           ))}
                         </select>
+
+                        <div className="mb-2 mt-6 flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0f8b8d] text-[11px] font-black text-white">5</span>
+                          <h4 className="text-[16px] font-black text-stone-800">パスワード</h4>
+                        </div>
+                        <div className="relative">
+                            <input
+                              type={showSurveyPassword ? 'text' : 'password'}
+                              value={draft.password}
+                              onChange={(e) => setDraft((prev) => ({ ...prev, password: e.target.value }))}
+                              placeholder={draft.target_config.password_hash && !draft.password ? '設定済み（空欄で保存すると解除）' : '未入力ならパスワードなし'}
+                              className="w-full h-11 rounded-xl border border-stone-200 bg-white px-4 pr-12 text-[15px] font-bold text-stone-900 outline-none focus:border-[#0f8b8d]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowSurveyPassword((prev) => !prev)}
+                              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                              aria-label={showSurveyPassword ? 'パスワードを隠す' : 'パスワードを表示'}
+                            >
+                              {showSurveyPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
                       </section>
                       </div>
                     </div>
@@ -1184,10 +1251,11 @@ export default function SurveysAdmin() {
                         <button
                           type="button"
                           onClick={() => goToEditorStep('setup')}
-                          className="h-11 w-11 rounded-xl border border-stone-200 bg-white text-stone-700 flex items-center justify-center"
+                          className="h-11 rounded-xl border border-stone-200 bg-white px-4 text-stone-700 inline-flex items-center justify-center gap-2 font-black text-[13px] tracking-[0.08em] whitespace-nowrap"
                           aria-label="ステップ1に戻る"
                         >
                           <ArrowLeft className="w-4 h-4" />
+                          <span>ステップ1へ戻す</span>
                         </button>
                         <p className="text-[12px] font-black tracking-[0.2em] text-stone-400">フォーム本文</p>
                       </div>
@@ -1471,10 +1539,11 @@ export default function SurveysAdmin() {
                       <button
                         type="button"
                         onClick={() => goToEditorStep('setup')}
-                        className="h-11 w-11 rounded-xl bg-stone-50 text-stone-700 flex items-center justify-center"
+                        className="h-11 rounded-xl bg-stone-50 px-3 text-stone-700 inline-flex items-center justify-center gap-2 font-black text-[12px] whitespace-nowrap"
                         aria-label="ステップ1に戻る"
                       >
                         <ArrowLeft className="w-4 h-4" />
+                        <span>ステップ1へ戻す</span>
                       </button>
                       <button type="button" onClick={() => addQuestionAt(activeQuestionIndex)} className="h-11 rounded-xl bg-orange-50 text-orange-600 font-black text-[12px] flex items-center justify-center gap-2 border border-orange-200">
                         <Plus className="w-4 h-4" /> 質問を追加

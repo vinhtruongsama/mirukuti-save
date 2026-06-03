@@ -10,6 +10,8 @@ export interface SurveyTargetConfig {
   require_activity_registration?: boolean;
   roles?: string[];
   years?: number[];
+  password?: string | null;
+  password_hash?: string | null;
 }
 
 export interface Survey {
