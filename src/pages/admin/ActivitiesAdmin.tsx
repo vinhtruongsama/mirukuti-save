@@ -787,7 +787,7 @@ export default function ActivitiesAdmin() {
                     </div>
 
                     <div className="sm:col-span-2 order-2 pt-10 border-t border-gray-100">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                      <div className="flex items-center gap-4 mb-8">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 bg-[#D62976]/10 rounded-2xl flex items-center justify-center text-[#D62976]">
                             <Activity className="w-5 h-5" />
@@ -796,14 +796,6 @@ export default function ActivitiesAdmin() {
                             <h3 className="text-[16px] font-black text-gray-800 uppercase tracking-widest leading-none mb-1">追加質問</h3>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => appendQuestion({ prompt: '', answer_hint: '' })}
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#D62976] transition-all shadow-lg hover:shadow-[#D62976]/20"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          質問を追加
-                        </button>
                       </div>
 
                       <div className="space-y-4">
@@ -844,10 +836,22 @@ export default function ActivitiesAdmin() {
                           ))
                         )}
                       </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => appendQuestion({ prompt: '', answer_hint: '' })}
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg transition-all hover:bg-[#D62976] hover:shadow-[#D62976]/20"
+                          title="質問を追加"
+                          aria-label="質問を追加"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="sm:col-span-2 order-1 pt-10 border-t border-gray-100">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                      <div className="flex items-center gap-4 mb-8">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 bg-[#4F5BD5]/10 rounded-2xl flex items-center justify-center text-[#4F5BD5]">
                             <CalendarDays className="w-5 h-5" />
@@ -856,14 +860,6 @@ export default function ActivitiesAdmin() {
                             <h3 className="text-[15px] font-black text-gray-800 uppercase tracking-widest leading-none mb-1">スケジュール</h3>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => appendSession({ date: '', start_time: '', end_time: '', capacity: NaN })}
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all shadow-lg hover:shadow-[#4F5BD5]/20"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          セッションを追加
-                        </button>
                       </div>
 
                       <div className="space-y-4">
@@ -969,6 +965,18 @@ export default function ActivitiesAdmin() {
                           </motion.div>
                         ))}
 
+                      </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => appendSession({ date: '', start_time: '', end_time: '', capacity: NaN })}
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg transition-all hover:bg-[#4F5BD5] hover:shadow-[#4F5BD5]/20"
+                          title="セッションを追加"
+                          aria-label="セッションを追加"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
 

@@ -274,7 +274,7 @@ export default function ActivityDetail() {
           </h1>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
+            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-400 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm transition-transform group-hover:scale-110">
                 <Clock className="w-6 h-6" />
               </div>
@@ -284,7 +284,7 @@ export default function ActivityDetail() {
               </div>
             </div>
 
-            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
+            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-400 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm transition-transform group-hover:scale-110">
                 <Users className="w-6 h-6" />
               </div>
@@ -294,7 +294,7 @@ export default function ActivityDetail() {
               </div>
             </div>
 
-            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
+            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-400 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-rose-500 shadow-sm transition-transform group-hover:scale-110">
                 <AlertCircle className="w-6 h-6" />
               </div>

@@ -621,7 +621,14 @@ export default function Activities() {
           <Dialog.Overlay className="fixed inset-0 bg-stone-900/60 backdrop-blur-lg z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <Dialog.Content className={`fixed left-[50%] top-[50%] z-50 w-[94%] md:w-full max-w-4xl max-h-[90vh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] bg-white p-5 md:p-10 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-[2rem] md:rounded-[2.5rem] ${customFontClass} scrollbar-hide`}>
             {selectedActivity && (
-              <div className="space-y-6 md:space-y-8">
+              <div className="space-y-0 md:space-y-0">
+                <div className="sticky top-0 z-[70] -mt-2 -mr-1 flex justify-end pb-3 pointer-events-none">
+                  <Dialog.Close className="pointer-events-auto flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-stone-200/80 bg-white/95 text-[#D62976] shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur transition-all duration-300 hover:text-[#b81f64] hover:shadow-[0_15px_45px_rgb(0,0,0,0.18)] active:scale-95 group/close">
+                    <X className="h-5 w-5 transition-transform group-hover/close:rotate-90" />
+                    <span className="sr-only">Close</span>
+                  </Dialog.Close>
+                </div>
+
                 {/* Header Pills */}
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
                   <span className="px-3 py-1 bg-stone-900 text-[#FEDA75] text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full shadow-lg">
@@ -644,7 +651,7 @@ export default function Activities() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                     {/* Time box */}
                     <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 flex items-center gap-4">
-                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
+                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-400 shrink-0">
                         <Clock className="w-5 h-5 text-[#4F5BD5]" />
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
@@ -656,7 +663,7 @@ export default function Activities() {
                     </div>
                     {/* Quantity box */}
                     <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 flex items-center gap-4">
-                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
+                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-400 shrink-0">
                         <Users className="w-5 h-5 text-purple-600" />
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
@@ -668,7 +675,7 @@ export default function Activities() {
                     </div>
                     {/* Deadline box */}
                     <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 flex items-center gap-4">
-                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-100 shrink-0">
+                      <div className="bg-white rounded-xl p-2.5 h-fit shadow-sm border border-stone-400 shrink-0">
                         <AlertCircle className="w-5 h-5 text-rose-500" />
                       </div>
                       <div className="flex flex-col justify-center min-w-0">
@@ -680,7 +687,7 @@ export default function Activities() {
 
                   {/* Bottom Row: Full-width Location */}
                   <div className="bg-stone-50 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-5 flex items-start gap-4">
-                    <div className="bg-white rounded-xl p-2.5 md:p-3 h-fit shadow-sm border border-stone-100 shrink-0 mt-1">
+                    <div className="bg-white rounded-xl p-2.5 md:p-3 h-fit shadow-sm border border-stone-400 shrink-0 mt-1">
                       <MapPin className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
@@ -692,18 +699,18 @@ export default function Activities() {
                   </div>
                 </div>
 
-                <div className="pt-2 md:pt-4 space-y-10 md:space-y-12">
+                <div className="pt-2 md:pt-4 space-y-4 md:space-y-6">
                   {/* Body: Activity Content */}
                     <div className="space-y-12">
                       <div className="space-y-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
+                        <div className="w-1.5 h-6 bg-brand-stone-900 rounded-xl" />
                         <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">内容</h3>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-3 items-start">
                         <div className={selectedActivity.displayNote ? "md:col-span-2" : "md:col-span-3"}>
-                          <div className="bg-stone-50/50 rounded-[2.5rem] p-8 md:p-12 border-2 border-stone-600 w-full shadow-sm">
+                          <div className="bg-stone-50/50 rounded-[1.5rem] p-8 md:p-6 border-2 border-stone-400 w-full shadow-sm">
                             <p className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-600 bg-clip-text text-transparent text-sm md:text-base font-medium leading-relaxed whitespace-pre-line w-full">
                               {selectedActivity.displayDesc}
                             </p>
@@ -712,7 +719,7 @@ export default function Activities() {
 
                         {selectedActivity.displayNote && (
                           <div className="md:col-span-1">
-                            <div className="bg-amber-50/30 rounded-2xl p-6 border border-amber-100/50 flex gap-4 h-full">
+                            <div className="bg-amber-50/30 rounded-2xl p-1 border border-amber-100/50 flex gap-4 h-full">
                               <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                               <div>
                                 <span className="text-[14px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
@@ -750,7 +757,7 @@ export default function Activities() {
                     {selectedActivity.sessions && Array.isArray(selectedActivity.sessions) && selectedActivity.sessions.length > 0 && (
                       <div className="space-y-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-6 bg-brand-stone-900 rounded-full" />
+                          <div className="w-1.5 h-6 bg-brand-stone-900 rounded-xl" />
                           <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">スケジュール</h3>
                         </div>
 
@@ -770,7 +777,7 @@ export default function Activities() {
                                 <div
                                   key={idx}
                                   onClick={() => canToggle && toggleSession(idx)}
-                                  className={`group p-5 rounded-[1.5rem] border-2 transition-all duration-500 flex items-center gap-6 relative overflow-hidden ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                                  className={`group p-3 rounded-[1.5rem] border-2 transition-all duration-500 flex items-center gap-6 relative overflow-hidden ${!canToggle ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
                                     } ${isSelected
                                       ? 'bg-white text-brand-emerald-500 border-brand-emerald-600 shadow-xl shadow-brand-emerald-500/10 scale-[1.01]'
                                       : isFull
@@ -801,7 +808,7 @@ export default function Activities() {
                                     <p className={`text-[12px] font-black uppercase tracking-widest mb-0.5 ${isSelected ? 'text-brand-emerald-900' : 'text-stone-600'}`}>
                                       {format(new Date(session.date), "yyyy年M月d日(E)", { locale: jaLocale })}
                                     </p>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
                                       <p className={`text-lg font-black ${isSelected ? 'text-brand-emerald-900' : 'text-brand-stone-900'}`}>
                                         {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'}
                                       </p>
@@ -823,7 +830,7 @@ export default function Activities() {
                   </div>
 
                   {/* Top: Status Badges / Info / Registration */}
-                  <div className="flex flex-col items-center justify-center gap-4 pt-4 border-t border-stone-100">
+                  <div className="flex flex-col items-center justify-center border-t border-stone-100">
                     {(() => {
                       const isRegistered = userRegistrations.includes(selectedActivity.id);
                       const isPending = toggleRegistrationMutation.isPending;
@@ -832,36 +839,36 @@ export default function Activities() {
                         <>
                           <div className="w-full flex items-center justify-center">
                             {isRegistered ? (
-                              <div className="flex flex-col items-center gap-6 bg-brand-emerald-50/50 border border-brand-emerald-100 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-sm">
-                                <div className="flex flex-col items-center gap-3">
+                              <div className="flex w-full max-w-lg flex-col items-center gap-3 rounded-3xl border border-brand-emerald-100 bg-brand-emerald-50/50 px-5 py-4 md:px-6 md:py-5 shadow-sm">
+                                <div className="flex flex-col items-center gap-1">
                                   <div className="flex items-center gap-2 text-brand-emerald-600 font-black text-sm uppercase tracking-widest">
-                                    <div className="w-2 h-2 rounded-full bg-brand-emerald-500 animate-pulse" />
+                                    <div className="w-3 h-3 rounded-full bg-brand-emerald-500 animate-pulse" />
                                     申し込み済み
                                   </div>
                                 </div>
 
                                 {selectedActivity.cancellation_deadline && !isPast(new Date(selectedActivity.cancellation_deadline)) && (
-                                  <button
-                                    onClick={() => {
-                                      if (window.confirm('参加申し込みをキャンセルしますか？')) {
-                                        toggleRegistrationMutation.mutate({
-                                          activityId: selectedActivity.id,
-                                          isRegistered: true
-                                        });
-                                      }
-                                    }}
-                                    disabled={isPending}
-                                    className="py-4 px-8 border-2 border-rose-200 bg-rose-50/50 text-rose-500 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] hover:bg-white hover:border-rose-400 hover:text-rose-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-wait group"
-                                  >
-                                    <div className="flex items-center justify-center gap-2">
+                                  <div className="flex items-center justify-center">
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm('参加申し込みをキャンセルしますか？')) {
+                                          toggleRegistrationMutation.mutate({
+                                            activityId: selectedActivity.id,
+                                            isRegistered: true
+                                          });
+                                        }
+                                      }}
+                                      disabled={isPending}
+                                      className="group inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white/90 px-3 py-2 text-[11px] md:text-xs font-black tracking-[0.14em] text-rose-500 transition-all duration-300 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-wait disabled:opacity-50"
+                                    >
                                       {isPending ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                       ) : (
-                                        <X className="w-3 h-3 transition-transform group-hover:rotate-90" />
+                                        <X className="h-3.5 w-3.5 transition-transform group-hover:rotate-90" />
                                       )}
-                                      申し込みを取り消す
-                                    </div>
-                                  </button>
+                                      <span className="whitespace-nowrap">申し込みを取り消す</span>
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             ) : (
@@ -1038,10 +1045,6 @@ export default function Activities() {
                 </div>
               </div>
             )}
-            <Dialog.Close className="absolute right-4 top-4 md:right-6 md:top-6 z-[60] w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-100 text-stone-400 transition-all duration-300 hover:text-stone-900 hover:shadow-[0_15px_45px_rgb(0,0,0,0.18)] hover:scale-110 active:scale-95 group/close">
-              <X className="h-5 w-5 md:h-6 md:w-6 transition-transform group-hover/close:rotate-90" />
-              <span className="sr-only">Close</span>
-            </Dialog.Close>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
