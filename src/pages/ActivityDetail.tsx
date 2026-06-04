@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
+import { renderTextWithEmoji } from '../lib/renderTextWithEmoji';
 import type { Survey } from '../types/survey';
 
 export default function ActivityDetail() {
@@ -273,7 +274,7 @@ export default function ActivityDetail() {
             {activity.title}
           </h1>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-6 mb-6">
             <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-400 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all duration-500">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm transition-transform group-hover:scale-110">
                 <Clock className="w-6 h-6" />
@@ -338,7 +339,7 @@ export default function ActivityDetail() {
           <div className="mb-12 sm:mb-20">
             <div className="p-5 sm:p-8 md:p-12 border-2 border-stone-600 rounded-[2rem] sm:rounded-[2.5rem] bg-gray-50/50 shadow-sm">
               <p className="text-xl text-gray-500 leading-[1.8] font-medium whitespace-pre-wrap max-w-3xl">
-                {activity.description || '活動の詳細情報はありません。'}
+                {renderTextWithEmoji(activity.description || '活動の詳細情報はありません。')}
               </p>
             </div>
           </div>

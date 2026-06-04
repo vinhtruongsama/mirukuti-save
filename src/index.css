@@ -81,6 +81,31 @@
     text-wrap: balance;
   }
 
+  @keyframes activity-emoji-sway {
+    0%,
+    100% {
+      transform: rotate(0deg) translateY(0);
+    }
+    25% {
+      transform: rotate(-8deg) translateY(-1px);
+    }
+    75% {
+      transform: rotate(8deg) translateY(-1px);
+    }
+  }
+
+  .activity-emoji {
+    transform-origin: 50% 75%;
+    animation: activity-emoji-sway 2.4s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .activity-emoji {
+      animation: none;
+    }
+  }
+
   /* iOS Safe Area support for iPhone notch and home indicator */
   .safe-area-pb {
     padding-bottom: max(env(safe-area-inset-bottom), 8px);

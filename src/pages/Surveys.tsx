@@ -141,7 +141,7 @@ export default function Surveys() {
         <div className="mb-10">
           <div className="relative flex items-center min-h-[56px] pl-7">
             <div className="absolute left-[10px] sm:left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
-            <h1 className="text-3xl md:text-3xl px-4 font-black text-brand-stone-900 tracking-tighter leading-none">アンケートフォーム</h1>
+            <h1 className="text-3xl md:text-3xl px-4 font-black text-brand-stone-900 tracking-tighter leading-none">フォーム</h1>
           </div>
         </div>
 

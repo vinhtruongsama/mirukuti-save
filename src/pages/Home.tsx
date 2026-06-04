@@ -50,15 +50,22 @@ export default function Home() {
                 {session && (
                   <Link 
                     to="/activities" 
-                    className="w-full px-8 py-4 bg-white hover:bg-stone-50 text-[#D62976] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/5 flex items-center justify-center no-underline border border-[#D62976]/10"
+                    className="w-full px-8 py-4 bg-[#FFF7FB] hover:bg-[#FFF0F7] text-[#D63384] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/5 flex items-center justify-center no-underline border border-[#D63384]/10"
                   >
                     活動を見る
                   </Link>
                 )}
 
                 <Link 
+                  to={session ? "/surveys" : "/login"} 
+                  className="w-full px-8 py-4 bg-[#FF8A4C] hover:bg-[#FF7B36] text-[#FFFFFF] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#FF8A4C]/25 flex items-center justify-center no-underline border border-white/20"
+                >
+                  フォーム
+                </Link>
+
+                <Link 
                   to={session ? "/profile" : "/login"} 
-                  className="w-full px-8 py-4 bg-[#4F5BD5] hover:bg-[#3D4AB5] text-white font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#4F5BD5]/20 flex items-center justify-center no-underline border border-white/20"
+                  className="w-full px-8 py-4 bg-[#4F63D9] hover:bg-[#4358D2] text-[#FFFFFF] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#4F63D9]/25 flex items-center justify-center no-underline border border-white/20"
                 >
                   {session ? "マイページ" : "今すぐ登録"}
                 </Link>
@@ -66,7 +73,7 @@ export default function Home() {
                 {session && currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole) && (
                   <Link 
                     to="/admin" 
-                    className="w-full px-8 py-4 bg-gradient-to-r from-[#FEDA75] to-[#FFD700] text-[#0A0F1D] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-stone-900/10 flex items-center justify-center no-underline border border-white/40 group/admin"
+                    className="w-full px-8 py-4 bg-[#FFC93C] hover:bg-[#F6C02A] text-[#2F2600] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#FFC93C]/25 flex items-center justify-center no-underline border border-white/40 group/admin"
                   >
                     <span className="group-hover/admin:tracking-widest transition-all duration-500">全て管理</span>
                   </Link>

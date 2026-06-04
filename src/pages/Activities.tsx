@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import type { Survey, SurveyResponse as SurveySubmission } from '../types/survey';
 import { isSurveyEligibleForMembership } from '../lib/surveys';
 import { cn } from '../lib/utils';
+import { renderTextWithEmoji } from '../lib/renderTextWithEmoji';
 
 export default function Activities() {
   const navigate = useNavigate();
@@ -710,9 +711,9 @@ export default function Activities() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-3 items-start">
                         <div className={selectedActivity.displayNote ? "md:col-span-2" : "md:col-span-3"}>
-                          <div className="bg-stone-50/50 rounded-[1.5rem] p-8 md:p-6 border-2 border-stone-400 w-full shadow-sm">
-                            <p className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-600 bg-clip-text text-transparent text-sm md:text-base font-medium leading-relaxed whitespace-pre-line w-full">
-                              {selectedActivity.displayDesc}
+                          <div className="bg-stone-50/50 rounded-[1.5rem] p-8 md:p-2 border-2 border-stone-400 w-full shadow-sm">
+                            <p className="text-stone-700 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap w-full">
+                              {renderTextWithEmoji(selectedActivity.displayDesc || '')}
                             </p>
                           </div>
                         </div>
@@ -723,7 +724,9 @@ export default function Activities() {
                               <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                               <div>
                                 <span className="text-[14px] text-amber-700 font-bold uppercase tracking-[0.2em] block mb-2">注意事項</span>
-                                <p className="text-amber-800 italic text-xs leading-relaxed whitespace-pre-line">{selectedActivity.displayNote}</p>
+                                <p className="text-amber-800 italic text-xs leading-relaxed whitespace-pre-wrap">
+                                  {renderTextWithEmoji(selectedActivity.displayNote)}
+                                </p>
                               </div>
                             </div>
                           </div>
