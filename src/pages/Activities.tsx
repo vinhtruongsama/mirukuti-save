@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import type { Survey, SurveyResponse as SurveySubmission } from '../types/survey';
 import { isSurveyEligibleForMembership } from '../lib/surveys';
+import { cn } from '../lib/utils';
 
 export default function Activities() {
   const navigate = useNavigate();
@@ -23,8 +24,15 @@ export default function Activities() {
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
+  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string>>({});
   const [showScheduleWarning, setShowScheduleWarning] = useState(false);
+  const [showQuestionWarning, setShowQuestionWarning] = useState(false);
   const [isSurveyCenterOpen, setIsSurveyCenterOpen] = useState(false);
+
+  const getActivityQuestions = (activity: any) =>
+    Array.isArray(activity?.registration_questions)
+      ? activity.registration_questions.filter((question: any) => question?.prompt?.trim())
+      : [];
 
   const toggleSession = (idx: number) => {
     setSelectedSessions(prev =>
@@ -36,6 +44,20 @@ export default function Activities() {
   useEffect(() => {
     if (selectedSessions.length > 0) setShowScheduleWarning(false);
   }, [selectedSessions]);
+
+  useEffect(() => {
+    setRegistrationAnswers({});
+    setShowScheduleWarning(false);
+    setShowQuestionWarning(false);
+    setIsConfirmed(false);
+  }, [selectedActivity?.id]);
+
+  useEffect(() => {
+    if (!selectedActivity) return;
+    const questions = getActivityQuestions(selectedActivity);
+    const allAnswered = questions.every((_: any, idx: number) => registrationAnswers[String(idx)]?.trim());
+    if (allAnswered) setShowQuestionWarning(false);
+  }, [registrationAnswers, selectedActivity]);
 
   const queryClient = useQueryClient();
   const { data: activities = [], isLoading } = useQuery({
@@ -215,6 +237,11 @@ export default function Activities() {
 
         const act = activities.find(a => a.id === activityId);
         if (!act) throw new Error('Activity not found');
+        const questions = getActivityQuestions(act);
+        const missingQuestion = questions.find((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+        if (missingQuestion) {
+          throw new Error('追加質問に回答してください。');
+        }
 
         // 1. Global Capacity Check
         if (act.capacity && (latestRegs?.length || 0) >= act.capacity) {
@@ -247,6 +274,10 @@ export default function Activities() {
             activity_id: activityId,
             attendance_status: 'pending',
             selected_sessions: selectedSessions,
+            registration_answers: questions.map((question: any, idx: number) => ({
+              question: question.prompt,
+              answer: registrationAnswers[String(idx)]?.trim() || ''
+            })),
             confirmed_at: new Date().toISOString()
           });
         if (error) throw error;
@@ -837,6 +868,45 @@ export default function Activities() {
                               <div className="w-full flex flex-col items-center gap-8">
                                 {currentUser && selectedActivity.computedStatus === 'OPEN' && (
                                   <>
+                                    {getActivityQuestions(selectedActivity).length > 0 && (
+                                      <div className="w-full self-stretch space-y-4">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-1.5 h-6 bg-[#D62976] rounded-full" />
+                                          <h3 className="text-lg font-black text-brand-stone-900 uppercase tracking-widest">追加質問</h3>
+                                        </div>
+                                        {getActivityQuestions(selectedActivity).map((question: any, idx: number) => (
+                                          <div key={idx} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                                            <label className="mb-2 block text-[13px] font-black text-stone-800 leading-relaxed">
+                                              {idx + 1}. {question.prompt}
+                                              <span className="ml-1 text-[#D62976]">*</span>
+                                            </label>
+                                            {question.answer_hint?.trim() && (
+                                              <p className="mb-3 whitespace-pre-wrap text-[12px] font-bold leading-relaxed text-stone-500">
+                                                {question.answer_hint}
+                                              </p>
+                                            )}
+                                            <textarea
+                                              value={registrationAnswers[String(idx)] || ''}
+                                              onChange={(e) => setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: e.target.value }))}
+                                              rows={2}
+                                              className={cn(
+                                                "w-full resize-none rounded-xl border bg-stone-50 px-4 py-3 text-sm font-bold text-stone-900 outline-none transition focus:bg-white",
+                                                showQuestionWarning && !registrationAnswers[String(idx)]?.trim()
+                                                  ? "border-rose-400"
+                                                  : "border-stone-200 focus:border-[#4F5BD5]/40"
+                                              )}
+                                              placeholder="回答を入力..."
+                                            />
+                                          </div>
+                                        ))}
+                                        {showQuestionWarning && (
+                                          <p className="text-center text-[12px] font-black text-rose-500 tracking-widest uppercase">
+                                            追加質問にすべて回答してください
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+
                                     {/* Mandatory Schedule Warning & Instructions - Shown only when validation fails */}
                                     <AnimatePresence>
                                       {showScheduleWarning && (
@@ -907,7 +977,15 @@ export default function Activities() {
                                       return;
                                     }
 
+                                    const questions = getActivityQuestions(selectedActivity);
+                                    const hasMissingAnswer = questions.some((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+                                    if (hasMissingAnswer) {
+                                      setShowQuestionWarning(true);
+                                      return;
+                                    }
+
                                     setShowScheduleWarning(false);
+                                    setShowQuestionWarning(false);
                                     toggleRegistrationMutation.mutate({
                                       activityId: selectedActivity.id,
                                       isRegistered: false

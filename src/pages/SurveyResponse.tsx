@@ -71,19 +71,22 @@ export default function SurveyResponse() {
       setOptionCounts(counts);
 
       const latestResponse = (responses || [])[0] as SurveyResponseType | undefined;
+      const shouldSeedExistingAnswers = survey.response_mode !== 'multiple';
       const seededAnswers: AnswerMap = {};
       (questions || []).forEach((q: SurveyQuestion) => {
         seededAnswers[q.id] = initialValueForQuestion(q);
       });
-      latestResponse?.survey_answers?.forEach((answer: SurveyAnswer) => {
-        seededAnswers[answer.question_id] = answer.value;
-      });
+      if (shouldSeedExistingAnswers) {
+        latestResponse?.survey_answers?.forEach((answer: SurveyAnswer) => {
+          seededAnswers[answer.question_id] = answer.value;
+        });
+      }
       setAnswers(seededAnswers);
 
       return {
         survey: survey as Survey,
         questions: (questions || []) as SurveyQuestion[],
-        latestResponse,
+        latestResponse: shouldSeedExistingAnswers ? latestResponse : undefined,
       };
     },
     enabled: !!id && !!currentUser,
@@ -262,16 +265,6 @@ export default function SurveyResponse() {
             value={String(value || '')}
             onChange={(e) => setAnswer(question.id, e.target.value)}
             className={cn(inputClassName, 'min-h-[42px] resize-y')}
-          />
-        )}
-
-        {question.type === 'number' && (
-          <input
-            type="number"
-            disabled={disabled}
-            value={String(value || '')}
-            onChange={(e) => setAnswer(question.id, e.target.value)}
-            className={cn(inputClassName, 'h-[42px]')}
           />
         )}
 

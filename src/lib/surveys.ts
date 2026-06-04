@@ -20,7 +20,6 @@ export const SURVEY_YEAR_OPTIONS = [
 
 export const SURVEY_QUESTION_TYPES: Array<{ value: SurveyQuestion['type']; label: string }> = [
   { value: 'short_text', label: '短文' },
-  { value: 'number', label: '数' },
   { value: 'single_choice', label: '単一選択' },
   { value: 'multiple_choice', label: '複数選択' },
 ];

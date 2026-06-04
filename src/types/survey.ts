@@ -2,7 +2,6 @@ export type SurveyStatus = 'draft' | 'open' | 'closed';
 export type SurveyResponseMode = 'single_editable' | 'single_locked' | 'multiple';
 export type SurveyQuestionType =
   | 'short_text'
-  | 'number'
   | 'single_choice'
   | 'multiple_choice';
 

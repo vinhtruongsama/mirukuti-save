@@ -83,6 +83,14 @@ export default function ActivityDetail() {
 
   const [agreed, setAgreed] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
+  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string>>({});
+  const [showScheduleWarning, setShowScheduleWarning] = useState(false);
+  const [showQuestionWarning, setShowQuestionWarning] = useState(false);
+
+  const getActivityQuestions = (activityValue: any) =>
+    Array.isArray(activityValue?.registration_questions)
+      ? activityValue.registration_questions.filter((question: any) => question?.prompt?.trim())
+      : [];
 
   const activeSessions = myRegistration?.selected_sessions || selectedSessions;
 
@@ -109,6 +117,12 @@ export default function ActivityDetail() {
       }
       if (!agreed) {
         throw new Error('内容を確認し、同意チェックを入れてください。');
+      }
+
+      const questions = getActivityQuestions(activity);
+      const missingQuestion = questions.find((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+      if (missingQuestion) {
+        throw new Error('追加質問に回答してください。');
       }
 
       // Final check for latest registration data to prevent race conditions
@@ -147,7 +161,11 @@ export default function ActivityDetail() {
         activity_id: id,
         user_id: currentUser!.id,
         attendance_status: 'pending',
-        selected_sessions: selectedSessions
+        selected_sessions: selectedSessions,
+        registration_answers: questions.map((question: any, idx: number) => ({
+          question: question.prompt,
+          answer: registrationAnswers[String(idx)]?.trim() || ''
+        }))
       });
 
       if (error) throw error;
@@ -194,14 +212,19 @@ export default function ActivityDetail() {
     );
   }
 
-  const [showScheduleWarning, setShowScheduleWarning] = useState(false);
-
   const handleRegister = () => {
     if (activity.sessions?.length > 0 && selectedSessions.length === 0) {
       setShowScheduleWarning(true);
       return;
     }
+    const questions = getActivityQuestions(activity);
+    const hasMissingAnswer = questions.some((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+    if (hasMissingAnswer) {
+      setShowQuestionWarning(true);
+      return;
+    }
     setShowScheduleWarning(false);
+    setShowQuestionWarning(false);
     registerMutation.mutate();
     toast.info('申し込みを処理中...');
   };
@@ -443,6 +466,45 @@ export default function ActivityDetail() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {getActivityQuestions(activity).length > 0 && (
+                  <div className="w-full space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-[#D62976] rounded-full" />
+                      <h3 className="text-lg font-black text-gray-900 uppercase tracking-[0.2em]">追加質問</h3>
+                    </div>
+                    {getActivityQuestions(activity).map((question: any, idx: number) => (
+                      <div key={idx} className="rounded-[1.5rem] border border-gray-100 bg-white p-5 shadow-sm">
+                        <label className="mb-2 block text-[13px] font-black text-gray-800 leading-relaxed">
+                          {idx + 1}. {question.prompt}
+                          <span className="ml-1 text-[#D62976]">*</span>
+                        </label>
+                        {question.answer_hint?.trim() && (
+                          <p className="mb-3 whitespace-pre-wrap text-[12px] font-bold leading-relaxed text-gray-500">
+                            {question.answer_hint}
+                          </p>
+                        )}
+                        <textarea
+                          value={registrationAnswers[String(idx)] || ''}
+                          onChange={(e) => setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: e.target.value }))}
+                          rows={2}
+                          className={cn(
+                            "w-full resize-none rounded-2xl border bg-gray-50 px-4 py-3 text-sm font-bold text-gray-900 outline-none transition focus:bg-white",
+                            showQuestionWarning && !registrationAnswers[String(idx)]?.trim()
+                              ? "border-rose-400"
+                              : "border-gray-200 focus:border-indigo-300"
+                          )}
+                          placeholder="回答を入力..."
+                        />
+                      </div>
+                    ))}
+                    {showQuestionWarning && (
+                      <p className="text-center text-[10px] font-black text-rose-500 animate-pulse tracking-[0.3em] uppercase">
+                        追加質問にすべて回答してください
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Consent Checkbox */}
                 <div className="flex items-center justify-center pt-2">

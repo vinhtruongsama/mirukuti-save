@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
-import { ArrowLeft, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
@@ -29,10 +29,12 @@ const STATUS_COLOR_THEME = {
 function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { reg: any, activityId: string, currentSessionIdx: number | null, sessions: any[] }) {
   const queryClient = useQueryClient();
   const [showNote, setShowNote] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
   const [note, setNote] = useState(reg.admin_note || '');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const debouncedNote = useDebounce(note, 800);
   const isFirstRender = useRef(true);
+  const answerCount = Array.isArray(reg.registration_answers) ? reg.registration_answers.length : 0;
 
   // Note Mutation
   const updateNoteMutation = useMutation({
@@ -177,7 +179,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
               {/* Memo Button */}
               <button
                 onClick={() => setShowNote(!showNote)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${reg.admin_note
+                className={`flex items-center gap-2 px-0 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${reg.admin_note
                   ? 'bg-rose-50/50 text-rose-500 border-rose-100 shadow-sm'
                   : 'bg-stone-50/30 text-stone-500 border-stone-100 hover:text-stone-600 hover:bg-stone-50'
                   }`}
@@ -186,6 +188,22 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
                 {reg.admin_note ? 'メモを確認' : 'メモを追加'}
               </button>
             </div>
+
+            {answerCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAnswers((prev) => !prev)}
+                className={`mt-3 inline-flex items-center gap-1 text-left transition-all ${showAnswers
+                  ? 'text-[#4F5BD5]'
+                  : 'text-stone-500 hover:text-[#4F5BD5]'
+                  }`}
+              >
+                <div className="min-w-0">
+                  <p className="text-[14px] font-black uppercase tracking-widest">回答を表示</p>
+                </div>
+                <ChevronDown className={`w-5 h-5 shrink-0 transition-transform ${showAnswers ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -217,6 +235,26 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
 
       {/* Expandable Note Section */}
       <AnimatePresence>
+        {showAnswers && answerCount > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 pt-4 border-t border-indigo-50">
+              <div className="space-y-2 rounded-2xl border border-indigo-100 bg-indigo-50/30 p-3">
+                {reg.registration_answers.map((item: any, idx: number) => (
+                  <div key={idx} className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#4F5BD5]">{item.question || `Question ${idx + 1}`}</p>
+                    <p className="whitespace-pre-wrap text-[12px] font-bold leading-relaxed text-stone-700">{item.answer || '-'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {showNote && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
@@ -280,7 +318,7 @@ export default function ActivityRegistrations() {
       const { data, error } = await supabase
         .from('registrations')
         .select(`
-          id, attendance_status, admin_note, registered_at, selected_sessions,
+          id, attendance_status, admin_note, registered_at, selected_sessions, registration_answers,
           users:user_id (id, mssv, full_name, full_name_kana, email, phone, line_nickname, university_email),
           attendance_records (session_index, status)
         `)

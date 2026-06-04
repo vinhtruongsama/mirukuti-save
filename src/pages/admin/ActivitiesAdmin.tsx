@@ -37,6 +37,10 @@ const activitySchema = z.object({
     end_time: z.string().regex(timeRegex, 'HH:mm形式').optional().nullable().or(z.literal('')),
     capacity: z.number().min(0).optional().nullable().or(z.nan()),
   })).optional(),
+  registration_questions: z.array(z.object({
+    prompt: z.string().min(1, 'Question is required'),
+    answer_hint: z.string().optional(),
+  })).optional(),
   status: z.enum(['open', 'closed', 'draft']),
   is_pinned: z.boolean().optional(),
 });
@@ -66,12 +70,17 @@ export default function ActivitiesAdmin() {
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<ActivityFormData>({
     resolver: zodResolver(activitySchema),
-    defaultValues: { status: 'open', location_type: 'internal', sessions: [], is_pinned: false }
+    defaultValues: { status: 'open', location_type: 'internal', sessions: [], registration_questions: [], is_pinned: false }
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: sessionFields, append: appendSession, remove: removeSession } = useFieldArray({
     control,
     name: "sessions"
+  });
+
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control,
+    name: "registration_questions"
   });
 
 
@@ -140,6 +149,12 @@ export default function ActivitiesAdmin() {
         capacity: isNaN(data.capacity as number) ? null : data.capacity,
         status: data.status,
         sessions: data.sessions,
+        registration_questions: (data.registration_questions || [])
+          .map((question) => ({
+            prompt: question.prompt.trim(),
+            answer_hint: question.answer_hint?.trim() || ''
+          }))
+          .filter((question) => question.prompt),
         cover_image_url: finalCoverUrl,
         academic_year_id: selectedYear!.id,
         is_pinned: data.is_pinned || false,
@@ -204,8 +219,9 @@ export default function ActivitiesAdmin() {
     reset({
       title: '', description: '', date: '', registration_deadline: '',
       cancellation_deadline: '',
-      location: '', capacity: NaN as any, status: 'open', is_pinned: false,
-      sessions: []
+      location: '', location_type: 'internal', capacity: NaN as any, status: 'open', is_pinned: false,
+      sessions: [],
+      registration_questions: []
     });
     setEditingActivity(null);
     setCoverFile(null);
@@ -242,7 +258,8 @@ export default function ActivitiesAdmin() {
         capacity: act.capacity === null ? NaN : act.capacity,
         status: act.status,
         is_pinned: act.is_pinned || false,
-        sessions: act.sessions || []
+        sessions: act.sessions || [],
+        registration_questions: act.registration_questions || []
       });
     }
     setModalOpen(true);
@@ -425,9 +442,9 @@ export default function ActivitiesAdmin() {
                   <div className="mt-auto flex items-center gap-3">
                     <button
                       onClick={() => openForm(act)}
-                      className="lg:hidden flex-1 py-4 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center gap-2 text-stone-900 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                      className="lg:hidden flex-1 py-4 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center gap-2 text-stone-900 font-black text-[19px] uppercase tracking-widest active:scale-95 transition-all shadow-sm"
                     >
-                      <Edit2 size={16} /> 編集
+                      <Edit2 size={18} /> 編集
                     </button>
 
                     <button
@@ -456,7 +473,7 @@ export default function ActivitiesAdmin() {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#D62976]/5 blur-3xl rounded-full translate-x-10 -translate-y-10" />
                 <div>
                   <Dialog.Title className="text-3xl font-black text-gray-900 tracking-tighter uppercase mb-2">
-                    {editingActivity ? '活动内容を編集' : '新規イベント作成'}
+                    {editingActivity ? '内容を編集' : '新規イベント作成'}
                   </Dialog.Title>
 
                 </div>
@@ -769,7 +786,67 @@ export default function ActivitiesAdmin() {
                       </div>
                     </div>
 
-                    <div className="sm:col-span-2 pt-10 border-t border-gray-100">
+                    <div className="sm:col-span-2 order-2 pt-10 border-t border-gray-100">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-[#D62976]/10 rounded-2xl flex items-center justify-center text-[#D62976]">
+                            <Activity className="w-5 h-5" />
+                          </div>
+                          <div className="text-center sm:text-left">
+                            <h3 className="text-[16px] font-black text-gray-800 uppercase tracking-widest leading-none mb-1">追加質問</h3>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => appendQuestion({ prompt: '', answer_hint: '' })}
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#D62976] transition-all shadow-lg hover:shadow-[#D62976]/20"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          質問を追加
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {questionFields.length === 0 ? (
+                          <div className="rounded-3xl border-none bg-gray-50/50 p-6 text-center">
+                            <p className="text-[14px] font-black text-gray-500 uppercase tracking-widest">追加された質問はない</p>
+                          </div>
+                        ) : (
+                          questionFields.map((field, index) => (
+                            <div key={field.id} className="relative rounded-3xl border border-gray-400 bg-white p-4 md:p-6 shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => removeQuestion(index)}
+                                className="absolute -top-4 -right-4 w-9 h-9 bg-rose-50 border-2 border-rose-200 shadow-lg rounded-full flex items-center justify-center text-[#D62976] hover:bg-[#D62976] hover:text-white hover:border-[#D62976] transition-all z-20"
+                                title="質問を削除"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                              <label className="text-[11px] font-black text-gray-700 uppercase tracking-widest px-2">Question {index + 1}</label>
+                              <input
+                                {...register(`registration_questions.${index}.prompt` as const)}
+                                className={cn(
+                                  "mt-2 w-full bg-gray-50 border text-[#0f172a] rounded-2xl px-5 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm",
+                                  errors.registration_questions?.[index]?.prompt ? "border-rose-600" : "border-gray-400"
+                                )}
+                                placeholder="質問を入力"
+                              />
+                              {errors.registration_questions?.[index]?.prompt && (
+                                <p className="text-[10px] text-rose-700 font-bold px-2 mt-2">{errors.registration_questions[index].prompt?.message}</p>
+                              )}
+                              <textarea
+                                {...register(`registration_questions.${index}.answer_hint` as const)}
+                                rows={2}
+                                className="mt-3 w-full resize-none bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl px-5 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                placeholder="回答例"
+                              />
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2 order-1 pt-10 border-t border-gray-100">
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 bg-[#4F5BD5]/10 rounded-2xl flex items-center justify-center text-[#4F5BD5]">
@@ -781,7 +858,7 @@ export default function ActivitiesAdmin() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => append({ date: '', start_time: '', end_time: '', capacity: NaN })}
+                          onClick={() => appendSession({ date: '', start_time: '', end_time: '', capacity: NaN })}
                           className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-[#4F5BD5] transition-all shadow-lg hover:shadow-[#4F5BD5]/20"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -790,7 +867,7 @@ export default function ActivitiesAdmin() {
                       </div>
 
                       <div className="space-y-4">
-                        {fields.map((field, index) => (
+                        {sessionFields.map((field, index) => (
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -799,7 +876,7 @@ export default function ActivitiesAdmin() {
                           >
                             <button
                               type="button"
-                              onClick={() => remove(index)}
+                              onClick={() => removeSession(index)}
                               className="absolute -top-4 -right-4 w-9 h-9 bg-rose-50 border-2 border-rose-200 shadow-lg rounded-full flex items-center justify-center text-[#D62976] hover:bg-[#D62976] hover:text-white hover:border-[#D62976] transition-all z-20 group/delete"
                               title="セッションを削除"
                             >
@@ -897,7 +974,7 @@ export default function ActivitiesAdmin() {
 
 
 
-                    <div className="sm:col-span-2 pt-5 py-5 flex flex-col sm:flex-row justify-end gap-3 sm:gap-6 items-center border-t border-gray-300">
+                    <div className="sm:col-span-2 order-3 pt-5 py-5 flex flex-col sm:flex-row justify-end gap-3 sm:gap-6 items-center border-t border-gray-300">
                       {/* Save Button - Top on Mobile, Right on Desktop */}
                       <motion.button
                         whileHover={{ scale: 1.02 }}
