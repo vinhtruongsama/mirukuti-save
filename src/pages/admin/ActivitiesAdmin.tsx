@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -921,47 +921,47 @@ export default function ActivitiesAdmin() {
                                 </div>
                               </div>
 
-                                <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
-                                  {/* Start */}
-                                  <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">開始</label>
-                                    <div className="relative">
-                                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
-                                      <input
-                                        type="text"
-                                        placeholder="11:00"
-                                        {...register(`sessions.${index}.start_time` as const)}
-                                        className={cn(
-                                          "w-full bg-gray-50 border text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm",
-                                          errors.sessions?.[index]?.start_time ? "border-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]" : "border-gray-100"
-                                        )}
-                                      />
-                                    </div>
-                                    {errors.sessions?.[index]?.start_time && (
-                                      <p className="text-[10px] text-rose-500 font-bold px-2">{errors.sessions[index].start_time?.message}</p>
-                                    )}
+                              <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
+                                {/* Start */}
+                                <div className="space-y-2">
+                                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">開始</label>
+                                  <div className="relative">
+                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                    <input
+                                      type="text"
+                                      placeholder="11:00"
+                                      {...register(`sessions.${index}.start_time` as const)}
+                                      className={cn(
+                                        "w-full bg-gray-50 border text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm",
+                                        errors.sessions?.[index]?.start_time ? "border-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]" : "border-gray-100"
+                                      )}
+                                    />
                                   </div>
-                                  {/* End */}
-                                  <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">終了</label>
-                                    <div className="relative">
-                                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
-                                      <input
-                                        type="text"
-                                        placeholder="15:00"
-                                        {...register(`sessions.${index}.end_time` as const)}
-                                        className={cn(
-                                          "w-full bg-gray-50 border text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm",
-                                          errors.sessions?.[index]?.end_time ? "border-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]" : "border-gray-100"
-                                        )}
-                                      />
-                                    </div>
-                                    {errors.sessions?.[index]?.end_time && (
-                                      <p className="text-[10px] text-rose-500 font-bold px-2">{errors.sessions[index].end_time?.message}</p>
-                                    )}
+                                  {errors.sessions?.[index]?.start_time && (
+                                    <p className="text-[10px] text-rose-500 font-bold px-2">{errors.sessions[index].start_time?.message}</p>
+                                  )}
+                                </div>
+                                {/* End */}
+                                <div className="space-y-2">
+                                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-2">終了</label>
+                                  <div className="relative">
+                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                                    <input
+                                      type="text"
+                                      placeholder="15:00"
+                                      {...register(`sessions.${index}.end_time` as const)}
+                                      className={cn(
+                                        "w-full bg-gray-50 border text-[#0f172a] rounded-2xl pl-9 pr-3 py-2.5 text-[13px] font-bold focus:bg-white outline-none transition-all shadow-sm",
+                                        errors.sessions?.[index]?.end_time ? "border-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.1)]" : "border-gray-100"
+                                      )}
+                                    />
                                   </div>
+                                  {errors.sessions?.[index]?.end_time && (
+                                    <p className="text-[10px] text-rose-500 font-bold px-2">{errors.sessions[index].end_time?.message}</p>
+                                  )}
                                 </div>
                               </div>
+                            </div>
                           </motion.div>
                         ))}
 

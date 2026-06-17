@@ -359,15 +359,15 @@ export default function Activities() {
 
             <div className="flex flex-col sm:flex-row gap-4 md:gap-5 w-full md:w-auto md:justify-end">
               <div className="bg-white/80 backdrop-blur-xl px-6 md:px-8 py-3 md:py-5 rounded-[1.5rem] md:rounded-[2rem] border border-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] flex items-center gap-4 md:gap-5 group hover:scale-[1.02] transition-all duration-500 w-fit">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-[#4F5BD5]/10 to-[#D62976]/10 flex items-center justify-center shrink-0">
-                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-[#4F5BD5]" />
-              </div>
-              <div>
-                <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.25em] mb-0.5">{selectedYear?.name || '---'}</p>
-                <p className="text-brand-stone-900 font-black text-lg md:text-xl">
-                  {currentActivities.length} <span className="text-xs md:text-sm text-brand-stone-400 font-bold ml-1">件の活動</span>
-                </p>
-              </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-[#4F5BD5]/10 to-[#D62976]/10 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5 md:w-6 md:h-6 text-[#4F5BD5]" />
+                </div>
+                <div>
+                  <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.25em] mb-0.5">{selectedYear?.name || '---'}</p>
+                  <p className="text-brand-stone-900 font-black text-lg md:text-xl">
+                    {currentActivities.length} <span className="text-xs md:text-sm text-brand-stone-400 font-bold ml-1">件の活動</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -702,8 +702,8 @@ export default function Activities() {
 
                 <div className="pt-2 md:pt-4 space-y-4 md:space-y-6">
                   {/* Body: Activity Content */}
-                    <div className="space-y-12">
-                      <div className="space-y-5">
+                  <div className="space-y-12">
+                    <div className="space-y-5">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-6 bg-brand-stone-900 rounded-xl" />
                         <h3 className="text-xl font-black text-brand-stone-900 uppercase tracking-widest">内容</h3>
@@ -731,30 +731,30 @@ export default function Activities() {
                             </div>
                           </div>
                         )}
-                        </div>
                       </div>
+                    </div>
 
-                      {(surveysByActivity.get(selectedActivity.id) || []).length > 0 && (
-                        <div className="p-5 md:p-6 rounded-[2rem] bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 border border-pink-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-white text-[#D62976] flex items-center justify-center shadow-sm shrink-0">
-                              <ClipboardList className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <p className="text-[12px] font-black text-[#D62976] tracking-[0.25em] uppercase mb-1">Survey</p>
-                              <h3 className="text-lg md:text-xl font-black text-stone-900">この活動に関するアンケートがあります</h3>
-                              <p className="text-sm font-bold text-stone-500 mt-1">回答内容は管理者に送信されます。</p>
-                            </div>
+                    {(surveysByActivity.get(selectedActivity.id) || []).length > 0 && (
+                      <div className="p-5 md:p-6 rounded-[2rem] bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 border border-pink-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-white text-[#D62976] flex items-center justify-center shadow-sm shrink-0">
+                            <ClipboardList className="w-6 h-6" />
                           </div>
-                          <button
-                            onClick={() => navigate(`/surveys/${(surveysByActivity.get(selectedActivity.id) || [])[0].id}`)}
-                            className="h-12 px-6 rounded-2xl bg-[#D62976] text-white font-black text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-pink-200 active:scale-95 transition-all"
-                          >
-                            <Sparkles className="w-4 h-4" />
-                            回答する
-                          </button>
+                          <div>
+                            <p className="text-[12px] font-black text-[#D62976] tracking-[0.25em] uppercase mb-1">Survey</p>
+                            <h3 className="text-lg md:text-xl font-black text-stone-900">この活動に関するアンケートがあります</h3>
+                            <p className="text-sm font-bold text-stone-500 mt-1">回答内容は管理者に送信されます。</p>
+                          </div>
                         </div>
-                      )}
+                        <button
+                          onClick={() => navigate(`/surveys/${(surveysByActivity.get(selectedActivity.id) || [])[0].id}`)}
+                          className="h-12 px-6 rounded-2xl bg-[#D62976] text-white font-black text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-pink-200 active:scale-95 transition-all"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          回答する
+                        </button>
+                      </div>
+                    )}
 
                     {/* NEW: Schedule Section in Modal */}
                     {selectedActivity.sessions && Array.isArray(selectedActivity.sessions) && selectedActivity.sessions.length > 0 && (

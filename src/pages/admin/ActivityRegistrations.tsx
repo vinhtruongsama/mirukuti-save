@@ -3,7 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
-import { ArrowLeft, ChevronDown, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare } from 'lucide-react';
+import { ja as jaLocale } from 'date-fns/locale';
+import * as Select from '@radix-ui/react-select';
+import { ArrowLeft, ChevronDown, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare, Check, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
@@ -151,19 +153,16 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
               {/* Sessions */}
               {Array.isArray(reg.selected_sessions) && reg.selected_sessions.length > 0 && (
                 <div className="flex items-center gap-1.5 bg-indigo-50/30 px-3 py-1.5 rounded-xl border border-[#4F5BD5]/20">
-                  <div className="flex items-center gap-1">
-                    {/* Deduplicate session times for cleaner display */}
+                  <div className="flex items-center gap-1 flex-wrap">
                     {Array.from(new Set(reg.selected_sessions.map((sIdx: number) => {
                       const s = sessions?.[sIdx];
                       if (!s) return 'N/A';
-                      return s.end_time ? `${s.start_time}-${s.end_time}` : `${s.start_time} ~`;
-                    }))).map((time: any, idx) => (
+                      const dateStr = format(new Date(s.date), 'M/d');
+                      const timeStr = s.end_time ? `${s.start_time}-${s.end_time}` : `${s.start_time} ~`;
+                      return `${dateStr} ${timeStr}`;
+                    }))).map((sessionStr: any, idx, arr) => (
                       <span key={idx} className="text-[10px] font-black text-[#4F5BD5] uppercase tracking-tighter">
-                        {time}{idx < Array.from(new Set(reg.selected_sessions.map((sIdx: number) => {
-                          const s = sessions?.[sIdx];
-                          if (!s) return 'N/A';
-                          return s.end_time ? `${s.start_time}-${s.end_time}` : `${s.start_time} ~`;
-                        }))).length - 1 ? ' • ' : ''}
+                        {sessionStr}{idx < arr.length - 1 ? ' • ' : ''}
                       </span>
                     ))}
                   </div>
@@ -390,7 +389,6 @@ export default function ActivityRegistrations() {
         ? ` (${activity.sessions[selectedSessionIdx].start_time})`
         : ' (全日程一括)';
 
-
       const headersRow = ['No', '学籍番号', '氏名', 'フリガナ', 'LINEニックネーム'];
 
       if (selectedSessionIdx !== null && activity.sessions?.[selectedSessionIdx]) {
@@ -421,9 +419,37 @@ export default function ActivityRegistrations() {
         }
       }
 
+      // Retrieve questions from activity, or extract from registrations as fallback
+      let questions: string[] = [];
+      if (activity && Array.isArray(activity.registration_questions)) {
+        questions = activity.registration_questions
+          .map((q: any) => q?.prompt?.trim())
+          .filter((prompt: string) => prompt);
+      }
+
+      if (questions.length === 0 && registrations) {
+        const uniqueQuestions = new Set<string>();
+        registrations.forEach((r: any) => {
+          if (Array.isArray(r.registration_answers)) {
+            r.registration_answers.forEach((ans: any) => {
+              if (ans?.question?.trim()) {
+                uniqueQuestions.add(ans.question.trim());
+              }
+            });
+          }
+        });
+        questions = Array.from(uniqueQuestions);
+      }
+
       if (isFullDisclosure) {
         headersRow.push('大学メール', '電話番号');
       }
+
+      // Add additional questions to Excel headers
+      questions.forEach((qPrompt: string) => {
+        headersRow.push(qPrompt);
+      });
+
       headersRow.push('備考');
 
       const headers = [
@@ -480,10 +506,20 @@ export default function ActivityRegistrations() {
         } else {
           row.push(STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中');
         }
+
         if (isFullDisclosure) {
           row.push(r.users?.university_email || '-');
           row.push(r.users?.phone || '-');
         }
+
+        // Add additional question answers
+        questions.forEach((qPrompt: string) => {
+          const ansObj = Array.isArray(r.registration_answers)
+            ? r.registration_answers.find((ans: any) => ans.question?.trim() === qPrompt)
+            : null;
+          row.push(ansObj?.answer || '-');
+        });
+
         row.push(r.admin_note || '');
         return row;
       });
@@ -499,14 +535,25 @@ export default function ActivityRegistrations() {
         { wch: 20 }, // LINE
       ];
 
-      // Add widths for attendance columns
-      const sessionCount = activity.sessions?.length || 1;
-      for (let i = 0; i < sessionCount; i++) {
+      // Add widths for attendance columns (only width for the columns that actually exist)
+      const numAttendanceCols = (selectedSessionIdx !== null)
+        ? 1
+        : (activity.sessions?.length || 1);
+
+      for (let i = 0; i < numAttendanceCols; i++) {
         colWidths.push({ wch: 30 });
       }
 
-      colWidths.push({ wch: 35 }); // Email
-      colWidths.push({ wch: 15 }); // Phone
+      if (isFullDisclosure) {
+        colWidths.push({ wch: 35 }); // Email
+        colWidths.push({ wch: 15 }); // Phone
+      }
+
+      // Add widths for additional questions
+      questions.forEach(() => {
+        colWidths.push({ wch: 40 }); // Large width for question answers
+      });
+
       colWidths.push({ wch: 40 }); // 備考
 
       ws['!cols'] = colWidths;
@@ -590,40 +637,104 @@ export default function ActivityRegistrations() {
           </div>
         </div>
 
-        {/* Navigation Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {activity?.sessions?.length > 1 && (
-            <button
-              onClick={() => setSelectedSessionIdx(null)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === null
-                ? 'bg-gray-900 border-gray-900 text-white font-black shadow-lg shadow-gray-200'
-                : 'bg-white border-gray-300 text-gray-400 font-bold hover:border-gray-400'
-                }`}
+        {/* Navigation Dropdown Select List */}
+        {activity?.sessions?.length > 0 && (
+          <div className="flex flex-col gap-2 max-w-md">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+              日程・時間帯を選択
+            </label>
+            <Select.Root
+              value={selectedSessionIdx === null ? 'all' : String(selectedSessionIdx)}
+              onValueChange={(val) => {
+                setSelectedSessionIdx(val === 'all' ? null : Number(val));
+              }}
+              disabled={activity.sessions.length <= 1}
             >
-              すべて ({registrations?.length || 0}人)
-            </button>
-          )}
+              <Select.Trigger
+                className="flex items-center justify-between w-full px-5 py-3.5 bg-white border-2 border-stone-100 hover:border-indigo-100 rounded-2xl text-sm font-bold text-stone-900 shadow-sm transition-all outline-none"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar className="w-4 h-4 text-[#4F5BD5]" />
+                  <Select.Value>
+                    {selectedSessionIdx === null
+                      ? `すべて (${registrations?.length || 0}人)`
+                      : (() => {
+                          const session = activity.sessions[selectedSessionIdx];
+                          if (!session) return '';
+                          const dateStr = format(new Date(session.date), 'MM/dd (E)', { locale: jaLocale });
+                          const timeStr = `${session.start_time}${session.end_time ? ` - ${session.end_time}` : ' ~'}`;
+                          const countStr = `(${sessionCounts[selectedSessionIdx] || 0}${session.capacity ? `/${session.capacity}` : ''}人)`;
+                          return `${dateStr} ${timeStr} ${countStr}`;
+                        })()
+                    }
+                  </Select.Value>
+                </div>
+                {activity.sessions.length > 1 && (
+                  <Select.Icon>
+                    <ChevronDown className="w-4 h-4 text-stone-400" />
+                  </Select.Icon>
+                )}
+              </Select.Trigger>
 
-          {activity?.sessions?.length > 0 && (
-            <>
-              {activity.sessions.length > 1 && <div className="h-8 w-[2px] bg-gray-100 mx-1 shrink-0" />}
-              {activity.sessions.map((session: any, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedSessionIdx(idx)}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${selectedSessionIdx === idx
-                    ? 'bg-rose-500 border-rose-500 text-white font-black shadow-lg shadow-rose-500/20'
-                    : session.capacity && (sessionCounts[idx] || 0) >= session.capacity
-                      ? 'bg-rose-50 border-rose-200 text-rose-500 font-black'
-                      : 'bg-white border-gray-300 text-gray-400 font-bold hover:border-gray-400'
-                    }`}
+              <Select.Portal>
+                <Select.Content
+                  className="z-[100] overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-2xl animate-in fade-in zoom-in-95 duration-200 min-w-[320px] max-h-[300px]"
                 >
-                  {session.start_time}{session.end_time ? ` - ${session.end_time}` : ' ~'} ({sessionCounts[idx] || 0}{session.capacity ? `/${session.capacity}` : ''}人)
-                </button>
-              ))}
-            </>
-          )}
-        </div>
+                  <Select.Viewport className="p-2">
+                    {activity.sessions.length > 1 && (
+                      <Select.Item
+                        value="all"
+                        className="relative flex items-center pl-10 pr-4 py-3 rounded-xl text-sm font-medium text-stone-700 outline-none cursor-pointer hover:bg-indigo-50 hover:text-[#4F5BD5] focus:bg-indigo-50 data-[state=checked]:font-bold data-[state=checked]:text-[#4F5BD5] data-[state=checked]:bg-indigo-50/50 transition-colors"
+                      >
+                        <Select.ItemText>
+                          すべて ({registrations?.length || 0}人)
+                        </Select.ItemText>
+                        <Select.ItemIndicator className="absolute left-3.5 flex items-center">
+                          <Check className="w-4 h-4 text-[#4F5BD5]" />
+                        </Select.ItemIndicator>
+                      </Select.Item>
+                    )}
+
+                    {activity.sessions.map((session: any, idx: number) => {
+                      const dateStr = format(new Date(session.date), 'MM/dd (E)', { locale: jaLocale });
+                      const timeStr = `${session.start_time}${session.end_time ? ` - ${session.end_time}` : ' ~'}`;
+                      const countStr = `(${sessionCounts[idx] || 0}${session.capacity ? `/${session.capacity}` : ''}人)`;
+                      const isFull = session.capacity && (sessionCounts[idx] || 0) >= session.capacity;
+
+                      return (
+                        <Select.Item
+                          key={idx}
+                          value={String(idx)}
+                          className={`relative flex items-center pl-10 pr-4 py-3 rounded-xl text-sm font-medium outline-none cursor-pointer transition-colors ${
+                            isFull 
+                              ? 'text-rose-500 hover:bg-rose-50 hover:text-rose-600 focus:bg-rose-50 data-[state=checked]:bg-rose-50 data-[state=checked]:text-rose-600' 
+                              : 'text-stone-700 hover:bg-indigo-50 hover:text-[#4F5BD5] focus:bg-indigo-50 data-[state=checked]:bg-indigo-50/50 data-[state=checked]:text-[#4F5BD5]'
+                          } data-[state=checked]:font-bold`}
+                        >
+                          <Select.ItemText>
+                            <span className="inline-flex items-center gap-2">
+                              <span className="text-gray-900">{dateStr}</span>
+                              <span className="font-bold text-gray-800">{timeStr}</span>
+                              <span className="text-xs text-gray-400 font-normal">{countStr}</span>
+                              {isFull && (
+                                <span className="ml-1.5 text-[9px] uppercase tracking-tighter px-1.5 py-0.5 rounded bg-rose-100 text-rose-600 font-bold">
+                                  満員
+                                </span>
+                              )}
+                            </span>
+                          </Select.ItemText>
+                          <Select.ItemIndicator className="absolute left-3.5 flex items-center">
+                            <Check className="w-4 h-4 text-[#4F5BD5]" />
+                          </Select.ItemIndicator>
+                        </Select.Item>
+                      );
+                    })}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
+          </div>
+        )}
       </div>
 
       {/* Registration List */}
