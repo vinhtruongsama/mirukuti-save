@@ -527,7 +527,7 @@ export default function ActivityRegistrations() {
     return result;
   }, [registrations, debouncedSearch, selectedSessionIdx]);
 
-  const registrationQuestionPrompts = useMemo(() => {
+  const registrationQuestionPrompts = useMemo<string[]>(() => {
     let prompts = getActivityRegistrationQuestions(activity)
       .map((q: any) => q?.prompt?.trim())
       .filter((prompt: string) => prompt);
@@ -585,7 +585,7 @@ export default function ActivityRegistrations() {
       fields.push({ key: 'attendance_status', label: '出欠', description: 'Trang thai tham gia.' });
     }
 
-    registrationQuestionPrompts.forEach((prompt, index) => {
+    registrationQuestionPrompts.forEach((prompt: string, index: number) => {
       fields.push({
         key: `question_${index}`,
         label: prompt,
@@ -668,7 +668,7 @@ export default function ActivityRegistrations() {
           attendance_status: STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || 'ç¢ºèªä¸­',
         };
 
-        registrationQuestionPrompts.forEach((prompt, questionIndex) => {
+        registrationQuestionPrompts.forEach((prompt: string, questionIndex: number) => {
           const answerObject = Array.isArray(r.registration_answers)
             ? r.registration_answers.find((answer: any) => answer.question?.trim() === prompt)
             : null;
