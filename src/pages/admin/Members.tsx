@@ -16,6 +16,7 @@ import { MemberDirectorySkeleton } from '../../components/members/MemberDirector
 import MemberDetailDrawer from '../../components/members/MemberDetailDrawer';
 import MemberImport from '../../components/members/MemberImport';
 import SendMailModal from '../../components/members/SendMailModal';
+import ExcelExportModal, { type ExcelExportFieldOption } from '../../components/ui/ExcelExportModal';
 
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -83,6 +84,7 @@ export default function Members() {
   // Modal / Drawer states
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isMailModalOpen, setIsMailModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Tools Dropdown state
@@ -358,10 +360,49 @@ export default function Members() {
     }
   });
 
+  const memberExportFields: ExcelExportFieldOption[] = [
+    { key: 'no', label: 'NO', description: 'So thu tu trong danh sach da loc.' },
+    { key: 'membership_id', label: 'Membership ID', description: 'ID ban ghi membership.' },
+    { key: 'user_id', label: 'User ID', description: 'ID nguoi dung.' },
+    { key: 'mssv', label: '学籍番号', description: 'Ma sinh vien.' },
+    { key: 'full_name', label: '氏名', description: 'Ho va ten.' },
+    { key: 'full_name_kana', label: 'フリガナ', description: 'Ten kana.' },
+    { key: 'gender', label: '性別', description: 'Gioi tinh.' },
+    { key: 'nationality', label: '国籍', description: 'Quoc tich.' },
+    { key: 'university_year', label: '学年', description: 'Nam hoc hien thi.' },
+    { key: 'role', label: '役割', description: 'Vai tro trong cau lac bo.' },
+    { key: 'phone', label: '電話番号', description: 'So dien thoai.' },
+    { key: 'university_email', label: '大学のメール', description: 'Email truong.' },
+    { key: 'email', label: '連絡メール', description: 'Email lien he.' },
+    { key: 'line_nickname', label: 'LINEニックネーム', description: 'Biet danh LINE.' },
+    { key: 'hometown', label: '出身地', description: 'Que quan.' },
+    { key: 'is_new', label: '新規フラグ', description: 'Danh dau thanh vien moi.' },
+    { key: 'created_at', label: 'Created At', description: 'Thoi gian tao membership.' },
+  ];
+
+  const memberDefaultExportKeys = [
+    'no',
+    'mssv',
+    'full_name',
+    'full_name_kana',
+    'gender',
+    'university_year',
+    'role',
+    'phone',
+    'university_email',
+    'email',
+  ];
+
   // --- ACTIONS ---
-  const exportToExcel = () => {
+  const exportToExcel = (selectedKeys: string[]) => {
     try {
       const ws = XLSX.utils.json_to_sheet([]);
+      const selectedFields = memberExportFields.filter((field) => selectedKeys.includes(field.key));
+
+      if (selectedFields.length === 0) {
+        toast.error('少なくとも1つの項目を選択してください');
+        return;
+      }
 
       // New Standardized Headers (In Requested Order)
       // NO, 学籍番号, 氏名, フリガナ, LINEニックネーム, 性別, 国籍, 学年, 役割, 電話番号, 大学のメール, 連絡メール
@@ -380,12 +421,15 @@ export default function Members() {
         '連絡メール'
       ];
 
+      void exportHeaders;
+      const selectedExportHeaders = selectedFields.map((field) => field.label);
+
       const headers = [
         ['部員一覧表'],
         [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
         ['全ての情報を開示'],
         [''],
-        exportHeaders
+        selectedExportHeaders
       ];
 
       XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
@@ -415,10 +459,42 @@ export default function Members() {
         ];
       });
 
-      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A6' });
+      void rowData;
+      const selectedRowData = filteredData.map((m: any, idx) => {
+        const gradeLabel = getGradeBadge(m.users?.university_year).label;
+        const roleLabel = m.role === 'president' ? 'éƒ¨é•·' :
+            m.role === 'vice_president' ? 'å‰¯éƒ¨é•·' :
+              m.role === 'treasurer' ? 'ä¼šè¨ˆ' :
+                m.role === 'executive' ? 'å¹¹éƒ¨' :
+                  m.role === 'alumni' ? 'å’æ¥­ç”Ÿ' : 'éƒ¨å“¡';
+        const genderLabel = m.users?.gender === 'Male' ? 'ç”·' : m.users?.gender === 'Female' ? 'å¥³' : 'ãã®ä»–';
+        const valueMap: Record<string, string | number> = {
+          no: idx + 1,
+          membership_id: m.id || '',
+          user_id: m.user_id || m.users?.id || '',
+          mssv: m.users?.mssv || '',
+          full_name: m.users?.full_name || '',
+          full_name_kana: m.users?.full_name_kana || '',
+          gender: genderLabel,
+          nationality: m.users?.nationality || '',
+          university_year: gradeLabel,
+          role: roleLabel,
+          phone: m.users?.phone || '',
+          university_email: m.users?.university_email || '',
+          email: m.users?.email || '',
+          line_nickname: m.users?.line_nickname || '',
+          hometown: m.users?.hometown || '',
+          is_new: m.users?.is_new ? 'Yes' : 'No',
+          created_at: m.created_at ? format(new Date(m.created_at), 'yyyy-MM-dd HH:mm:ss') : '',
+        };
+
+        return selectedFields.map((field) => valueMap[field.key] ?? '');
+      });
+
+      XLSX.utils.sheet_add_aoa(ws, selectedRowData, { origin: 'A6' });
 
       // --- APPLY STYLING TO HEADERS (Row 5) ---
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < selectedFields.length; i++) {
         const cellRef = XLSX.utils.encode_cell({ r: 4, c: i });
         if (ws[cellRef]) {
           ws[cellRef].s = {
@@ -436,7 +512,7 @@ export default function Members() {
       }
 
       // Add Total Row
-      const totalRowOrigin = `A${rowData.length + 6}`;
+      const totalRowOrigin = `A${selectedRowData.length + 6}`;
       XLSX.utils.sheet_add_aoa(ws, [
         ['合計:', filteredData.length]
       ], { origin: totalRowOrigin });
@@ -457,12 +533,34 @@ export default function Members() {
         { wch: 35 }  // 連絡メール
       ];
 
+      const columnWidths: Record<string, number> = {
+        no: 6,
+        membership_id: 24,
+        user_id: 24,
+        mssv: 15,
+        full_name: 25,
+        full_name_kana: 25,
+        gender: 10,
+        nationality: 15,
+        university_year: 12,
+        role: 14,
+        phone: 15,
+        university_email: 35,
+        email: 35,
+        line_nickname: 20,
+        hometown: 18,
+        is_new: 12,
+        created_at: 22,
+      };
+      ws['!cols'] = selectedFields.map((field) => ({ wch: columnWidths[field.key] || 18 }));
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Members');
 
       const fileName = `Member_List_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
       XLSX.writeFile(wb, fileName);
       toast.success('Excelをエクスポートしました');
+      setIsExportModalOpen(false);
     } catch (error: any) {
       console.error('Export error:', error);
       toast.error('エクスポートに失敗しました');
@@ -529,7 +627,7 @@ export default function Members() {
                     <button
                       onClick={() => {
                         setIsToolsDropdownOpen(false);
-                        exportToExcel();
+                        setIsExportModalOpen(true);
                       }}
                       className="w-full px-5 py-3 text-left text-[12px] lg:text-[13px] font-bold text-stone-700 hover:text-[#4F5BD5] hover:bg-indigo-50/50 transition-colors flex items-center gap-3"
                     >
@@ -945,6 +1043,17 @@ export default function Members() {
       <SendMailModal
         isOpen={isMailModalOpen}
         onClose={() => setIsMailModalOpen(false)}
+      />
+
+      <ExcelExportModal
+        isOpen={isExportModalOpen}
+        title="Member Export"
+        description="Chon cac truong thong tin thanh vien can dua vao file Excel truoc khi tai xuong."
+        fields={memberExportFields}
+        defaultSelectedKeys={memberDefaultExportKeys}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={exportToExcel}
+        confirmLabel="Export danh sach"
       />
 
       {/* Edit Form Modal is now integrated into MemberDetailDrawer */}

@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
+import ExcelExportModal, { type ExcelExportFieldOption } from '../../components/ui/ExcelExportModal';
 
 // Custom CSS to make number input spinners always visible
 const spinnerStyle = `
@@ -70,6 +71,7 @@ export default function AwardsAdmin() {
   const { selectedYear } = useAppStore();
   const [activeTab, setActiveTab] = useState<'members' | 'ranking'>('members');
   const [isLoading, setIsLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Tab 1: Member Activity List
   const [members, setMembers] = useState<MemberStatus[]>([]);
@@ -209,7 +211,67 @@ export default function AwardsAdmin() {
     );
   }, [members, conditions]);
 
+  const awardsExportFields: ExcelExportFieldOption[] = [
+    { key: 'no', label: 'NO', description: 'So thu tu.' },
+    { key: 'full_name', label: '氏名', description: 'Ho va ten.' },
+    { key: 'full_name_kana', label: 'フリガナ', description: 'Ten kana.' },
+    { key: 'mssv', label: '学籍番号', description: 'Ma sinh vien.' },
+    { key: 'grade', label: '学年', description: 'Nam hoc.' },
+    { key: 'internal_count', label: '学内活動数', description: 'So hoat dong noi bo.' },
+    { key: 'external_count', label: '学外活動数', description: 'So hoat dong ngoai bo.' },
+    { key: 'total_count', label: '合計', description: 'Tong so hoat dong.' },
+    { key: 'activities', label: '活動名', description: 'Danh sach hoat dong dat dieu kien.' },
+  ];
+  const awardsDefaultExportKeys = awardsExportFields.map((field) => field.key);
+
   // ── Excel Export ──────────────────────────────────────────────────────────
+  const handleConfiguredExportExcel = (selectedKeys: string[]) => {
+    if (qualifiedMembers.length === 0) {
+      toast.error('å¯¾è±¡è€…ãŒã„ã¾ã›ã‚“');
+      return;
+    }
+
+    const selectedFields = awardsExportFields.filter((field) => selectedKeys.includes(field.key));
+    if (selectedFields.length === 0) {
+      toast.error('少なくとも1つの項目を選択してください');
+      return;
+    }
+
+    const exportRows = qualifiedMembers.map((member, idx) => {
+      const valueMap: Record<string, string | number> = {
+        no: idx + 1,
+        full_name: member.full_name,
+        full_name_kana: member.full_name_kana,
+        mssv: member.mssv || '',
+        grade: member.grade || '',
+        internal_count: member.internal_count,
+        external_count: member.external_count,
+        total_count: member.total_count,
+        activities: member.activities.map((activity) => activity.title_ja).join(', '),
+      };
+
+      return selectedFields.map((field) => valueMap[field.key] ?? '');
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['Awards Export'],
+      [`Generated at: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+      selectedFields.map((field) => field.label),
+      ...exportRows,
+    ]);
+    worksheet['!cols'] = selectedFields.map((field) => ({
+      wch: field.key === 'activities' ? 50 : field.key.includes('count') ? 12 : field.key === 'grade' ? 8 : 20
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'AwardsList');
+
+    const fileName = `Awards_List_${selectedYear?.name || 'export'}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success('Excelãƒ•ã‚¡ã‚¤ãƒ«ã‚’ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã—ã¾ã—ãŸ');
+    setIsExportModalOpen(false);
+  };
+
   const handleExportExcel = () => {
     if (qualifiedMembers.length === 0) {
       toast.error('対象者がいません');
@@ -250,6 +312,8 @@ export default function AwardsAdmin() {
     XLSX.writeFile(workbook, fileName);
     toast.success('Excelファイルをダウンロードしました');
   };
+
+  void handleExportExcel;
 
   const rankingList = useMemo(() => {
     return rankingView === 'qualified' ? qualifiedMembers : members;
@@ -475,7 +539,7 @@ export default function AwardsAdmin() {
             <div className="px-8 py-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
               <span className="text-[14px] font-bold text-stone-600">条件を満たすメンバー: <span className="text-emerald-600">{qualifiedMembers.length}名</span></span>
               <button
-                onClick={handleExportExcel}
+                onClick={() => setIsExportModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl font-black text-[12px] transition-all"
               >
                 <Download className="w-4 h-4" />
@@ -520,6 +584,17 @@ export default function AwardsAdmin() {
           </div>
         </div>
       )}
+
+      <ExcelExportModal
+        isOpen={isExportModalOpen}
+        title="Awards Export"
+        description="Chon cac truong thong tin can dua vao file Excel danh sach khen thuong."
+        fields={awardsExportFields}
+        defaultSelectedKeys={awardsDefaultExportKeys}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={handleConfiguredExportExcel}
+        confirmLabel="Export khen thuong"
+      />
     </div>
   );
 }

@@ -27,6 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { cn } from '../../lib/utils';
+import ExcelExportModal, { type ExcelExportFieldOption } from '../../components/ui/ExcelExportModal';
 import {
   STATUS_LABELS,
   SURVEY_QUESTION_TYPES,
@@ -180,6 +181,7 @@ export default function SurveysAdmin() {
   const [mobileResponseView, setMobileResponseView] = useState<'answered' | 'unanswered'>('unanswered');
   const [confirmDeleteQuestionIndex, setConfirmDeleteQuestionIndex] = useState<number | null>(null);
   const [showSurveyPassword, setShowSurveyPassword] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const questionRefs = useRef<Array<HTMLDivElement | null>>([]);
   const pendingScrollIndexRef = useRef<number | null>(null);
   const initialDraftSnapshotRef = useRef(serializeDraft(emptyDraft()));
@@ -325,6 +327,32 @@ export default function SurveysAdmin() {
   });
 
   const activeSurvey = surveys.find((s) => s.id === activeSurveyId) || null;
+
+  const surveyExportFields = useMemo<ExcelExportFieldOption[]>(() => {
+    const fields: ExcelExportFieldOption[] = [
+      { key: 'no', label: 'No', description: 'So thu tu cau tra loi.' },
+      { key: 'full_name', label: '氏名', description: 'Ho va ten nguoi tra loi.' },
+      { key: 'full_name_kana', label: 'フリガナ', description: 'Ten kana.' },
+      { key: 'mssv', label: '学籍番号', description: 'Ma sinh vien.' },
+      { key: 'university_email', label: '大学メール', description: 'Email truong.' },
+      { key: 'submitted_at', label: '送信日時', description: 'Thoi gian gui phan hoi.' },
+    ];
+
+    activeQuestions.forEach((question, index) => {
+      fields.push({
+        key: `question_${question.id}`,
+        label: question.label || `Question ${index + 1}`,
+        description: 'Cau tra loi cua cau hoi nay.',
+      });
+    });
+
+    return fields;
+  }, [activeQuestions]);
+
+  const surveyDefaultExportKeys = useMemo(
+    () => surveyExportFields.map((field) => field.key),
+    [surveyExportFields]
+  );
 
   const openEditor = async (survey?: Survey) => {
     if (!survey) {
@@ -514,6 +542,60 @@ export default function SurveysAdmin() {
     deleteMutation.mutate(survey.id);
   };
 
+  const exportConfiguredResponses = (selectedKeys: string[]) => {
+    if (!activeSurvey) return;
+
+    const selectedFields = surveyExportFields.filter((field) => selectedKeys.includes(field.key));
+    if (selectedFields.length === 0) {
+      toast.error('少なくとも1つの項目を選択してください');
+      return;
+    }
+
+    const answerByResponse = new Map<string, Record<string, unknown>>();
+    responses.forEach((response) => {
+      const values: Record<string, unknown> = {};
+      response.survey_answers?.forEach((answer) => {
+        values[`question_${answer.question_id}`] = answer.value;
+      });
+      answerByResponse.set(response.id, values);
+    });
+
+    const rows = responses.map((response, idx) => {
+      const answers = answerByResponse.get(response.id) || {};
+      const valueMap: Record<string, string | number> = {
+        no: idx + 1,
+        full_name: response.users?.full_name || '',
+        full_name_kana: response.users?.full_name_kana || '',
+        mssv: response.users?.mssv || '',
+        university_email: response.users?.university_email || '',
+        submitted_at: format(new Date(response.submitted_at), 'yyyy-MM-dd HH:mm'),
+      };
+
+      activeQuestions.forEach((question) => {
+        valueMap[`question_${question.id}`] = formatAnswerValue(answers[`question_${question.id}`]);
+      });
+
+      return selectedFields.map((field) => valueMap[field.key] ?? '');
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([
+      [`アンケート：${activeSurvey.title}`],
+      [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+      [`項目数：${selectedFields.length}`],
+      selectedFields.map((field) => field.label),
+      ...rows,
+    ]);
+    ws['!cols'] = selectedFields.map((field) => ({
+      wch: field.key.startsWith('question_') ? 28 : 24
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Survey Responses');
+    const safeTitle = activeSurvey.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 50);
+    XLSX.writeFile(wb, `${safeTitle}_responses_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+    toast.success('Excelをエクスポートしました');
+    setIsExportModalOpen(false);
+  };
+
   const exportResponses = () => {
     if (!activeSurvey) return;
     const answerByResponse = new Map<string, Record<string, unknown>>();
@@ -553,6 +635,7 @@ export default function SurveysAdmin() {
     XLSX.writeFile(wb, `${safeTitle}_responses_${format(new Date(), 'yyyyMMdd')}.xlsx`);
     toast.success('Excelをエクスポートしました');
   };
+  void exportResponses;
 
   const updateQuestion = (idx: number, patch: Partial<SurveyDraft['questions'][number]>) => {
     setDraft((prev) => ({
@@ -990,7 +1073,7 @@ export default function SurveysAdmin() {
 
                 <div className="mt-3 grid grid-cols-2 sm:flex gap-2">
                   <button
-                    onClick={exportResponses}
+                    onClick={() => setIsExportModalOpen(true)}
                     disabled={responses.length === 0}
                     className="h-10 rounded-xl bg-gradient-to-r from-[#0f8b8d] to-[#4F5BD5] px-3 text-white font-black text-[12px] flex items-center justify-center gap-2 shadow-[0_10px_24px_-12px_rgba(79,91,213,0.55)] disabled:opacity-40"
                   >
@@ -1565,6 +1648,17 @@ export default function SurveysAdmin() {
           </div>
         )}
       </AnimatePresence>
+
+      <ExcelExportModal
+        isOpen={isExportModalOpen}
+        title="Survey Export"
+        description="Chon cac truong thong tin nguoi tra loi va cac cau hoi can dua vao file Excel."
+        fields={surveyExportFields}
+        defaultSelectedKeys={surveyDefaultExportKeys}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={exportConfiguredResponses}
+        confirmLabel="Export phan hoi"
+      />
     </div>
   );
 }

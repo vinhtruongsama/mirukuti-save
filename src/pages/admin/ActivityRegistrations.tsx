@@ -5,11 +5,16 @@ import XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
 import { ja as jaLocale } from 'date-fns/locale';
 import * as Select from '@radix-ui/react-select';
-import { ArrowLeft, ChevronDown, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare, Check, Calendar } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Loader2, Search, CheckCircle2, UserX, Sparkles, MessageSquare, Check, Calendar, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import {
+  formatActivityAnswerValue,
+  getActivityRegistrationQuestions,
+} from '../../lib/activityRegistrationQuestions';
 import { supabase } from '../../lib/supabase';
 import { useDebounce } from '../../hooks/useDebounce';
+import ExcelExportModal, { type ExcelExportFieldOption } from '../../components/ui/ExcelExportModal';
 
 // Helper Map for Status
 const STATUS_JA = {
@@ -25,6 +30,81 @@ const STATUS_COLOR_THEME = {
   'unexcused_absence': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', active: 'bg-rose-500 text-white border-rose-500' }
 };
 
+function RegistrationCancelConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  memberName,
+  isSubmitting
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  memberName: string;
+  isSubmitting: boolean;
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-stone-950/75 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0, y: 18 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 18 }}
+            className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] border border-rose-100 bg-white shadow-[0_40px_100px_rgba(214,41,118,0.18)]"
+          >
+            <div className="bg-gradient-to-r from-rose-500 to-[#D62976] px-8 py-6 text-white">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h2 className="text-[14px] font-black uppercase tracking-[0.22em]">Registration Update</h2>
+            </div>
+
+            <div className="space-y-8 px-8 py-9 text-center">
+              <div className="space-y-3">
+                <h3 className="text-xl font-black leading-tight text-stone-900">
+                  「{memberName}」を
+                  <br />
+                  参加者一覧から削除しますか？
+                </h3>
+                <p className="mx-auto max-w-[280px] text-sm font-bold leading-relaxed text-stone-500">
+                  この操作を実行すると、対象メンバーの参加申込はキャンセルとして処理されます。
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-2xl bg-stone-50 py-3.5 text-[13px] font-black uppercase tracking-widest text-stone-500 transition-all hover:bg-stone-100 active:scale-95 disabled:opacity-60"
+                >
+                  閉じる
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  disabled={isSubmitting}
+                  className="flex-[1.25] rounded-2xl bg-[#D62976] py-3.5 text-[13px] font-black uppercase tracking-widest text-white shadow-lg shadow-rose-200 transition-all hover:brightness-110 active:scale-95 disabled:opacity-60"
+                >
+                  {isSubmitting ? '処理中...' : '削除を実行'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // -------------------------------------------------------------
 // CHILD COMPONENT: Simple Registration Item
 // -------------------------------------------------------------
@@ -32,6 +112,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
   const queryClient = useQueryClient();
   const [showNote, setShowNote] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [note, setNote] = useState(reg.admin_note || '');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const debouncedNote = useDebounce(note, 800);
@@ -121,8 +202,60 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
     }
   });
 
+  const removeRegistrationMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('registrations')
+        .delete()
+        .eq('id', reg.id);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['admin-registrations', activityId] });
+      const previousRegs = queryClient.getQueryData(['admin-registrations', activityId]);
+      queryClient.setQueryData(['admin-registrations', activityId], (old: any) => {
+        if (!old) return old;
+        return old.filter((item: any) => item.id !== reg.id);
+      });
+      return { previousRegs };
+    },
+    onError: (err: any, _vars, context) => {
+      queryClient.setQueryData(['admin-registrations', activityId], context?.previousRegs);
+      toast.error('キャンセル処理に失敗しました: ' + err.message);
+    },
+    onSuccess: () => {
+      setShowRemoveConfirm(false);
+      const memberName = reg.users?.full_name_kana || reg.users?.full_name || '対象メンバー';
+      toast.success(`${memberName}を参加登録一覧から削除しました。`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-registrations', activityId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-activity-detail', activityId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-activities'] });
+      queryClient.invalidateQueries({ queryKey: ['activity', activityId] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    }
+  });
+
+  const handleRemoveRegistration = () => {
+    setShowRemoveConfirm(true);
+  };
+
+  const confirmRemoveRegistration = () => {
+    removeRegistrationMutation.mutate();
+  };
+
   return (
-    <div className="bg-white border border-stone-100 rounded-[2rem] p-5 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(79,91,213,0.08)] hover:border-indigo-100 transition-all duration-500 group relative overflow-hidden">
+    <>
+      <RegistrationCancelConfirmModal
+        isOpen={showRemoveConfirm}
+        onClose={() => setShowRemoveConfirm(false)}
+        onConfirm={confirmRemoveRegistration}
+        memberName={reg.users?.full_name_kana || reg.users?.full_name || '対象メンバー'}
+        isSubmitting={removeRegistrationMutation.isPending}
+      />
+
+      <div className="bg-white border border-stone-100 rounded-[2rem] p-5 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(79,91,213,0.08)] hover:border-indigo-100 transition-all duration-500 group relative overflow-hidden">
       <div className="absolute top-0 left-0 w-1 h-full bg-[#4F5BD5] opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
@@ -228,6 +361,19 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={handleRemoveRegistration}
+              disabled={removeRegistrationMutation.isPending}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl border-2 border-rose-100 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-200 disabled:opacity-60 disabled:cursor-not-allowed text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+            >
+              {removeRegistrationMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 h-4" />
+              )}
+              <span className="truncate">削除</span>
+            </button>
           </div>
         )}
       </div>
@@ -246,7 +392,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
                 {reg.registration_answers.map((item: any, idx: number) => (
                   <div key={idx} className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-[#4F5BD5]">{item.question || `Question ${idx + 1}`}</p>
-                    <p className="whitespace-pre-wrap text-[12px] font-bold leading-relaxed text-stone-700">{item.answer || '-'}</p>
+                    <p className="whitespace-pre-wrap text-[12px] font-bold leading-relaxed text-stone-700">{formatActivityAnswerValue(item.answer)}</p>
                   </div>
                 ))}
               </div>
@@ -277,6 +423,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
 
@@ -288,6 +435,7 @@ export default function ActivityRegistrations() {
   const { id: activityId } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSessionIdx, setSelectedSessionIdx] = useState<number | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const debouncedSearch = useDebounce(searchTerm, 400);
 
@@ -318,7 +466,7 @@ export default function ActivityRegistrations() {
         .from('registrations')
         .select(`
           id, attendance_status, admin_note, registered_at, selected_sessions, registration_answers,
-          users:user_id (id, mssv, full_name, full_name_kana, email, phone, line_nickname, university_email),
+          users:user_id (id, mssv, full_name, full_name_kana, email, phone, line_nickname, university_email, gender, nationality),
           attendance_records (session_index, status)
         `)
         .eq('activity_id', activityId)
@@ -379,6 +527,217 @@ export default function ActivityRegistrations() {
     return result;
   }, [registrations, debouncedSearch, selectedSessionIdx]);
 
+  const registrationQuestionPrompts = useMemo(() => {
+    let prompts = getActivityRegistrationQuestions(activity)
+      .map((q: any) => q?.prompt?.trim())
+      .filter((prompt: string) => prompt);
+
+    if (prompts.length === 0 && registrations) {
+      const uniqueQuestions = new Set<string>();
+      registrations.forEach((r: any) => {
+        if (Array.isArray(r.registration_answers)) {
+          r.registration_answers.forEach((ans: any) => {
+            if (ans?.question?.trim()) {
+              uniqueQuestions.add(ans.question.trim());
+            }
+          });
+        }
+      });
+      prompts = Array.from(uniqueQuestions);
+    }
+
+    return prompts;
+  }, [activity, registrations]);
+
+  const activityExportFields = useMemo<ExcelExportFieldOption[]>(() => {
+    const fields: ExcelExportFieldOption[] = [
+      { key: 'no', label: 'No', description: 'So thu tu trong danh sach da loc.' },
+      { key: 'registered_at', label: '登録日時', description: 'Thoi gian dang ky.' },
+      { key: 'mssv', label: '学籍番号', description: 'Ma sinh vien.' },
+      { key: 'full_name', label: '氏名', description: 'Ho va ten.' },
+      { key: 'full_name_kana', label: 'フリガナ', description: 'Ten kana.' },
+      { key: 'line_nickname', label: 'LINEニックネーム', description: 'Biet danh LINE.' },
+      { key: 'gender', label: '性別', description: 'Gioi tinh.' },
+      { key: 'nationality', label: '国籍', description: 'Quoc tich.' },
+      { key: 'email', label: '連絡メール', description: 'Email lien he.' },
+      { key: 'university_email', label: '大学メール', description: 'Email truong.' },
+      { key: 'phone', label: '電話番号', description: 'So dien thoai.' },
+      { key: 'selected_sessions', label: '選択セッション', description: 'Tong hop session da chon.' },
+      { key: 'admin_note', label: '備考', description: 'Ghi chu admin.' },
+    ];
+
+    if (selectedSessionIdx !== null && activity?.sessions?.[selectedSessionIdx]) {
+      const session = activity.sessions[selectedSessionIdx];
+      fields.push({
+        key: `attendance_session_${selectedSessionIdx}`,
+        label: `${format(new Date(session.date), 'M月d日')} (${session.start_time}${session.end_time ? `-${session.end_time}` : ''})`,
+        description: 'Trang thai diem danh cua session dang xem.',
+      });
+    } else if (activity?.sessions?.length) {
+      activity.sessions.forEach((session: any, index: number) => {
+        fields.push({
+          key: `attendance_session_${index}`,
+          label: `${format(new Date(session.date), 'M月d日')} (${session.start_time}${session.end_time ? `-${session.end_time}` : ''})`,
+          description: `Trang thai diem danh session ${index + 1}.`,
+        });
+      });
+    } else {
+      fields.push({ key: 'attendance_status', label: '出欠', description: 'Trang thai tham gia.' });
+    }
+
+    registrationQuestionPrompts.forEach((prompt, index) => {
+      fields.push({
+        key: `question_${index}`,
+        label: prompt,
+        description: 'Cau tra loi cau hoi dang ky.',
+      });
+    });
+
+    return fields;
+  }, [activity, registrationQuestionPrompts, selectedSessionIdx]);
+
+  const activityDefaultExportKeys = useMemo(
+    () => activityExportFields.map((field) => field.key),
+    [activityExportFields]
+  );
+
+  const exportConfiguredExcel = (selectedKeys: string[]) => {
+    if (!filteredRegs || !activity) return;
+
+    try {
+      const selectedFields = activityExportFields.filter((field) => selectedKeys.includes(field.key));
+      if (selectedFields.length === 0) {
+        toast.error('少なくとも1つの項目を選択してください');
+        return;
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet([]);
+      const sessionInfo = selectedSessionIdx !== null
+        ? ` (${activity.sessions[selectedSessionIdx].start_time})`
+        : ' (å…¨æ—¥ç¨‹ä¸€æ‹¬)';
+
+      const headers = [
+        [`æ´»å‹•åï¼š${activity.title}${sessionInfo}`],
+        [`ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚ï¼š${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+        [`é …ç›®æ•°ï¼š${selectedFields.length}`],
+        [''],
+        selectedFields.map((field) => field.label),
+      ];
+
+      XLSX.utils.sheet_add_aoa(ws, headers, { origin: 'A1' });
+
+      const rowData = filteredRegs.map((r: any, idx) => {
+        const attendanceBySession = new Map<number, string>();
+        if (activity.sessions?.length) {
+          activity.sessions.forEach((_: any, sessionIndex: number) => {
+            const isSelected = !r.selected_sessions || (Array.isArray(r.selected_sessions) && r.selected_sessions.includes(sessionIndex));
+            if (!isSelected) {
+              attendanceBySession.set(sessionIndex, '-');
+              return;
+            }
+            const status = r.attendance_records?.find((ar: any) => ar.session_index === sessionIndex)?.status;
+            attendanceBySession.set(sessionIndex, STATUS_JA[status as keyof typeof STATUS_JA] || 'ç¢ºèªä¸­');
+          });
+        }
+
+        const selectedSessionsLabel = Array.isArray(r.selected_sessions) && activity.sessions?.length
+          ? r.selected_sessions
+              .map((sessionIndex: number) => {
+                const session = activity.sessions[sessionIndex];
+                if (!session) return null;
+                return `${format(new Date(session.date), 'M月d日')} ${session.start_time}`;
+              })
+              .filter(Boolean)
+              .join(', ')
+          : '';
+
+        const valueMap: Record<string, string | number> = {
+          no: idx + 1,
+          registered_at: r.registered_at ? format(new Date(r.registered_at), 'yyyy-MM-dd HH:mm:ss') : '',
+          mssv: r.users?.mssv || 'N/A',
+          full_name: r.users?.full_name || 'N/A',
+          full_name_kana: r.users?.full_name_kana || '-',
+          line_nickname: r.users?.line_nickname || 'æœªè¨­å®š',
+          gender: r.users?.gender || '-',
+          nationality: r.users?.nationality || '-',
+          email: r.users?.email || '-',
+          university_email: r.users?.university_email || '-',
+          phone: r.users?.phone || '-',
+          selected_sessions: selectedSessionsLabel || '-',
+          admin_note: r.admin_note || '',
+          attendance_status: STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || 'ç¢ºèªä¸­',
+        };
+
+        registrationQuestionPrompts.forEach((prompt, questionIndex) => {
+          const answerObject = Array.isArray(r.registration_answers)
+            ? r.registration_answers.find((answer: any) => answer.question?.trim() === prompt)
+            : null;
+          valueMap[`question_${questionIndex}`] = formatActivityAnswerValue(answerObject?.answer);
+        });
+
+        if (activity.sessions?.length) {
+          activity.sessions.forEach((_: any, sessionIndex: number) => {
+            valueMap[`attendance_session_${sessionIndex}`] = attendanceBySession.get(sessionIndex) || 'ç¢ºèªä¸­';
+          });
+        }
+
+        return selectedFields.map((field) => valueMap[field.key] ?? '');
+      });
+
+      XLSX.utils.sheet_add_aoa(ws, rowData, { origin: 'A6' });
+
+      for (let column = 0; column < selectedFields.length; column++) {
+        const address = XLSX.utils.encode_cell({ r: 4, c: column });
+        if (!ws[address]) continue;
+        ws[address].s = {
+          fill: { fgColor: { rgb: "4472C4" } },
+          font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "thin", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+      }
+
+      const widthMap: Record<string, number> = {
+        no: 6,
+        registered_at: 22,
+        mssv: 15,
+        full_name: 25,
+        full_name_kana: 25,
+        line_nickname: 20,
+        gender: 10,
+        nationality: 15,
+        email: 30,
+        university_email: 35,
+        phone: 15,
+        selected_sessions: 32,
+        admin_note: 40,
+        attendance_status: 18,
+      };
+      ws['!cols'] = selectedFields.map((field) => ({
+        wch: field.key.startsWith('question_') ? 40 : field.key.startsWith('attendance_session_') ? 24 : (widthMap[field.key] || 18)
+      }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Attendance List');
+
+      const safeTitle = activity.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 50);
+      const datePart = format(new Date(), 'yyyyMMdd');
+      const sessionFilePart = selectedSessionIdx !== null ? `_S${selectedSessionIdx + 1}` : '';
+      XLSX.writeFile(wb, `${safeTitle}ã®å‡ºæ¬ ï¼ˆ${datePart}ï¼‰${sessionFilePart}.xlsx`);
+
+      toast.success('Excel Report Exported Successfully');
+      setIsExportModalOpen(false);
+    } catch (err: any) {
+      console.error('Export error:', err);
+      toast.error('Failed to export Excel report: ' + err.message);
+    }
+  };
+
   const exportToExcel = () => {
     if (!registrations || !activity) return;
     try {
@@ -421,8 +780,8 @@ export default function ActivityRegistrations() {
 
       // Retrieve questions from activity, or extract from registrations as fallback
       let questions: string[] = [];
-      if (activity && Array.isArray(activity.registration_questions)) {
-        questions = activity.registration_questions
+      if (activity) {
+        questions = getActivityRegistrationQuestions(activity)
           .map((q: any) => q?.prompt?.trim())
           .filter((prompt: string) => prompt);
       }
@@ -517,7 +876,7 @@ export default function ActivityRegistrations() {
           const ansObj = Array.isArray(r.registration_answers)
             ? r.registration_answers.find((ans: any) => ans.question?.trim() === qPrompt)
             : null;
-          row.push(ansObj?.answer || '-');
+          row.push(formatActivityAnswerValue(ansObj?.answer));
         });
 
         row.push(r.admin_note || '');
@@ -578,6 +937,7 @@ export default function ActivityRegistrations() {
       toast.error('Failed to export Excel report: ' + err.message);
     }
   };
+  void exportToExcel;
 
   if (actLoading || regLoading) {
     return (
@@ -601,7 +961,7 @@ export default function ActivityRegistrations() {
         </Link>
 
         <button
-          onClick={exportToExcel}
+          onClick={() => setIsExportModalOpen(true)}
           className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gray-900 hover:bg-[#4F5BD5] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
         >
           <Download className="w-4 h-4" /> Excelエクスポート
@@ -760,6 +1120,17 @@ export default function ActivityRegistrations() {
       <div className="pt-8 text-center pb-10">
         <p className="text-[9px] font-black text-gray-200 uppercase tracking-[0.8em]">End of Records</p>
       </div>
+
+      <ExcelExportModal
+        isOpen={isExportModalOpen}
+        title="Activity Export"
+        description="Chon cac truong thong tin dang ky, thong tin thanh vien, session va cau tra loi can dua vao file Excel."
+        fields={activityExportFields}
+        defaultSelectedKeys={activityDefaultExportKeys}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={exportConfiguredExcel}
+        confirmLabel="Export dang ky"
+      />
     </div>
   );
 }
