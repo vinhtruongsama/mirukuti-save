@@ -18,9 +18,9 @@ import ExcelExportModal, { type ExcelExportFieldOption } from '../../components/
 
 // Helper Map for Status
 const STATUS_JA = {
-  'applied': '確認中',
-  'present': '出席',
-  'unexcused_absence': '欠席'
+  applied: '確認中',
+  present: '出席',
+  unexcused_absence: '欠席'
 };
 
 
@@ -295,7 +295,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
                       return `${dateStr} ${timeStr}`;
                     }))).map((sessionStr: any, idx, arr) => (
                       <span key={idx} className="text-[10px] font-black text-[#4F5BD5] uppercase tracking-tighter">
-                        {sessionStr}{idx < arr.length - 1 ? ' • ' : ''}
+                        {sessionStr}{idx < arr.length - 1 ? ' ・ ' : ''}
                       </span>
                     ))}
                   </div>
@@ -415,7 +415,7 @@ function RegistrationItem({ reg, activityId, currentSessionIdx, sessions }: { re
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="メモを記入!"
+                placeholder="メモを記入"
                 className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-sm font-bold text-[#0f172a] focus:bg-white focus:border-[#4F5BD5]/20 outline-none transition-all placeholder:text-gray-300 resize-none h-20"
               />
             </div>
@@ -549,53 +549,65 @@ export default function ActivityRegistrations() {
     return prompts;
   }, [activity, registrations]);
 
+  const fixedExportFields = useMemo<ExcelExportFieldOption[]>(
+    () => [
+      {
+        key: 'no',
+        label: 'No',
+        description: '現在の絞り込み結果での表示順です。',
+      },
+    ],
+    []
+  );
+
   const activityExportFields = useMemo<ExcelExportFieldOption[]>(() => {
     const fields: ExcelExportFieldOption[] = [
-      { key: 'no', label: 'No', description: 'So thu tu trong danh sach da loc.' },
-      { key: 'registered_at', label: '登録日時', description: 'Thoi gian dang ky.' },
-      { key: 'mssv', label: '学籍番号', description: 'Ma sinh vien.' },
-      { key: 'full_name', label: '氏名', description: 'Ho va ten.' },
-      { key: 'full_name_kana', label: 'フリガナ', description: 'Ten kana.' },
-      { key: 'line_nickname', label: 'LINEニックネーム', description: 'Biet danh LINE.' },
-      { key: 'gender', label: '性別', description: 'Gioi tinh.' },
-      { key: 'nationality', label: '国籍', description: 'Quoc tich.' },
-      { key: 'email', label: '連絡メール', description: 'Email lien he.' },
-      { key: 'university_email', label: '大学メール', description: 'Email truong.' },
-      { key: 'phone', label: '電話番号', description: 'So dien thoai.' },
-      { key: 'selected_sessions', label: '選択セッション', description: 'Tong hop session da chon.' },
-      { key: 'admin_note', label: '備考', description: 'Ghi chu admin.' },
+      { key: 'mssv', label: '学籍番号', description: '参加者の学籍番号です。', group: '参加者情報' },
+      { key: 'full_name', label: '氏名', description: '参加者の氏名です。', group: '参加者情報' },
+      { key: 'full_name_kana', label: 'フリガナ', description: '氏名のフリガナです。', group: '参加者情報' },
+      { key: 'gender', label: '性別', description: '登録された性別です。', group: '参加者情報' },
+      { key: 'nationality', label: '国籍', description: '登録された国籍です。', group: '参加者情報' },
+      { key: 'line_nickname', label: 'LINEニックネーム', description: 'LINEで使用している名前です。', group: '連絡先' },
+      { key: 'email', label: '連絡メール', description: '普段連絡に使うメールアドレスです。', group: '連絡先' },
+      { key: 'university_email', label: '大学メール', description: '大学のメールアドレスです。', group: '連絡先' },
+      { key: 'phone', label: '電話番号', description: '登録された電話番号です。', group: '連絡先' },
+      { key: 'registered_at', label: '登録日時', description: '申込が完了した日時です。', group: '出欠・参加状況' },
+      { key: 'selected_sessions', label: '選択セッション', description: '申込時に選択したセッション一覧です。', group: '出欠・参加状況' },
+      { key: 'admin_note', label: '備考', description: '管理側で記録したメモです。', group: '出欠・参加状況' },
     ];
 
     if (selectedSessionIdx !== null && activity?.sessions?.[selectedSessionIdx]) {
       const session = activity.sessions[selectedSessionIdx];
       fields.push({
-        key: `attendance_session_${selectedSessionIdx}`,
-        label: `${format(new Date(session.date), 'M月d日')} (${session.start_time}${session.end_time ? `-${session.end_time}` : ''})`,
-        description: 'Trang thai diem danh cua session dang xem.',
+        key: `attendance_session_${selectedSessionIdx}` ,
+        label: `${format(new Date(session.date), 'M/d')} (${session.start_time}${session.end_time ? `-${session.end_time}` : ''})`,
+        description: '現在表示中のセッションの出欠状況です。',
+        group: '出欠・参加状況',
       });
     } else if (activity?.sessions?.length) {
       activity.sessions.forEach((session: any, index: number) => {
         fields.push({
-          key: `attendance_session_${index}`,
-          label: `${format(new Date(session.date), 'M月d日')} (${session.start_time}${session.end_time ? `-${session.end_time}` : ''})`,
-          description: `Trang thai diem danh session ${index + 1}.`,
+          key: `attendance_session_${index}` ,
+          label: `${format(new Date(session.date), 'M/d')} (${session.start_time}${session.end_time ? `-${session.end_time}` : ''})`,
+          description: `セッション ${index + 1} の出欠状況です。`,
+          group: '出欠・参加状況',
         });
       });
     } else {
-      fields.push({ key: 'attendance_status', label: '出欠', description: 'Trang thai tham gia.' });
+      fields.push({ key: 'attendance_status', label: '出欠', description: '全体の参加状況です。', group: '出欠・参加状況' });
     }
 
     registrationQuestionPrompts.forEach((prompt: string, index: number) => {
       fields.push({
-        key: `question_${index}`,
+        key: `question_${index}` ,
         label: prompt,
-        description: 'Cau tra loi cau hoi dang ky.',
+        description: '申込フォームで入力された回答です。',
+        group: '申込フォーム回答',
       });
     });
 
     return fields;
   }, [activity, registrationQuestionPrompts, selectedSessionIdx]);
-
   const activityDefaultExportKeys = useMemo(
     () => activityExportFields.map((field) => field.key),
     [activityExportFields]
@@ -605,21 +617,20 @@ export default function ActivityRegistrations() {
     if (!filteredRegs || !activity) return;
 
     try {
-      const selectedFields = activityExportFields.filter((field) => selectedKeys.includes(field.key));
-      if (selectedFields.length === 0) {
-        toast.error('少なくとも1つの項目を選択してください');
-        return;
-      }
+      const selectedFields = [
+        ...fixedExportFields,
+        ...activityExportFields.filter((field) => selectedKeys.includes(field.key)),
+      ];
 
       const ws = XLSX.utils.aoa_to_sheet([]);
       const sessionInfo = selectedSessionIdx !== null
         ? ` (${activity.sessions[selectedSessionIdx].start_time})`
-        : ' (å…¨æ—¥ç¨‹ä¸€æ‹¬)';
+        : ' (全日程一括)';
 
       const headers = [
-        [`æ´»å‹•åï¼š${activity.title}${sessionInfo}`],
-        [`ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚ï¼š${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
-        [`é …ç›®æ•°ï¼š${selectedFields.length}`],
+        [`活動名：${activity.title}${sessionInfo}`],
+        [`エクスポート日時：${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`],
+        [`項目数：${selectedFields.length}`],
         [''],
         selectedFields.map((field) => field.label),
       ];
@@ -636,7 +647,7 @@ export default function ActivityRegistrations() {
               return;
             }
             const status = r.attendance_records?.find((ar: any) => ar.session_index === sessionIndex)?.status;
-            attendanceBySession.set(sessionIndex, STATUS_JA[status as keyof typeof STATUS_JA] || 'ç¢ºèªä¸­');
+            attendanceBySession.set(sessionIndex, STATUS_JA[status as keyof typeof STATUS_JA] || '確認中');
           });
         }
 
@@ -645,7 +656,7 @@ export default function ActivityRegistrations() {
               .map((sessionIndex: number) => {
                 const session = activity.sessions[sessionIndex];
                 if (!session) return null;
-                return `${format(new Date(session.date), 'M月d日')} ${session.start_time}`;
+                return `${format(new Date(session.date), 'M/d')} ${session.start_time}`;
               })
               .filter(Boolean)
               .join(', ')
@@ -657,7 +668,7 @@ export default function ActivityRegistrations() {
           mssv: r.users?.mssv || 'N/A',
           full_name: r.users?.full_name || 'N/A',
           full_name_kana: r.users?.full_name_kana || '-',
-          line_nickname: r.users?.line_nickname || 'æœªè¨­å®š',
+          line_nickname: r.users?.line_nickname || '未設定',
           gender: r.users?.gender || '-',
           nationality: r.users?.nationality || '-',
           email: r.users?.email || '-',
@@ -665,7 +676,7 @@ export default function ActivityRegistrations() {
           phone: r.users?.phone || '-',
           selected_sessions: selectedSessionsLabel || '-',
           admin_note: r.admin_note || '',
-          attendance_status: STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || 'ç¢ºèªä¸­',
+          attendance_status: STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中',
         };
 
         registrationQuestionPrompts.forEach((prompt: string, questionIndex: number) => {
@@ -677,7 +688,7 @@ export default function ActivityRegistrations() {
 
         if (activity.sessions?.length) {
           activity.sessions.forEach((_: any, sessionIndex: number) => {
-            valueMap[`attendance_session_${sessionIndex}`] = attendanceBySession.get(sessionIndex) || 'ç¢ºèªä¸­';
+            valueMap[`attendance_session_${sessionIndex}`] = attendanceBySession.get(sessionIndex) || '確認中';
           });
         }
 
@@ -728,7 +739,7 @@ export default function ActivityRegistrations() {
       const safeTitle = activity.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 50);
       const datePart = format(new Date(), 'yyyyMMdd');
       const sessionFilePart = selectedSessionIdx !== null ? `_S${selectedSessionIdx + 1}` : '';
-      XLSX.writeFile(wb, `${safeTitle}ã®å‡ºæ¬ ï¼ˆ${datePart}ï¼‰${sessionFilePart}.xlsx`);
+      XLSX.writeFile(wb, `${safeTitle}の出欠（${datePart}）${sessionFilePart}.xlsx`);
 
       toast.success('Excel Report Exported Successfully');
       setIsExportModalOpen(false);
@@ -752,17 +763,17 @@ export default function ActivityRegistrations() {
 
       if (selectedSessionIdx !== null && activity.sessions?.[selectedSessionIdx]) {
         const s = activity.sessions[selectedSessionIdx];
-        const datePart = format(new Date(s.date), 'M月d日');
+        const datePart = format(new Date(s.date), 'M/d');
         const timePart = s.end_time ? `${s.start_time}-${s.end_time}` : s.start_time;
         headersRow.push(`${datePart} (${timePart})`);
       } else if (activity.sessions?.length === 1) {
         const s = activity.sessions[0];
-        const datePart = format(new Date(s.date), 'M月d日');
+        const datePart = format(new Date(s.date), 'M/d');
         const timePart = s.end_time ? `${s.start_time}-${s.end_time}` : s.start_time;
         headersRow.push(`${datePart} (${timePart})`);
       } else if (activity.sessions?.length > 1) {
         activity.sessions.forEach((s: any) => {
-          const datePart = format(new Date(s.date), 'M月d日');
+          const datePart = format(new Date(s.date), 'M/d');
           const timePart = s.end_time ? `${s.start_time}-${s.end_time}` : s.start_time;
           headersRow.push(`${datePart} (${timePart})`);
         });
@@ -770,7 +781,7 @@ export default function ActivityRegistrations() {
         // NO SESSIONS CASE
         try {
           const d = new Date(activity.date);
-          const datePart = format(d, 'M月d日');
+          const datePart = format(d, 'M/d');
           const timePart = format(d, 'HH:mm');
           headersRow.push(`${datePart} (${timePart})`);
         } catch {
@@ -888,9 +899,9 @@ export default function ActivityRegistrations() {
       // Column Widths for better readability
       const colWidths = [
         { wch: 6 },  // No
-        { wch: 15 }, // 学籍番号
-        { wch: 25 }, // 氏名
-        { wch: 25 }, // フリガナ
+        { wch: 15 }, // Student ID
+        { wch: 25 }, // Full name
+        { wch: 25 }, // Kana
         { wch: 20 }, // LINE
       ];
 
@@ -913,14 +924,14 @@ export default function ActivityRegistrations() {
         colWidths.push({ wch: 40 }); // Large width for question answers
       });
 
-      colWidths.push({ wch: 40 }); // 備考
+      colWidths.push({ wch: 40 }); // Admin note
 
       ws['!cols'] = colWidths;
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Attendance List');
 
-      // Filename construction: [ActivityTitle]の出欠（年月日）
+      // Filename construction: [ActivityTitle] attendance (yyyymmdd)
       const safeTitle = activity.title.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 50);
       const datePart = format(new Date(), 'yyyyMMdd');
       const sessionFilePart = selectedSessionIdx !== null ? `_S${selectedSessionIdx + 1}` : '';
@@ -1123,13 +1134,14 @@ export default function ActivityRegistrations() {
 
       <ExcelExportModal
         isOpen={isExportModalOpen}
-        title="Activity Export"
-        description="Chon cac truong thong tin dang ky, thong tin thanh vien, session va cau tra loi can dua vao file Excel."
+        title="Excelエクスポート設定"
+        description=""
         fields={activityExportFields}
+        fixedFields={fixedExportFields}
         defaultSelectedKeys={activityDefaultExportKeys}
         onClose={() => setIsExportModalOpen(false)}
         onConfirm={exportConfiguredExcel}
-        confirmLabel="Export dang ky"
+        confirmLabel="Excelをエクスポート"
       />
     </div>
   );

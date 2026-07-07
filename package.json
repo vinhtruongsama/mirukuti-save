@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check:text": "node scripts/check-text-encoding.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
