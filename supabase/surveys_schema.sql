@@ -71,7 +71,7 @@ BEGIN
         JOIN public.academic_years ay ON ay.id = cm.academic_year_id
         WHERE cm.user_id = user_uuid
           AND ay.is_current = true
-          AND cm.role IN ('president', 'vice_president', 'treasurer', 'executive', 'admin')
+          AND cm.role IN ('president', 'vice_president', 'executive', 'admin')
           AND cm.deleted_at IS NULL
           AND cm.is_active = true
     );

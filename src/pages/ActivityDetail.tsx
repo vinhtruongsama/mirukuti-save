@@ -7,6 +7,10 @@ import { MapPin, Clock, Users, AlertCircle, CheckCircle2, ChevronRight, Loader2,
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import {
+  getActivityRegistrationQuestions,
+  isActivityAnswerComplete,
+} from '../lib/activityRegistrationQuestions';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
@@ -84,14 +88,9 @@ export default function ActivityDetail() {
 
   const [agreed, setAgreed] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
-  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string>>({});
+  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string | string[]>>({});
   const [showScheduleWarning, setShowScheduleWarning] = useState(false);
   const [showQuestionWarning, setShowQuestionWarning] = useState(false);
-
-  const getActivityQuestions = (activityValue: any) =>
-    Array.isArray(activityValue?.registration_questions)
-      ? activityValue.registration_questions.filter((question: any) => question?.prompt?.trim())
-      : [];
 
   const activeSessions = myRegistration?.selected_sessions || selectedSessions;
 
@@ -120,8 +119,8 @@ export default function ActivityDetail() {
         throw new Error('内容を確認し、同意チェックを入れてください。');
       }
 
-      const questions = getActivityQuestions(activity);
-      const missingQuestion = questions.find((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+      const questions = getActivityRegistrationQuestions(activity);
+      const missingQuestion = questions.find((question: any, idx: number) => !isActivityAnswerComplete(question, registrationAnswers[String(idx)]));
       if (missingQuestion) {
         throw new Error('追加質問に回答してください。');
       }
@@ -165,7 +164,10 @@ export default function ActivityDetail() {
         selected_sessions: selectedSessions,
         registration_answers: questions.map((question: any, idx: number) => ({
           question: question.prompt,
-          answer: registrationAnswers[String(idx)]?.trim() || ''
+          type: question.type || 'short_text',
+          answer: question.type === 'multiple_choice'
+            ? (Array.isArray(registrationAnswers[String(idx)]) ? registrationAnswers[String(idx)] : [])
+            : String(registrationAnswers[String(idx)] || '').trim()
         }))
       });
 
@@ -218,8 +220,8 @@ export default function ActivityDetail() {
       setShowScheduleWarning(true);
       return;
     }
-    const questions = getActivityQuestions(activity);
-    const hasMissingAnswer = questions.some((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+    const questions = getActivityRegistrationQuestions(activity);
+    const hasMissingAnswer = questions.some((question: any, idx: number) => !isActivityAnswerComplete(question, registrationAnswers[String(idx)]));
     if (hasMissingAnswer) {
       setShowQuestionWarning(true);
       return;
@@ -234,6 +236,25 @@ export default function ActivityDetail() {
   useEffect(() => {
     if (selectedSessions.length > 0) setShowScheduleWarning(false);
   }, [selectedSessions]);
+
+  const setTextAnswer = (idx: number, value: string) => {
+    setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: value }));
+  };
+
+  const setSingleChoiceAnswer = (idx: number, value: string) => {
+    setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: value }));
+  };
+
+  const toggleMultipleChoiceAnswer = (idx: number, choice: string) => {
+    setRegistrationAnswers((prev) => {
+      const key = String(idx);
+      const current = Array.isArray(prev[key]) ? prev[key] as string[] : [];
+      const next = current.includes(choice)
+        ? current.filter((item) => item !== choice)
+        : [...current, choice];
+      return { ...prev, [key]: next };
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] relative overflow-hidden py-10 sm:py-20 px-4 sm:px-6">
@@ -468,13 +489,13 @@ export default function ActivityDetail() {
                   )}
                 </AnimatePresence>
 
-                {getActivityQuestions(activity).length > 0 && (
+                {getActivityRegistrationQuestions(activity).length > 0 && (
                   <div className="w-full space-y-4">
                     <div className="flex items-center gap-3">
                       <div className="w-1 h-6 bg-[#D62976] rounded-full" />
                       <h3 className="text-lg font-black text-gray-900 uppercase tracking-[0.2em]">追加質問</h3>
                     </div>
-                    {getActivityQuestions(activity).map((question: any, idx: number) => (
+                    {getActivityRegistrationQuestions(activity).map((question: any, idx: number) => (
                       <div key={idx} className="rounded-[1.5rem] border border-gray-100 bg-white p-5 shadow-sm">
                         <label className="mb-2 block text-[13px] font-black text-gray-800 leading-relaxed">
                           {idx + 1}. {question.prompt}
@@ -485,18 +506,77 @@ export default function ActivityDetail() {
                             {question.answer_hint}
                           </p>
                         )}
-                        <textarea
-                          value={registrationAnswers[String(idx)] || ''}
-                          onChange={(e) => setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: e.target.value }))}
-                          rows={2}
-                          className={cn(
-                            "w-full resize-none rounded-2xl border bg-gray-50 px-4 py-3 text-sm font-bold text-gray-900 outline-none transition focus:bg-white",
-                            showQuestionWarning && !registrationAnswers[String(idx)]?.trim()
-                              ? "border-rose-400"
-                              : "border-gray-200 focus:border-indigo-300"
-                          )}
-                          placeholder="回答を入力..."
-                        />
+                        {question.type === 'single_choice' ? (
+                          <div className="space-y-3">
+                            {(question.options || []).map((option: string) => {
+                              const selected = registrationAnswers[String(idx)] === option;
+                              return (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  onClick={() => setSingleChoiceAnswer(idx, option)}
+                                  className={cn(
+                                    "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all",
+                                    selected
+                                      ? "border-[#4F5BD5] bg-indigo-50 text-[#4F5BD5]"
+                                      : "border-gray-200 bg-gray-50 text-gray-700 hover:border-indigo-200 hover:bg-white"
+                                  )}
+                                >
+                                  <span className={cn(
+                                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+                                    selected ? "border-[#4F5BD5]" : "border-gray-300"
+                                  )}>
+                                    <span className={cn("h-2.5 w-2.5 rounded-full", selected ? "bg-[#4F5BD5]" : "bg-transparent")} />
+                                  </span>
+                                  <span className="text-sm font-black">{option}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : question.type === 'multiple_choice' ? (
+                          <div className="space-y-3">
+                            {(question.options || []).map((option: string) => {
+                              const selected = Array.isArray(registrationAnswers[String(idx)]) && (registrationAnswers[String(idx)] as string[]).includes(option);
+                              return (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  onClick={() => toggleMultipleChoiceAnswer(idx, option)}
+                                  className={cn(
+                                    "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all",
+                                    selected
+                                      ? "border-[#4F5BD5] bg-indigo-50 text-[#4F5BD5]"
+                                      : "border-gray-200 bg-gray-50 text-gray-700 hover:border-indigo-200 hover:bg-white"
+                                  )}
+                                >
+                                  <span className={cn(
+                                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2",
+                                    selected ? "border-[#4F5BD5] bg-[#4F5BD5]" : "border-gray-300 bg-white"
+                                  )}>
+                                    {selected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                                  </span>
+                                  <span className="text-sm font-black">{option}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <textarea
+                            value={String(registrationAnswers[String(idx)] || '')}
+                            onChange={(e) => setTextAnswer(idx, e.target.value)}
+                            rows={2}
+                            className={cn(
+                              "w-full resize-none rounded-2xl border bg-gray-50 px-4 py-3 text-sm font-bold text-gray-900 outline-none transition focus:bg-white",
+                              showQuestionWarning && !isActivityAnswerComplete(question, registrationAnswers[String(idx)])
+                                ? "border-rose-400"
+                                : "border-gray-200 focus:border-indigo-300"
+                            )}
+                            placeholder={question.answer_hint?.trim() || "回答を入力..."}
+                          />
+                        )}
+                        {(question.type === 'single_choice' || question.type === 'multiple_choice') && showQuestionWarning && !isActivityAnswerComplete(question, registrationAnswers[String(idx)]) && (
+                          <p className="mt-2 text-[11px] font-black text-rose-500">回答を選択してください。</p>
+                        )}
                       </div>
                     ))}
                     {showQuestionWarning && (

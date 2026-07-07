@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.club_memberships (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     academic_year_id UUID NOT NULL REFERENCES public.academic_years(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK (role IN ('admin', 'executive', 'member', 'alumni')),
+    role TEXT NOT NULL CHECK (role IN ('admin', 'president', 'vice_president', 'treasurer', 'executive', 'member', 'alumni')),
     department TEXT,
     class_name TEXT,
     university_year INTEGER CHECK (university_year IN (1, 2, 3, 4)),
@@ -103,7 +103,7 @@ ALTER TABLE public.club_memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
 
--- Helper Function: Check if auth user is Admin/Executive in the CURRENT academic year
+-- Helper Function: Check if auth user belongs to the management group in the CURRENT academic year
 CREATE OR REPLACE FUNCTION public.is_current_admin_or_exec(user_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -113,7 +113,7 @@ BEGIN
         JOIN public.academic_years ay ON cm.academic_year_id = ay.id
         WHERE cm.user_id = user_uuid 
           AND ay.is_current = true
-          AND cm.role IN ('admin', 'executive')
+          AND cm.role IN ('admin', 'president', 'vice_president', 'executive')
           AND cm.deleted_at IS NULL
           AND cm.is_active = true
     );

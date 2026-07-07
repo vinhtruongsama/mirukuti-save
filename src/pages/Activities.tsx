@@ -11,6 +11,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import type { Survey, SurveyResponse as SurveySubmission } from '../types/survey';
+import {
+  getActivityRegistrationQuestions,
+  isActivityAnswerComplete,
+} from '../lib/activityRegistrationQuestions';
 import { isSurveyEligibleForMembership } from '../lib/surveys';
 import { cn } from '../lib/utils';
 import { renderTextWithEmoji } from '../lib/renderTextWithEmoji';
@@ -25,15 +29,10 @@ export default function Activities() {
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
-  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string>>({});
+  const [registrationAnswers, setRegistrationAnswers] = useState<Record<string, string | string[]>>({});
   const [showScheduleWarning, setShowScheduleWarning] = useState(false);
   const [showQuestionWarning, setShowQuestionWarning] = useState(false);
   const [isSurveyCenterOpen, setIsSurveyCenterOpen] = useState(false);
-
-  const getActivityQuestions = (activity: any) =>
-    Array.isArray(activity?.registration_questions)
-      ? activity.registration_questions.filter((question: any) => question?.prompt?.trim())
-      : [];
 
   const toggleSession = (idx: number) => {
     setSelectedSessions(prev =>
@@ -55,8 +54,8 @@ export default function Activities() {
 
   useEffect(() => {
     if (!selectedActivity) return;
-    const questions = getActivityQuestions(selectedActivity);
-    const allAnswered = questions.every((_: any, idx: number) => registrationAnswers[String(idx)]?.trim());
+    const questions = getActivityRegistrationQuestions(selectedActivity);
+    const allAnswered = questions.every((question: any, idx: number) => isActivityAnswerComplete(question, registrationAnswers[String(idx)]));
     if (allAnswered) setShowQuestionWarning(false);
   }, [registrationAnswers, selectedActivity]);
 
@@ -238,8 +237,8 @@ export default function Activities() {
 
         const act = activities.find(a => a.id === activityId);
         if (!act) throw new Error('Activity not found');
-        const questions = getActivityQuestions(act);
-        const missingQuestion = questions.find((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+        const questions = getActivityRegistrationQuestions(act);
+        const missingQuestion = questions.find((question: any, idx: number) => !isActivityAnswerComplete(question, registrationAnswers[String(idx)]));
         if (missingQuestion) {
           throw new Error('追加質問に回答してください。');
         }
@@ -277,7 +276,10 @@ export default function Activities() {
             selected_sessions: selectedSessions,
             registration_answers: questions.map((question: any, idx: number) => ({
               question: question.prompt,
-              answer: registrationAnswers[String(idx)]?.trim() || ''
+              type: question.type || 'short_text',
+              answer: question.type === 'multiple_choice'
+                ? (Array.isArray(registrationAnswers[String(idx)]) ? registrationAnswers[String(idx)] : [])
+                : String(registrationAnswers[String(idx)] || '').trim()
             })),
             confirmed_at: new Date().toISOString()
           });
@@ -296,6 +298,25 @@ export default function Activities() {
   });
 
   const customFontClass = 'font-sans tracking-tight';
+
+  const setTextAnswer = (idx: number, value: string) => {
+    setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: value }));
+  };
+
+  const setSingleChoiceAnswer = (idx: number, value: string) => {
+    setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: value }));
+  };
+
+  const toggleMultipleChoiceAnswer = (idx: number, choice: string) => {
+    setRegistrationAnswers((prev) => {
+      const key = String(idx);
+      const current = Array.isArray(prev[key]) ? prev[key] as string[] : [];
+      const next = current.includes(choice)
+        ? current.filter((item) => item !== choice)
+        : [...current, choice];
+      return { ...prev, [key]: next };
+    });
+  };
 
   const currentActivities = useMemo(() => {
     return activities.map(act => {
@@ -878,13 +899,13 @@ export default function Activities() {
                               <div className="w-full flex flex-col items-center gap-8">
                                 {currentUser && selectedActivity.computedStatus === 'OPEN' && (
                                   <>
-                                    {getActivityQuestions(selectedActivity).length > 0 && (
+                                    {getActivityRegistrationQuestions(selectedActivity).length > 0 && (
                                       <div className="w-full self-stretch space-y-4">
                                         <div className="flex items-center gap-3">
                                           <div className="w-1.5 h-6 bg-[#D62976] rounded-full" />
                                           <h3 className="text-lg font-black text-brand-stone-900 uppercase tracking-widest">追加質問</h3>
                                         </div>
-                                        {getActivityQuestions(selectedActivity).map((question: any, idx: number) => (
+                                        {getActivityRegistrationQuestions(selectedActivity).map((question: any, idx: number) => (
                                           <div key={idx} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
                                             <label className="mb-2 block text-[13px] font-black text-stone-800 leading-relaxed">
                                               {idx + 1}. {question.prompt}
@@ -895,18 +916,77 @@ export default function Activities() {
                                                 {question.answer_hint}
                                               </p>
                                             )}
-                                            <textarea
-                                              value={registrationAnswers[String(idx)] || ''}
-                                              onChange={(e) => setRegistrationAnswers((prev) => ({ ...prev, [String(idx)]: e.target.value }))}
-                                              rows={2}
-                                              className={cn(
-                                                "w-full resize-none rounded-xl border bg-stone-50 px-4 py-3 text-sm font-bold text-stone-900 outline-none transition focus:bg-white",
-                                                showQuestionWarning && !registrationAnswers[String(idx)]?.trim()
-                                                  ? "border-rose-400"
-                                                  : "border-stone-200 focus:border-[#4F5BD5]/40"
-                                              )}
-                                              placeholder="回答を入力..."
-                                            />
+                                            {question.type === 'single_choice' ? (
+                                              <div className="space-y-3">
+                                                {(question.options || []).map((option: string) => {
+                                                  const selected = registrationAnswers[String(idx)] === option;
+                                                  return (
+                                                    <button
+                                                      key={option}
+                                                      type="button"
+                                                      onClick={() => setSingleChoiceAnswer(idx, option)}
+                                                      className={cn(
+                                                        "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all",
+                                                        selected
+                                                          ? "border-[#4F5BD5] bg-indigo-50 text-[#4F5BD5]"
+                                                          : "border-stone-200 bg-stone-50 text-stone-700 hover:border-indigo-200 hover:bg-white"
+                                                      )}
+                                                    >
+                                                      <span className={cn(
+                                                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+                                                        selected ? "border-[#4F5BD5]" : "border-stone-300"
+                                                      )}>
+                                                        <span className={cn("h-2.5 w-2.5 rounded-full", selected ? "bg-[#4F5BD5]" : "bg-transparent")} />
+                                                      </span>
+                                                      <span className="text-sm font-black">{option}</span>
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+                                            ) : question.type === 'multiple_choice' ? (
+                                              <div className="space-y-3">
+                                                {(question.options || []).map((option: string) => {
+                                                  const selected = Array.isArray(registrationAnswers[String(idx)]) && (registrationAnswers[String(idx)] as string[]).includes(option);
+                                                  return (
+                                                    <button
+                                                      key={option}
+                                                      type="button"
+                                                      onClick={() => toggleMultipleChoiceAnswer(idx, option)}
+                                                      className={cn(
+                                                        "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all",
+                                                        selected
+                                                          ? "border-[#4F5BD5] bg-indigo-50 text-[#4F5BD5]"
+                                                          : "border-stone-200 bg-stone-50 text-stone-700 hover:border-indigo-200 hover:bg-white"
+                                                      )}
+                                                    >
+                                                      <span className={cn(
+                                                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2",
+                                                        selected ? "border-[#4F5BD5] bg-[#4F5BD5]" : "border-stone-300 bg-white"
+                                                      )}>
+                                                        {selected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                                                      </span>
+                                                      <span className="text-sm font-black">{option}</span>
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+                                            ) : (
+                                              <textarea
+                                                value={String(registrationAnswers[String(idx)] || '')}
+                                                onChange={(e) => setTextAnswer(idx, e.target.value)}
+                                                rows={2}
+                                                className={cn(
+                                                  "w-full resize-none rounded-xl border bg-stone-50 px-4 py-3 text-sm font-bold text-stone-900 outline-none transition focus:bg-white",
+                                                  showQuestionWarning && !isActivityAnswerComplete(question, registrationAnswers[String(idx)])
+                                                    ? "border-rose-400"
+                                                    : "border-stone-200 focus:border-[#4F5BD5]/40"
+                                                )}
+                                                placeholder={question.answer_hint?.trim() || "回答を入力..."}
+                                              />
+                                            )}
+                                            {(question.type === 'single_choice' || question.type === 'multiple_choice') && showQuestionWarning && !isActivityAnswerComplete(question, registrationAnswers[String(idx)]) && (
+                                              <p className="mt-2 text-[11px] font-black text-rose-500">回答を選択してください。</p>
+                                            )}
                                           </div>
                                         ))}
                                         {showQuestionWarning && (
@@ -987,8 +1067,8 @@ export default function Activities() {
                                       return;
                                     }
 
-                                    const questions = getActivityQuestions(selectedActivity);
-                                    const hasMissingAnswer = questions.some((_: any, idx: number) => !registrationAnswers[String(idx)]?.trim());
+                                    const questions = getActivityRegistrationQuestions(selectedActivity);
+                                    const hasMissingAnswer = questions.some((question: any, idx: number) => !isActivityAnswerComplete(question, registrationAnswers[String(idx)]));
                                     if (hasMissingAnswer) {
                                       setShowQuestionWarning(true);
                                       return;

@@ -108,7 +108,7 @@ function App() {
 
               {/* Admin & Executive Fullscreen Layout */}
               <Route element={<RequireAuth />}>
-                <Route element={<RequireRole allowedRoles={['president', 'vice_president', 'treasurer', 'executive']} />}>
+                <Route element={<RequireRole allowedRoles={['president', 'vice_president', 'executive']} />}>
                   <Route element={<AdminLayout />}>
                     <Route path="/admin" element={<Dashboard />} />
                     <Route path="/admin/members" element={<Members />} />

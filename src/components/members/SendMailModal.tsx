@@ -216,7 +216,7 @@ export default function SendMailModal({ isOpen, onClose }: SendMailModalProps) {
         `)
         .eq('academic_year_id', selectedYear!.id)
         .is('deleted_at', null)
-        .in('role', ['president', 'vice_president', 'treasurer', 'executive']);
+        .in('role', ['president', 'vice_president', 'executive']);
 
       if (error) throw error;
 

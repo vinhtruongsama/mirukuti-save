@@ -70,7 +70,7 @@ export default function Home() {
                   {session ? "マイページ" : "今すぐ登録"}
                 </Link>
 
-                {session && currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole) && (
+                {session && currentRole && ['president', 'vice_president', 'executive'].includes(currentRole) && (
                   <Link 
                     to="/admin" 
                     className="w-full px-8 py-4 bg-[#FFC93C] hover:bg-[#F6C02A] text-[#2F2600] font-black text-lg xl:text-xl rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#FFC93C]/25 flex items-center justify-center no-underline border border-white/40 group/admin"

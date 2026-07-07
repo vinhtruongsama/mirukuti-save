@@ -14,6 +14,10 @@ import { motion } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../lib/supabase';
+import {
+  ACTIVITY_REGISTRATION_QUESTION_TYPES,
+  isActivityChoiceQuestion,
+} from '../../lib/activityRegistrationQuestions';
 import { useAppStore } from '../../store/useAppStore';
 import { useDebounce } from '../../hooks/useDebounce';
 import ActivityDeleteConfirmModal from '../../components/admin/ActivityDeleteConfirmModal';
@@ -40,6 +44,8 @@ const activitySchema = z.object({
   registration_questions: z.array(z.object({
     prompt: z.string().min(1, 'Question is required'),
     answer_hint: z.string().optional(),
+    type: z.enum(['short_text', 'single_choice', 'multiple_choice']),
+    options_text: z.string().optional(),
   })).optional(),
   status: z.enum(['open', 'closed', 'draft']),
   is_pinned: z.boolean().optional(),
@@ -120,6 +126,19 @@ export default function ActivitiesAdmin() {
     mutationFn: async (data: ActivityFormData) => {
       let finalCoverUrl = editingActivity?.cover_image_url;
 
+      const invalidChoiceQuestion = (data.registration_questions || []).find((question) => {
+        if (!isActivityChoiceQuestion(question.type)) return false;
+        const options = (question.options_text || '')
+          .split('\n')
+          .map((option) => option.trim())
+          .filter(Boolean);
+        return options.length < 2;
+      });
+
+      if (invalidChoiceQuestion) {
+        throw new Error('選択式の追加質問には選択肢を2つ以上入力してください。');
+      }
+
       // Handle Image Upload if exists
       if (coverFile) {
         const fileExt = coverFile.name.split('.').pop();
@@ -152,9 +171,17 @@ export default function ActivitiesAdmin() {
         registration_questions: (data.registration_questions || [])
           .map((question) => ({
             prompt: question.prompt.trim(),
-            answer_hint: question.answer_hint?.trim() || ''
+            answer_hint: question.answer_hint?.trim() || '',
+            type: question.type || 'short_text',
+            options: isActivityChoiceQuestion(question.type)
+              ? (question.options_text || '')
+                  .split('\n')
+                  .map((option) => option.trim())
+                  .filter(Boolean)
+              : []
           }))
-          .filter((question) => question.prompt),
+          .filter((question) => question.prompt)
+          .filter((question) => !isActivityChoiceQuestion(question.type) || question.options.length >= 2),
         cover_image_url: finalCoverUrl,
         academic_year_id: selectedYear!.id,
         is_pinned: data.is_pinned || false,
@@ -259,7 +286,14 @@ export default function ActivitiesAdmin() {
         status: act.status,
         is_pinned: act.is_pinned || false,
         sessions: act.sessions || [],
-        registration_questions: act.registration_questions || []
+        registration_questions: Array.isArray(act.registration_questions)
+          ? act.registration_questions.map((question: any) => ({
+              prompt: question?.prompt || '',
+              answer_hint: question?.answer_hint || '',
+              type: question?.type || 'short_text',
+              options_text: Array.isArray(question?.options) ? question.options.join('\n') : '',
+            }))
+          : []
       });
     }
     setModalOpen(true);
@@ -815,14 +849,26 @@ export default function ActivitiesAdmin() {
                                 <X className="w-5 h-5" />
                               </button>
                               <label className="text-[11px] font-black text-gray-700 uppercase tracking-widest px-2">Question {index + 1}</label>
-                              <input
-                                {...register(`registration_questions.${index}.prompt` as const)}
-                                className={cn(
-                                  "mt-2 w-full bg-gray-50 border text-[#0f172a] rounded-2xl px-5 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm",
-                                  errors.registration_questions?.[index]?.prompt ? "border-rose-600" : "border-gray-400"
-                                )}
-                                placeholder="質問を入力"
-                              />
+                              <div className="mt-2 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+                                <input
+                                  {...register(`registration_questions.${index}.prompt` as const)}
+                                  className={cn(
+                                    "w-full bg-gray-50 border text-[#0f172a] rounded-2xl px-5 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm",
+                                    errors.registration_questions?.[index]?.prompt ? "border-rose-600" : "border-gray-400"
+                                  )}
+                                  placeholder="質問を入力"
+                                />
+                                <select
+                                  {...register(`registration_questions.${index}.type` as const)}
+                                  className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-black text-stone-700 outline-none transition-all focus:border-[#4F5BD5]"
+                                >
+                                  {ACTIVITY_REGISTRATION_QUESTION_TYPES.map((type) => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                               {errors.registration_questions?.[index]?.prompt && (
                                 <p className="text-[10px] text-rose-700 font-bold px-2 mt-2">{errors.registration_questions[index].prompt?.message}</p>
                               )}
@@ -830,8 +876,16 @@ export default function ActivitiesAdmin() {
                                 {...register(`registration_questions.${index}.answer_hint` as const)}
                                 rows={2}
                                 className="mt-3 w-full resize-none bg-gray-50 border border-gray-100 text-[#0f172a] rounded-2xl px-5 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
-                                placeholder="回答例"
+                                placeholder="回答例・説明"
                               />
+                              {isActivityChoiceQuestion(watch(`registration_questions.${index}.type` as const)) && (
+                                <textarea
+                                  {...register(`registration_questions.${index}.options_text` as const)}
+                                  rows={4}
+                                  className="mt-3 w-full resize-none bg-indigo-50/50 border border-indigo-100 text-[#0f172a] rounded-2xl px-5 py-3 text-sm font-bold focus:bg-white outline-none transition-all shadow-sm"
+                                  placeholder={"選択肢を1行ずつ入力\n例：\n参加できる\n参加できない"}
+                                />
+                              )}
                             </div>
                           ))
                         )}
@@ -840,7 +894,7 @@ export default function ActivitiesAdmin() {
                       <div className="mt-4 flex justify-end">
                         <button
                           type="button"
-                          onClick={() => appendQuestion({ prompt: '', answer_hint: '' })}
+                          onClick={() => appendQuestion({ prompt: '', answer_hint: '', type: 'short_text', options_text: '' })}
                           className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg transition-all hover:bg-[#D62976] hover:shadow-[#D62976]/20"
                           title="質問を追加"
                           aria-label="質問を追加"

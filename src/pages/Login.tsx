@@ -77,7 +77,7 @@ export default function Login() {
       const currentYear = useAppStore.getState().selectedYear || academicYears[0];
       const membership = (userRecord.club_memberships || []).find((m: any) => m.academic_year_id === currentYear?.id && !m.deleted_at);
       const userRole = membership?.role;
-      const isLeaderRole = ['president', 'vice_president', 'treasurer', 'executive'].includes(userRole || '');
+      const isLeaderRole = ['president', 'vice_president', 'executive'].includes(userRole || '');
 
       // Logic chuyển đổi chế độ Admin/Student
       if (!isAdminMode) {
@@ -237,4 +237,3 @@ export default function Login() {
     </div>
   );
 }
-

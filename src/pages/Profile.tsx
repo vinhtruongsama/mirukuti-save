@@ -82,7 +82,7 @@ export default function Profile() {
     }
   });
 
-  const isAdmin = currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole);
+  const isAdmin = currentRole && ['president', 'vice_president', 'executive'].includes(currentRole);
   const isFullDisclosure = isAdmin || appSettings?.allow_profile_edit === true;
 
   const { data: historyData = [], isLoading: isHistoryLoading } = useQuery({

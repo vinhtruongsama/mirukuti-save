@@ -31,7 +31,7 @@ export const AppLayout = () => {
       { path: '/surveys', label: 'フォーム', icon: ClipboardList },
       { path: '/profile', label: 'マイページ', icon: User }
     ] : []),
-    ...(currentRole && ['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole)
+    ...(currentRole && ['president', 'vice_president', 'executive'].includes(currentRole)
       ? [{ path: '/admin', label: '管理', icon: ShieldCheck }]
       : []),
   ];
@@ -104,7 +104,7 @@ export const AppLayout = () => {
             {/* Right Section: Auth Buttons */}
             <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3 h-full">
               {/* 問い合わせ Button — visible to everyone except admins, hidden on mobile */}
-              {(!currentRole || !['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole)) && (
+              {(!currentRole || !['president', 'vice_president', 'executive'].includes(currentRole)) && (
                 <button
                   onClick={() => setInquiryOpen(true)}
                   className="hidden sm:flex items-center gap-2 px-4 lg:px-5 py-2.5 rounded-full font-black text-[11px] tracking-widest uppercase bg-white text-[#D62976] border border-[#D62976]/20 hover:bg-[#D62976] hover:text-white hover:shadow-[0_4px_15px_rgba(214,41,118,0.3)] transition-all duration-500 shadow-sm group"
@@ -168,7 +168,7 @@ export const AppLayout = () => {
             })}
 
             {/* Inquiry button in bottom nav for non-admin mobile users */}
-            {(!currentRole || !['president', 'vice_president', 'treasurer', 'executive'].includes(currentRole)) && (
+            {(!currentRole || !['president', 'vice_president', 'executive'].includes(currentRole)) && (
               <button
                 onClick={() => setInquiryOpen(true)}
                 className="flex flex-col items-center justify-center gap-1 px-3 h-full flex-1 text-stone-400 transition-all"
