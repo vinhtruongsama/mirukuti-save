@@ -960,60 +960,67 @@ export default function ActivityRegistrations() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="mx-auto max-w-6xl px-4 py-4 space-y-4 sm:px-6 sm:py-6">
       {/* Navigation Row */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex items-center justify-start">
         <Link
           to="/admin/activities"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3 bg-gradient-to-r from-[#4F5BD5] to-[#7B61FF] text-white rounded-full text-[14px] font-black shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-95 no-underline group"
+          className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#4F5BD5] to-[#7B61FF] px-4 py-2.5 text-[12px] font-black text-white shadow-md shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-95 no-underline"
         >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           <span>一覧に戻る</span>
         </Link>
-
-        <button
-          onClick={() => setIsExportModalOpen(true)}
-          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gray-900 hover:bg-[#4F5BD5] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
-        >
-          <Download className="w-4 h-4" /> Excelエクスポート
-        </button>
       </div>
 
       {/* Standalone Activity Heading */}
-      <div className="relative pt-2 pb-2">
-        <div className="absolute -left-10 top-0 w-64 h-64 bg-gradient-to-br from-[#D62976]/5 to-[#4F5BD5]/5 blur-3xl rounded-full -z-10" />
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-[#0f172a] tracking-tight transition-all duration-500">
+      <div className="relative py-1">
+        <div className="absolute -left-10 top-0 w-40 h-40 bg-gradient-to-br from-[#D62976]/5 to-[#4F5BD5]/5 blur-3xl rounded-full -z-10" />
+        <h1 className="text-[1.5rem] sm:text-4xl md:text-5xl font-black text-[#0f172a] tracking-tight transition-all duration-500">
           {activity?.title}
         </h1>
-        <div className="mt-2 flex items-center gap-3">
-          <div className="h-1 w-12 sm:w-20 bg-gradient-to-r from-[#D62976] to-transparent rounded-full" />
-          <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.3em] sm:tracking-[0.5em]">Activity Management</p>
+        <div className="mt-2 flex items-center gap-2">
+          <div className="h-1 w-10 sm:w-14 bg-gradient-to-r from-[#D62976] to-transparent rounded-full" />
         </div>
       </div>
 
       {/* Control Bar with Gradient Border */}
-      <div className="space-y-4">
-        <div className="p-[1px] bg-gradient-to-r from-[#D62976] to-[#4F5BD5] rounded-3xl shadow-lg shadow-[#4F5BD5]/10">
-          <div className="bg-white/95 backdrop-blur-2xl p-2.5 sm:p-3.5 rounded-[1.4rem] sm:rounded-[1.95rem] overflow-hidden">
+      <div className="space-y-3">
+        <div className="rounded-[1.4rem] border border-[#d9dcff] bg-white shadow-sm">
+          <div className="bg-white overflow-hidden rounded-[1.35rem] px-3 py-2 sm:px-4 sm:py-3">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4F5BD5]" />
+              <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-[#4F5BD5]" />
               <input
                 type="text"
-                placeholder="氏名や学籍番号でクイック検索..."
+                placeholder="氏名・学籍番号で検索"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-6 py-3 bg-transparent text-[#0f172a] text-sm font-black uppercase tracking-widest outline-none transition-all placeholder:text-gray-400"
+                className="w-full bg-transparent py-2 pl-9 pr-3 text-[14px] font-bold text-[#0f172a] outline-none transition-all placeholder:text-gray-400"
               />
             </div>
           </div>
         </div>
 
+        <button
+          onClick={() => setIsExportModalOpen(true)}
+          className="hidden w-fit min-w-[158px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#19b57a] to-[#0f9f6e] px-4 py-2.5 text-[12px] font-black text-white shadow-md shadow-emerald-200 transition-all hover:brightness-105 active:scale-95"
+        >
+          <Download className="h-4 w-4" /> Excelエクスポート
+        </button>
+
         {/* Navigation Dropdown Select List */}
         {activity?.sessions?.length > 0 && (
-          <div className="flex flex-col gap-2 max-w-md">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
-              日程・時間帯を選択
-            </label>
+          <div className="flex flex-col gap-1.5 max-w-md">
+            <div className="flex items-center justify-between gap-3 pl-1">
+              <div className="text-[1.1rem] font-black leading-none tracking-tight text-[#0f172a]">
+                日程・時間帯を選択
+              </div>
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#06c755] px-3.5 py-2.5 text-[12px] font-black text-white shadow-md shadow-emerald-200 transition-all hover:brightness-105 active:scale-95"
+              >
+                <Download className="h-4 w-4" /> Excelエクスポート
+              </button>
+            </div>
             <Select.Root
               value={selectedSessionIdx === null ? 'all' : String(selectedSessionIdx)}
               onValueChange={(val) => {
@@ -1022,7 +1029,7 @@ export default function ActivityRegistrations() {
               disabled={activity.sessions.length <= 1}
             >
               <Select.Trigger
-                className="flex items-center justify-between w-full px-5 py-3.5 bg-white border-2 border-stone-100 hover:border-indigo-100 rounded-2xl text-sm font-bold text-stone-900 shadow-sm transition-all outline-none"
+                className="flex items-center justify-between w-full px-4 py-3 bg-white border border-stone-200 hover:border-indigo-200 rounded-2xl text-sm font-bold text-stone-900 shadow-sm transition-all outline-none"
               >
                 <div className="flex items-center gap-2.5">
                   <Calendar className="w-4 h-4 text-[#4F5BD5]" />
@@ -1109,10 +1116,10 @@ export default function ActivityRegistrations() {
       </div>
 
       {/* Registration List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filteredRegs.length === 0 ? (
-          <div className="text-center py-20 bg-white border border-gray-100 rounded-3xl">
-            <UserX className="w-8 h-8 text-gray-100 mx-auto mb-4" />
+          <div className="text-center py-14 bg-white border border-gray-100 rounded-[1.8rem]">
+            <UserX className="w-7 h-7 text-gray-200 mx-auto mb-3" />
             <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">登録メンバーがいません</p>
           </div>
         ) : (
@@ -1126,10 +1133,6 @@ export default function ActivityRegistrations() {
             />
           ))
         )}
-      </div>
-
-      <div className="pt-8 text-center pb-10">
-        <p className="text-[9px] font-black text-gray-200 uppercase tracking-[0.8em]">End of Records</p>
       </div>
 
       <ExcelExportModal

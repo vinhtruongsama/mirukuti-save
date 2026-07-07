@@ -258,7 +258,7 @@ export default function SurveysAdmin() {
       if (!activeSurveyId) return [];
       const { data, error } = await supabase
         .from('survey_responses')
-        .select('*, users(full_name, full_name_kana, mssv, university_email), survey_answers(*)')
+        .select('*, users(full_name, full_name_kana, mssv, university_email, phone, line_nickname, gender, nationality, university_year), survey_answers(*)')
         .eq('survey_id', activeSurveyId)
         .order('submitted_at', { ascending: false });
       if (error) throw error;
@@ -330,19 +330,25 @@ export default function SurveysAdmin() {
 
   const surveyExportFields = useMemo<ExcelExportFieldOption[]>(() => {
     const fields: ExcelExportFieldOption[] = [
-      { key: 'no', label: 'No', description: 'So thu tu cau tra loi.' },
-      { key: 'full_name', label: '氏名', description: 'Ho va ten nguoi tra loi.' },
-      { key: 'full_name_kana', label: 'フリガナ', description: 'Ten kana.' },
-      { key: 'mssv', label: '学籍番号', description: 'Ma sinh vien.' },
-      { key: 'university_email', label: '大学メール', description: 'Email truong.' },
-      { key: 'submitted_at', label: '送信日時', description: 'Thoi gian gui phan hoi.' },
+      { key: 'no', label: 'No', description: '回答の並び順です。', group: '基本情報' },
+      { key: 'full_name', label: '氏名', description: '回答者の氏名です。', group: '基本情報' },
+      { key: 'full_name_kana', label: 'フリガナ', description: '回答者のフリガナです。', group: '基本情報' },
+      { key: 'mssv', label: '学籍番号', description: '回答者の学籍番号です。', group: '基本情報' },
+      { key: 'grade', label: '学年', description: '回答者の学年です。', group: '基本情報' },
+      { key: 'gender', label: '性別', description: '回答者の性別です。', group: '基本情報' },
+      { key: 'nationality', label: '国籍', description: '回答者の国籍です。', group: '基本情報' },
+      { key: 'university_email', label: '大学メール', description: '回答者の大学メールです。', group: '連絡先' },
+      { key: 'phone', label: '電話番号', description: '回答者の電話番号です。', group: '連絡先' },
+      { key: 'line_nickname', label: 'LINEニックネーム', description: '回答者のLINE名です。', group: '連絡先' },
+      { key: 'submitted_at', label: '送信日時', description: '回答が送信された日時です。', group: '回答情報' },
     ];
 
     activeQuestions.forEach((question, index) => {
       fields.push({
         key: `question_${question.id}`,
         label: question.label || `Question ${index + 1}`,
-        description: 'Cau tra loi cua cau hoi nay.',
+        description: 'この質問に対する回答です。',
+        group: 'アンケート回答',
       });
     });
 
@@ -567,7 +573,12 @@ export default function SurveysAdmin() {
         full_name: response.users?.full_name || '',
         full_name_kana: response.users?.full_name_kana || '',
         mssv: response.users?.mssv || '',
+        grade: response.users?.university_year ? `${response.users.university_year}年` : '',
+        gender: response.users?.gender || '',
+        nationality: response.users?.nationality || '',
         university_email: response.users?.university_email || '',
+        phone: response.users?.phone || '',
+        line_nickname: response.users?.line_nickname || '',
         submitted_at: format(new Date(response.submitted_at), 'yyyy-MM-dd HH:mm'),
       };
 
@@ -586,7 +597,18 @@ export default function SurveysAdmin() {
       ...rows,
     ]);
     ws['!cols'] = selectedFields.map((field) => ({
-      wch: field.key.startsWith('question_') ? 28 : 24
+      wch:
+        field.key.startsWith('question_')
+          ? 28
+          : field.key === 'university_email'
+            ? 35
+            : field.key === 'phone'
+              ? 18
+              : field.key === 'line_nickname'
+                ? 20
+                : field.key === 'grade'
+                  ? 8
+                  : 24
     }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Survey Responses');
@@ -1651,13 +1673,13 @@ export default function SurveysAdmin() {
 
       <ExcelExportModal
         isOpen={isExportModalOpen}
-        title="Survey Export"
-        description="Chon cac truong thong tin nguoi tra loi va cac cau hoi can dua vao file Excel."
+        title="Excelエクスポート設定"
+        description=""
         fields={surveyExportFields}
         defaultSelectedKeys={surveyDefaultExportKeys}
         onClose={() => setIsExportModalOpen(false)}
         onConfirm={exportConfiguredResponses}
-        confirmLabel="Export phan hoi"
+        confirmLabel="Excelをエクスポート"
       />
     </div>
   );

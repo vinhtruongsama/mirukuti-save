@@ -370,22 +370,22 @@ export default function Activities() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.01] mix-blend-overlay" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 relative z-10">
-        <div className="mb-14 space-y-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="relative">
-              <div className="absolute -left-4 top-0 w-1 h-8 md:h-12 bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-8 relative z-10">
+        <div className="mb-8 space-y-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="relative flex items-center pl-3">
+              <div className="absolute left-0 top-1/2 w-1 h-7 md:h-12 -translate-y-1/2 bg-gradient-to-b from-[#4F5BD5] to-[#D62976] rounded-full" />
               <h1 className="text-3xl md:text-5xl font-black text-brand-stone-900 mb-2 tracking-tighter">ボランティア活動</h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 md:gap-5 w-full md:w-auto md:justify-end">
-              <div className="bg-white/80 backdrop-blur-xl px-6 md:px-8 py-3 md:py-5 rounded-[1.5rem] md:rounded-[2rem] border border-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] flex items-center gap-4 md:gap-5 group hover:scale-[1.02] transition-all duration-500 w-fit">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-[#4F5BD5]/10 to-[#D62976]/10 flex items-center justify-center shrink-0">
+            <div className="flex shrink-0 justify-end">
+              <div className="bg-white/80 backdrop-blur-xl px-1 md:px-5 py-2 md:py-4 rounded-[1.2rem] md:rounded-[1.75rem] border border-white shadow-[0_8px_28px_rgba(0,0,0,0.09)] flex flex-col items-center gap-2 md:gap-3 group hover:scale-[1.02] transition-all duration-500 w-fit text-center">
+                <div className="w-9 h-9 md:w-11 md:h-11 rounded-lg bg-gradient-to-br from-[#4F5BD5]/10 to-[#D62976]/10 flex items-center justify-center shrink-0">
                   <Calendar className="w-5 h-5 md:w-6 md:h-6 text-[#4F5BD5]" />
                 </div>
-                <div>
-                  <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.25em] mb-0.5">{selectedYear?.name || '---'}</p>
-                  <p className="text-brand-stone-900 font-black text-lg md:text-xl">
+                <div className="text-center">
+                  <p className="text-[9px] md:text-[11px] font-black text-[#D62976] uppercase tracking-[0.22em] mb-0.5">{selectedYear?.name || '---'}</p>
+                  <p className="text-brand-stone-900 font-black text-base md:text-xl leading-none">
                     {currentActivities.length} <span className="text-xs md:text-sm text-brand-stone-400 font-bold ml-1">件の活動</span>
                   </p>
                 </div>
@@ -394,26 +394,26 @@ export default function Activities() {
           </div>
 
           {/* Optimized Search & Filter Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 md:gap-6">
             {/* Minimalist Search Area */}
             <div className="relative flex-1 max-w-2xl group w-full">
               {/* Sync with Admin Glow Effect */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 rounded-[2.5rem] blur opacity-0 group-hover:opacity-100 transition duration-500 -z-10" />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D62976]/10 to-[#4F5BD5]/10 rounded-[1.75rem] blur opacity-0 group-hover:opacity-100 transition duration-500 -z-10" />
 
-              <div className="relative flex items-center bg-white border-2 border-gray-400 rounded-[2.5rem] p-1.5 shadow-sm transition-all duration-300 group-focus-within:border-[#4F5BD5]/50 group-focus-within:shadow-[0_15px_350px_-5px_rgba(79,91,213,0.15)] overflow-hidden">
-                <Search className="ml-5 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-[#4F5BD5]" />
+              <div className="relative flex items-center bg-white border-2 border-gray-300 rounded-[1.75rem] p-1 shadow-sm transition-all duration-300 group-focus-within:border-[#4F5BD5]/50 group-focus-within:shadow-[0_15px_35px_-5px_rgba(79,91,213,0.15)] overflow-hidden">
+                <Search className="ml-4 w-4 h-4 text-gray-400 transition-colors group-focus-within:text-[#4F5BD5]" />
                 <input
                   type="text"
                   placeholder="活動名・場所を検索..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-transparent text-gray-900 text-[15px] font-black focus:outline-none placeholder:text-stone-400 uppercase tracking-widest"
+                  className="w-full px-4 py-2.5 bg-transparent text-gray-900 text-[14px] font-black focus:outline-none placeholder:text-stone-400 tracking-tight"
                 />
               </div>
             </div>
 
             {/* Streamlined Filter Pills */}
-            <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md p-1.5 rounded-[1.5rem] border border-brand-stone-700/10 shadow-sm overflow-x-auto scrollbar-hide shrink-0">
+            <div className="flex items-center justify-end gap-1 bg-white/50 backdrop-blur-md p-1 rounded-[1rem] border border-brand-stone-200 shadow-xs overflow-x-auto scrollbar-hide shrink-0">
               {[
                 { id: 'ALL', label: 'すべて' },
                 { id: 'OPEN', label: '募集中' },
@@ -422,9 +422,9 @@ export default function Activities() {
                 <button
                   key={filter.id}
                   onClick={() => setFilterMode(filter.id as any)}
-                  className={`px-7 py-2.5 rounded-[1rem] font-black text-[13px] tracking-[0.15em] transition-all duration-500 whitespace-nowrap uppercase ${filterMode === filter.id
+                  className={`px-5 py-2 rounded-[0.8rem] font-black text-[15px] tracking-[0.08em] transition-all duration-500 whitespace-nowrap ${filterMode === filter.id
                     ? 'bg-white text-[#4F5BD5] shadow-[0_8px_20px_-3px_rgba(79,91,213,0.15)] scale-[1.02] border border-[#4F5BD5]/5'
-                    : 'text-stone-500 hover:text-brand-stone-700'
+                    : 'text-stone-700 hover:text-brand-stone-700'
                     }`}
                 >
                   {filter.label}

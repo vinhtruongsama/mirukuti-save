@@ -361,23 +361,23 @@ export default function Members() {
   });
 
   const memberExportFields: ExcelExportFieldOption[] = [
-    { key: 'no', label: 'NO', description: 'So thu tu trong danh sach da loc.' },
-    { key: 'membership_id', label: 'Membership ID', description: 'ID ban ghi membership.' },
-    { key: 'user_id', label: 'User ID', description: 'ID nguoi dung.' },
-    { key: 'mssv', label: '学籍番号', description: 'Ma sinh vien.' },
-    { key: 'full_name', label: '氏名', description: 'Ho va ten.' },
-    { key: 'full_name_kana', label: 'フリガナ', description: 'Ten kana.' },
-    { key: 'gender', label: '性別', description: 'Gioi tinh.' },
-    { key: 'nationality', label: '国籍', description: 'Quoc tich.' },
-    { key: 'university_year', label: '学年', description: 'Nam hoc hien thi.' },
-    { key: 'role', label: '役割', description: 'Vai tro trong cau lac bo.' },
-    { key: 'phone', label: '電話番号', description: 'So dien thoai.' },
-    { key: 'university_email', label: '大学のメール', description: 'Email truong.' },
-    { key: 'email', label: '連絡メール', description: 'Email lien he.' },
-    { key: 'line_nickname', label: 'LINEニックネーム', description: 'Biet danh LINE.' },
-    { key: 'hometown', label: '出身地', description: 'Que quan.' },
-    { key: 'is_new', label: '新規フラグ', description: 'Danh dau thanh vien moi.' },
-    { key: 'created_at', label: 'Created At', description: 'Thoi gian tao membership.' },
+    { key: 'no', label: 'No', description: '書き出し順です。', group: '基本情報' },
+    { key: 'mssv', label: '学籍番号', description: 'メンバーの学籍番号です。', group: '基本情報' },
+    { key: 'full_name', label: '氏名', description: 'メンバーの氏名です。', group: '基本情報' },
+    { key: 'full_name_kana', label: 'フリガナ', description: 'メンバーのフリガナです。', group: '基本情報' },
+    { key: 'gender', label: '性別', description: 'メンバーの性別です。', group: '基本情報' },
+    { key: 'nationality', label: '国籍', description: 'メンバーの国籍です。', group: '基本情報' },
+    { key: 'university_year', label: '学年', description: 'メンバーの学年です。', group: '基本情報' },
+    { key: 'role', label: '役割', description: 'クラブ内での役割です。', group: '所属情報' },
+    { key: 'hometown', label: '出身地', description: 'メンバーの出身地です。', group: '所属情報' },
+    { key: 'phone', label: '電話番号', description: 'メンバーの電話番号です。', group: '連絡先' },
+    { key: 'university_email', label: '大学メール', description: 'メンバーの大学メールです。', group: '連絡先' },
+    { key: 'email', label: '連絡メール', description: '連絡用メールアドレスです。', group: '連絡先' },
+    { key: 'line_nickname', label: 'LINEニックネーム', description: 'メンバーのLINE名です。', group: '連絡先' },
+    { key: 'is_new', label: '新規フラグ', description: '新規メンバーかどうかです。', group: '管理情報' },
+    { key: 'created_at', label: '登録日時', description: 'メンバー登録日時です。', group: '管理情報' },
+    { key: 'membership_id', label: 'Membership ID', description: 'MembershipレコードのIDです。', group: 'システム情報' },
+    { key: 'user_id', label: 'User ID', description: 'ユーザーIDです。', group: 'システム情報' },
   ];
 
   const memberDefaultExportKeys = [
@@ -1047,13 +1047,13 @@ export default function Members() {
 
       <ExcelExportModal
         isOpen={isExportModalOpen}
-        title="Member Export"
-        description="Chon cac truong thong tin thanh vien can dua vao file Excel truoc khi tai xuong."
+        title="Excelエクスポート設定"
+        description=""
         fields={memberExportFields}
         defaultSelectedKeys={memberDefaultExportKeys}
         onClose={() => setIsExportModalOpen(false)}
         onConfirm={exportToExcel}
-        confirmLabel="Export danh sach"
+        confirmLabel="Excelをエクスポート"
       />
 
       {/* Edit Form Modal is now integrated into MemberDetailDrawer */}

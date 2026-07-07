@@ -58,6 +58,11 @@ export interface SurveyResponse {
     full_name_kana?: string | null;
     mssv?: string | null;
     university_email?: string | null;
+    phone?: string | null;
+    line_nickname?: string | null;
+    gender?: string | null;
+    nationality?: string | null;
+    university_year?: number | null;
   } | null;
   survey_answers?: SurveyAnswer[];
 }
