@@ -30,6 +30,20 @@ const STATUS_COLOR_THEME = {
   'unexcused_absence': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', active: 'bg-rose-500 text-white border-rose-500' }
 };
 
+function formatPhoneForExport(phone?: string | null) {
+  const digits = phone?.replace(/\D/g, '') || '';
+  if (digits.length <= 3) return phone?.trim() || '-';
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+function formatGenderForExport(gender?: string | null) {
+  if (gender === 'Male' || gender === '男' || gender === 'ç”·') return '男';
+  if (gender === 'Female' || gender === '女' || gender === 'å¥³') return '女';
+  if (!gender) return '-';
+  return 'その他';
+}
+
 function RegistrationCancelConfirmModal({
   isOpen,
   onClose,
@@ -669,11 +683,11 @@ export default function ActivityRegistrations() {
           full_name: r.users?.full_name || 'N/A',
           full_name_kana: r.users?.full_name_kana || '-',
           line_nickname: r.users?.line_nickname || '未設定',
-          gender: r.users?.gender || '-',
+          gender: formatGenderForExport(r.users?.gender),
           nationality: r.users?.nationality || '-',
           email: r.users?.email || '-',
           university_email: r.users?.university_email || '-',
-          phone: r.users?.phone || '-',
+          phone: formatPhoneForExport(r.users?.phone),
           selected_sessions: selectedSessionsLabel || '-',
           admin_note: r.admin_note || '',
           attendance_status: STATUS_JA[r.attendance_status as keyof typeof STATUS_JA] || '確認中',
@@ -879,7 +893,7 @@ export default function ActivityRegistrations() {
 
         if (isFullDisclosure) {
           row.push(r.users?.university_email || '-');
-          row.push(r.users?.phone || '-');
+          row.push(formatPhoneForExport(r.users?.phone));
         }
 
         // Add additional question answers

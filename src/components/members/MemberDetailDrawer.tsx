@@ -42,6 +42,13 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function formatPhoneForDisplay(phone?: string | null) {
+  const digits = phone?.replace(/\D/g, '') || '';
+  if (digits.length <= 3) return phone?.trim() || '無';
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
 interface MemberDetailDrawerProps {
   member: any | null; // Full member data object
   isOpen: boolean;
@@ -119,7 +126,7 @@ export default function MemberDetailDrawer({ member, isOpen, onClose, onSave, on
     ...(isFullDisclosure ? [
       { label: '連絡用メール', value: member.users?.email?.trim() || '無', icon: Mail, copy: true },
       { label: '大学メール', value: member.users?.university_email?.trim() || '無', icon: GraduationCap },
-      { label: '電話番号', value: member.users?.phone?.trim() || '無', icon: Phone },
+      { label: '電話番号', value: formatPhoneForDisplay(member.users?.phone), icon: Phone },
       { label: '国籍', value: member.users?.nationality?.trim() || '無', icon: Globe },
       { label: 'LINE', value: member.users?.line_nickname?.trim() ? `@${member.users.line_nickname.trim()}` : '無', icon: MessagesSquare }
     ] : [])

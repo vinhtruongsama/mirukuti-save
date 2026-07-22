@@ -40,6 +40,35 @@ const memberSchema = z.object({
 
 type MemberFormData = z.infer<typeof memberSchema>;
 
+function formatPhoneForDisplay(phone?: string | null) {
+  const digits = phone?.replace(/\D/g, '') || '';
+  if (digits.length <= 3) return phone?.trim() || '';
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+function formatGenderForExport(gender?: string | null) {
+  if (gender === 'Male' || gender === '男' || gender === 'ç”·') return '男';
+  if (gender === 'Female' || gender === '女' || gender === 'å¥³') return '女';
+  if (!gender) return '';
+  return 'その他';
+}
+
+function formatRoleForExport(role?: string | null) {
+  switch (role) {
+    case 'president': return '部長';
+    case 'vice_president': return '副部長';
+    case 'treasurer': return '会計';
+    case 'executive': return '幹部';
+    case 'alumni': return '卒業生';
+    default: return '部員';
+  }
+}
+
+function getNationalityForExport(user?: any) {
+  return user?.nationality || '';
+}
+
 export default function Members() {
   const queryClient = useQueryClient();
   const { currentUser } = useAuthStore();
@@ -369,15 +398,12 @@ export default function Members() {
     { key: 'nationality', label: '国籍', description: 'メンバーの国籍です。', group: '基本情報' },
     { key: 'university_year', label: '学年', description: 'メンバーの学年です。', group: '基本情報' },
     { key: 'role', label: '役割', description: 'クラブ内での役割です。', group: '所属情報' },
-    { key: 'hometown', label: '出身地', description: 'メンバーの出身地です。', group: '所属情報' },
     { key: 'phone', label: '電話番号', description: 'メンバーの電話番号です。', group: '連絡先' },
     { key: 'university_email', label: '大学メール', description: 'メンバーの大学メールです。', group: '連絡先' },
     { key: 'email', label: '連絡メール', description: '連絡用メールアドレスです。', group: '連絡先' },
     { key: 'line_nickname', label: 'LINEニックネーム', description: 'メンバーのLINE名です。', group: '連絡先' },
     { key: 'is_new', label: '新規フラグ', description: '新規メンバーかどうかです。', group: '管理情報' },
     { key: 'created_at', label: '登録日時', description: 'メンバー登録日時です。', group: '管理情報' },
-    { key: 'membership_id', label: 'Membership ID', description: 'MembershipレコードのIDです。', group: 'システム情報' },
-    { key: 'user_id', label: 'User ID', description: 'ユーザーIDです。', group: 'システム情報' },
   ];
 
   const memberDefaultExportKeys = [
@@ -436,12 +462,8 @@ export default function Members() {
 
       const rowData = filteredData.map((m: any, idx) => {
         const gradeLabel = getGradeBadge(m.users?.university_year).label;
-        const roleLabel = m.role === 'president' ? '部長' :
-            m.role === 'vice_president' ? '副部長' :
-              m.role === 'treasurer' ? '会計' :
-                m.role === 'executive' ? '幹部' :
-                  m.role === 'alumni' ? '卒業生' : '部員';
-        const genderLabel = m.users?.gender === 'Male' ? '男' : m.users?.gender === 'Female' ? '女' : 'その他';
+        const roleLabel = formatRoleForExport(m.role);
+        const genderLabel = formatGenderForExport(m.users?.gender);
 
         return [
           idx + 1, // NO
@@ -450,10 +472,10 @@ export default function Members() {
           m.users?.full_name_kana || '', // フリガナ
           m.users?.line_nickname || '', // LINEニックネーム
           genderLabel, // 性別
-          m.users?.nationality || '', // 国籍
+          getNationalityForExport(m.users), // 国籍
           gradeLabel, // 学年
           roleLabel, // 役割
-          m.users?.phone || '', // 電話番号
+          formatPhoneForDisplay(m.users?.phone), // 電話番号
           m.users?.university_email || '', // 大学のメール
           m.users?.email || '', // 連絡メール
         ];
@@ -462,12 +484,8 @@ export default function Members() {
       void rowData;
       const selectedRowData = filteredData.map((m: any, idx) => {
         const gradeLabel = getGradeBadge(m.users?.university_year).label;
-        const roleLabel = m.role === 'president' ? 'éƒ¨é•·' :
-            m.role === 'vice_president' ? 'å‰¯éƒ¨é•·' :
-              m.role === 'treasurer' ? 'ä¼šè¨ˆ' :
-                m.role === 'executive' ? 'å¹¹éƒ¨' :
-                  m.role === 'alumni' ? 'å’æ¥­ç”Ÿ' : 'éƒ¨å“¡';
-        const genderLabel = m.users?.gender === 'Male' ? 'ç”·' : m.users?.gender === 'Female' ? 'å¥³' : 'ãã®ä»–';
+        const roleLabel = formatRoleForExport(m.role);
+        const genderLabel = formatGenderForExport(m.users?.gender);
         const valueMap: Record<string, string | number> = {
           no: idx + 1,
           membership_id: m.id || '',
@@ -476,14 +494,13 @@ export default function Members() {
           full_name: m.users?.full_name || '',
           full_name_kana: m.users?.full_name_kana || '',
           gender: genderLabel,
-          nationality: m.users?.nationality || '',
+          nationality: getNationalityForExport(m.users),
           university_year: gradeLabel,
           role: roleLabel,
-          phone: m.users?.phone || '',
+          phone: formatPhoneForDisplay(m.users?.phone),
           university_email: m.users?.university_email || '',
           email: m.users?.email || '',
           line_nickname: m.users?.line_nickname || '',
-          hometown: m.users?.hometown || '',
           is_new: m.users?.is_new ? 'Yes' : 'No',
           created_at: m.created_at ? format(new Date(m.created_at), 'yyyy-MM-dd HH:mm:ss') : '',
         };

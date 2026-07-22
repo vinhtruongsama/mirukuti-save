@@ -74,6 +74,20 @@ type SurveyEligibleMemberRow = {
     | null;
 };
 
+function formatPhoneForExport(phone?: string | null) {
+  const digits = phone?.replace(/\D/g, '') || '';
+  if (digits.length <= 3) return phone?.trim() || '';
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+function formatGenderForExport(gender?: string | null) {
+  if (gender === 'Male' || gender === '男' || gender === 'ç”·') return '男';
+  if (gender === 'Female' || gender === '女' || gender === 'å¥³') return '女';
+  if (!gender) return '';
+  return 'その他';
+}
+
 type SurveyDraft = {
   id?: string;
   title: string;
@@ -574,10 +588,10 @@ export default function SurveysAdmin() {
         full_name_kana: response.users?.full_name_kana || '',
         mssv: response.users?.mssv || '',
         grade: response.users?.university_year ? `${response.users.university_year}年` : '',
-        gender: response.users?.gender || '',
+        gender: formatGenderForExport(response.users?.gender),
         nationality: response.users?.nationality || '',
         university_email: response.users?.university_email || '',
-        phone: response.users?.phone || '',
+        phone: formatPhoneForExport(response.users?.phone),
         line_nickname: response.users?.line_nickname || '',
         submitted_at: format(new Date(response.submitted_at), 'yyyy-MM-dd HH:mm'),
       };
