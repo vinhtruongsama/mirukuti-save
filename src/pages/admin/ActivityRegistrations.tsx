@@ -1016,7 +1016,7 @@ export default function ActivityRegistrations() {
 
         <button
           onClick={() => setIsExportModalOpen(true)}
-          className="hidden w-fit min-w-[158px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#19b57a] to-[#0f9f6e] px-4 py-2.5 text-[12px] font-black text-white shadow-md shadow-emerald-200 transition-all hover:brightness-105 active:scale-95"
+          className="flex w-fit min-w-[158px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#19b57a] to-[#0f9f6e] px-4 py-2.5 text-[12px] font-black text-white shadow-md shadow-emerald-200 transition-all hover:brightness-105 active:scale-95"
         >
           <Download className="h-4 w-4" /> Excelエクスポート
         </button>
@@ -1030,7 +1030,7 @@ export default function ActivityRegistrations() {
               </div>
               <button
                 onClick={() => setIsExportModalOpen(true)}
-                className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#06c755] px-3.5 py-2.5 text-[12px] font-black text-white shadow-md shadow-emerald-200 transition-all hover:brightness-105 active:scale-95"
+                className="hidden shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#06c755] px-3.5 py-2.5 text-[12px] font-black text-white shadow-md shadow-emerald-200 transition-all hover:brightness-105 active:scale-95"
               >
                 <Download className="h-4 w-4" /> Excelエクスポート
               </button>
